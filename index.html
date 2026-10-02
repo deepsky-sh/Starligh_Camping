@@ -2465,6 +2465,7 @@ async function buildCamp(){
     for (let z = -114; z <= 112; z += 8.4){
       if (lx < 0 && z > -12 && z < 20) { bollard(lx - .9, z + 4.2); continue; } // open frontage at 관리동
       if (isFree(lx, z)) cardTree(lx + R(-.3,.3), z, { h:R(4.2,5.6), trunk:R(.06,.085), crown:R(1.1,1.6), crownY:.62, branches:4, cards:18, card:1.05, kind:'young' });
+      if (lx < 0 && z + 4.2 > BYUL.z0 - 4 && z + 4.2 < BYUL.z1 + 3) continue; // no bollard lights in the 별빛존 parking lot
       bollard(lx + (lx>0?.9:-.9), z + 4.2);
     }
   }
