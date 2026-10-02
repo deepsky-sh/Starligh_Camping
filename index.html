@@ -860,7 +860,23 @@ function buildGrass(){
 let waterMat, rockMat;
 /* ---------------- 담터계곡 (video-matched): clear shallow water over a cobble bed, stacked riprap banks, gravel bars, rock weirs ---------------- */
 const WATER_Y = -2.1;
-const RAFT_TOP = 86, RAFT_BOT = -27;
+const RAFT_START = -26, RAFT_END = 86;            // the creek flows toward +z (the B-end); rafts run with it
+const WEIR_Z = [-58, 34];
+// shared wave field (JS twin of the GLSL below): ripples rolling downstream, steeper standing chop just below each weir
+const wvR = z => { let r = 0; for (const wz of WEIR_Z){ const a = (z - wz - 3)/3.5; r += Math.exp(-a*a); } return r; };
+function waveH(x, z, t){ return (.042*Math.sin(.9*z - 2.6*t + .25*x) + .024*Math.sin(1.7*x + 1.3*z - 3.4*t) + .015*Math.sin(2.9*z - 4.4*t - 1.1*x))*(1 + 2.4*wvR(z)); }
+const waveAt = (x, z, t) => waveH(x, z, t)*smooth(.02, .35, WATER_Y - H(x, z));
+const WAVE_GLSL = `
+float wvR(float z){ float a = (z + 55.)/3.5, b = (z - 37.)/3.5; return exp(-a*a) + exp(-b*b); }
+float wvRd(float z){ float a = (z + 55.)/3.5, b = (z - 37.)/3.5; return -2.*a/3.5*exp(-a*a) - 2.*b/3.5*exp(-b*b); }
+float wvHash(vec2 p){ p = fract(mod(p, 289.)*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
+float wvNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3. - 2.*f); return mix(mix(wvHash(i), wvHash(i + vec2(1., 0.)), f.x), mix(wvHash(i + vec2(0., 1.)), wvHash(i + vec2(1., 1.)), f.x), f.y); }
+float waveH(float x, float z, float t){ return (.042*sin(.9*z - 2.6*t + .25*x) + .024*sin(1.7*x + 1.3*z - 3.4*t) + .015*sin(2.9*z - 4.4*t - 1.1*x))*(1. + 2.4*wvR(z)); }
+vec2 waveG(float x, float z, float t){
+  float p1 = .9*z - 2.6*t + .25*x, p2 = 1.7*x + 1.3*z - 3.4*t, p3 = 2.9*z - 4.4*t - 1.1*x, m = 1. + 2.4*wvR(z);
+  float c1 = .042*cos(p1), c2 = .024*cos(p2), c3 = .015*cos(p3), s = .042*sin(p1) + .024*sin(p2) + .015*sin(p3);
+  return vec2((.25*c1 + 1.7*c2 - 1.1*c3)*m, (.9*c1 + 1.3*c2 + 2.9*c3)*m + s*2.4*wvRd(z));
+}`;
 const floatX = z => creekC(z) - 1.3 + .8*Math.sin(z/14);
 function cobbleTex(){
   return canvasTex(512, 512, (g, w, h) => {
@@ -890,10 +906,13 @@ function foamTex(){
 const creekFx = { foam:[], foamMats:[] };
 function buildCreek(){
   // water: a grid that knows the depth below it, so shallows are clear and pools darker
-  const segs = 520, NX = 26, z0 = -900, z1 = 900, W = 22;
-  const pos = [], uv = [], dep = [], idx = [];
+  const NX = 36, W = 22, zs = [];
+  for (let z = -900; z < -240; z += 6) zs.push(z);
+  for (let z = -240; z < 240; z += .6) zs.push(z);
+  for (let z = 240; z <= 900; z += 6) zs.push(z);
+  const segs = zs.length - 1, pos = [], uv = [], dep = [], idx = [];
   for (let i=0;i<=segs;i++){
-    const z = z0 + (z1 - z0)*i/segs, cx = creekC(z);
+    const z = zs[i], cx = creekC(z);
     for (let j=0;j<=NX;j++){ const x = cx - W/2 + W*j/NX; pos.push(x, WATER_Y, z); uv.push(x/4, z/4); dep.push(clamp(WATER_Y - H(x, z), -1, 3)); }
     if (i < segs) for (let j=0;j<NX;j++){ const a = i*(NX + 1) + j, b = a + NX + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
   }
@@ -901,16 +920,26 @@ function buildCreek(){
   const wn = waterNormalTex();
   waterMat = carEnv(new THREE.MeshStandardMaterial({ color:0x2f4a3c, roughness:.05, metalness:0, transparent:true, opacity:.85, normalMap:wn, normalScale:new THREE.Vector2(.16, .16), depthWrite:false }), .9);
   waterMat.userData.uIce = { value:0 };
-  patchMat(waterMat, 'creekDepth', sh => {
-    sh.uniforms.uIce = waterMat.userData.uIce;
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aDepth;\nvarying float vDepth;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvDepth = aDepth;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vDepth;\nuniform float uIce;')
+  patchMat(waterMat, 'creekWaves', sh => {
+    sh.uniforms.uIce = waterMat.userData.uIce; sh.uniforms.uTime = U.uTime;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aDepth;\nvarying float vDepth;\nvarying vec3 vWP;\nvarying float vWM;\nuniform float uIce;\nuniform float uTime;' + WAVE_GLSL)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vDepth = aDepth; vWM = smoothstep(.02, .35, aDepth)*(1. - uIce);
+        transformed.y += waveH(position.x, position.z, uTime)*vWM; vWP = transformed;`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vDepth;\nvarying vec3 vWP;\nvarying float vWM;\nuniform float uIce;\nuniform float uTime;' + WAVE_GLSL)
+      .replace('#include <normal_fragment_begin>', THREE.ShaderChunk.normal_fragment_begin.replace('vec3 normal = normalize( vNormal );',
+        'vec2 wg = waveG(vWP.x, vWP.z, uTime)*vWM; vec3 normal = normalize((viewMatrix*vec4(normalize(vec3(-wg.x, 1., -wg.y)), 0.)).xyz);'))
       .replace('#include <color_fragment>', `#include <color_fragment>
+        float wh = waveH(vWP.x, vWP.z, uTime)*vWM, wr = wvR(vWP.z);
+        vec2 fq = vec2(vWP.x*2.4, vWP.z*1.1 - uTime*2.2);
+        float fn = wvNoise(fq)*.62 + wvNoise(fq*2.7 + vec2(3.1, -uTime*1.7))*.38;
+        float cap = (smoothstep(.62, .86, fn + wh*1.6)*smoothstep(.2, .75, wr) + smoothstep(.12, .24, wh)*smoothstep(.4, .7, fn))*vWM;
         float dk = smoothstep(0.0, 1.0, vDepth);
         vec3 shallow = diffuseColor.rgb*2.4 + vec3(.05, .056, .045);
         diffuseColor.rgb = mix(mix(shallow, diffuseColor.rgb, dk), diffuseColor.rgb, uIce);
         float aw = opacity*mix(.26, 1.0, dk)*smoothstep(-.02, .07, vDepth);
-        diffuseColor.a = mix(aw, opacity*smoothstep(-.05, .05, vDepth), uIce);`);
+        diffuseColor.a = mix(aw, opacity*smoothstep(-.05, .05, vDepth), uIce);
+        cap = clamp(cap, 0., 1.)*(1. - uIce); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(.86, .9, .92), cap*.75); diffuseColor.a = max(diffuseColor.a, cap*.7);`);
   });
   const water = new THREE.Mesh(g, waterMat); water.receiveShadow = true; water.renderOrder = 2; scene.add(water);
   // cobble bed under the shallows and on the dry bars
@@ -966,7 +995,7 @@ function buildCreek(){
   imA.count = a; imA.castShadow = imA.receiveShadow = true; imA.frustumCulled = false; scene.add(imA);
   while (b < nR){
     const z = R(-260, 260), x = creekC(z) + R(-8, 8);
-    if (z > RAFT_BOT - 6 && z < RAFT_TOP + 6 && Math.abs(x - floatX(z)) < 2.2) continue;
+    if (z > RAFT_START - 8 && z < RAFT_END + 6 && Math.abs(x - floatX(z)) < 2.2) continue;
     const s = Math.pow(rng(), 2.2)*0.85 + 0.15;
     tmpM.compose(tmpV.set(x, H(x,z) - s*.3, z), tmpQ.setFromEuler(new THREE.Euler(R(-.4,.4), rng()*6.28, R(-.4,.4))), tmpS.set(s*R(1,1.6), s, s*R(.9,1.4)));
     imR.setMatrixAt(b, tmpM); const v = R(.24,.42); col.setRGB(v*1.04, v, v*.9); imR.setColorAt(b++, col);
@@ -982,8 +1011,8 @@ function buildCreek(){
   };
   for (const [wz, sk] of weirs){
     const ang = -Math.atan(sk);
-    foamStrip([creekC(wz) + .2, wz - .7], 11.5, .9, ang, .35);
-    foamStrip([floatX(wz - 2.5), wz - 2.5], 1.6, 5.5, 0, .55);
+    foamStrip([creekC(wz) + .2, wz + .7], 11.5, .9, ang, .45);
+    foamStrip([floatX(wz + 2.8), wz + 2.8], 1.7, 6, 0, .7);
   }
 }
 function updateCreek(dt, t){
@@ -991,7 +1020,7 @@ function updateCreek(dt, t){
   for (const f of creekFx.foam){ f.mesh.visible = !ice; f.t.offset.y = (f.t.offset.y + dt*f.speed) % 1; f.mesh.material.opacity = .62 + .12*Math.sin(t*2.3 + f.speed*10); }
 }
 
-/* ---------------- 여름 계곡 래프팅: float down the creek, land, carry the boat overhead back up, relaunch ---------------- */
+/* ---------------- 여름 계곡 래프팅: paddle down with the current (toward the B end), land, carry the boat overhead back, relaunch ---------------- */
 function buildRaftMesh(){
   const g = new THREE.Group(), L = 2.9, W = 1.18, r = .2, hx = L/2 - r, hz = W/2 - r;
   const N = 96, pts = [];
@@ -1005,28 +1034,29 @@ function buildRaftMesh(){
     colors[k*3] = cc.r; colors[k*3+1] = cc.g; colors[k*3+2] = cc.b; } }
   tube.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const tm = new THREE.Mesh(tube, new THREE.MeshPhysicalMaterial({ vertexColors:true, roughness:.32, clearcoat:.7, clearcoatRoughness:.25 })); tm.castShadow = true; tm.receiveShadow = true; g.add(tm);
-  // floor
   const fl = []; for (let i=0;i<48;i++){ curve.getPointAt(i/48, C); fl.push(new THREE.Vector2(C.x*.93, -C.z*.8)); }
   const fg = new THREE.ShapeGeometry(new THREE.Shape(fl)); fg.rotateX(-Math.PI/2); fg.translate(0, -.12, 0);
   const floor = new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ color:0x6f7690, roughness:.6, side:THREE.DoubleSide })); floor.receiveShadow = true; g.add(floor);
-  // perimeter grab line with D-rings
   const rope = [], ringM = new THREE.MeshStandardMaterial({ color:0x15161a, roughness:.5 }), NR = 18;
   for (let i=0;i<=144;i++){ const u = i/144; curve.getPointAt(u % 1, C); const n = new THREE.Vector3(C.x/(hx*hx), 0, C.z/(hz*hz)).normalize(); const fr = (u*NR) % 1; rope.push(C.clone().addScaledVector(n, r*.8).add(new THREE.Vector3(0, r*.58 - .04*Math.sin(Math.PI*fr)**2, 0))); }
-  const rp = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rope, true), 200, .007, 5, true), ringM); g.add(rp);
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rope, true), 200, .007, 5, true), ringM));
   for (let i=0;i<NR;i++){ curve.getPointAt(i/NR, C); const n = new THREE.Vector3(C.x/(hx*hx), 0, C.z/(hz*hz)).normalize(); const d = new THREE.Mesh(new THREE.TorusGeometry(.02, .005, 6, 10), ringM); d.position.copy(C).addScaledVector(n, r*.78).add(new THREE.Vector3(0, r*.6, 0)); d.lookAt(d.position.clone().add(n)); g.add(d); }
+  g.rotation.order = 'YZX';
   return g;
 }
+// single-blade raft paddle: grip at +.44, blade centre at -.62 (local units)
 function makePaddle(){
   const g = new THREE.Group(), blk = new THREE.MeshStandardMaterial({ color:0x17181b, roughness:.5 }), shaft = new THREE.MeshStandardMaterial({ color:0xb7bcc2, roughness:.3, metalness:.8 });
-  const s = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, 1.25, 8), shaft); g.add(s);
-  const b = new THREE.Mesh(new THREE.BoxGeometry(.19, .4, .014), blk); b.position.y = -.8; g.add(b);
-  const tip = new THREE.Mesh(new THREE.CylinderGeometry(.095, .095, .014, 16, 1, false, 0, Math.PI), blk); tip.rotation.set(Math.PI/2, 0, 0); tip.position.y = -1.0; g.add(tip);
-  const grip = new THREE.Mesh(new THREE.BoxGeometry(.13, .035, .035), blk); grip.position.y = .63; g.add(grip);
+  { const sm = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .92, 8), shaft); sm.position.y = -.04; g.add(sm); }
+  const b = new THREE.Mesh(new THREE.BoxGeometry(.19, .38, .014), blk); b.position.y = -.62; g.add(b);
+  const tip = new THREE.Mesh(new THREE.CylinderGeometry(.095, .095, .014, 16, 1, false, 0, Math.PI), blk); tip.rotation.set(Math.PI/2, 0, Math.PI); tip.position.y = -.81; g.add(tip);
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.018, .05, .08, 8), blk); neck.position.y = -.4; g.add(neck);
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(.13, .035, .035), blk); grip.position.y = .44; g.add(grip);
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return g;
 }
 const lerpAng = (a, b, t) => { let d = ((b - a + Math.PI) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) - Math.PI; return a + d*t; };
-const raft = { state:'float', s:0, t:0, d:0, vis:true, ripples:[], rippleT:0, heading:Math.PI };
+const raft = { state:'float', z:RAFT_START, t:0, d:0, k:0, vis:true, ripples:[], heading:0, speed:1.6, P:1.25, prevPh:[0,0,0] };
 const P_SIT = { py:.19, lean:.08, r:[-.3, 0, -.42], re:-.6, l:[-.3, 0, .42], le:-.6, rh:-1.95, lh:-1.95, rk:1.25, lk:1.25, ra:.55, la:.55, rhz:.12, lhz:-.12, hx:-.04 };
 const P_STAND = { r:[.05, 0, -.1], re:-.2, l:[.05, 0, .1], le:-.2 };
 const P_CARRY = { r:[-2.78, 0, -.17], re:-.5, l:[-2.78, 0, .17], le:-.5, hx:-.08, lean:-.03 };
@@ -1036,87 +1066,166 @@ function raftGround(x, z){
 }
 function buildRafting(){
   const boat = raft.boat = buildRaftMesh(); scene.add(boat);
-  const spare = raft.spare = makePaddle(); spare.rotation.set(Math.PI/2, 0, Math.PI/2 + .08); spare.position.set(-.05, -.08, .18); boat.add(spare);
+  raft.stowed = [makePaddle(), makePaddle()];
+  raft.stowed.forEach((p, i) => { p.rotation.set(Math.PI/2, 0, Math.PI/2 + .06 - i*.12); p.position.set(-.05 + i*.1, -.08, .16 - i*.32); boat.add(p); });
   raft.crew = [
     new Figure({ sex:'m', h:1.79, skin:0xd29c78, hair:0x15110e, hairStyle:'short', top:0x18191c, topStyle:'sleeveless', topRough:.5, bottom:0x161719, bottomStyle:'shorts', shoes:0xcfe83a, sole:0x1f1f1f, gaiter:0xe8eaee, glasses:true, hat:{ type:'cap', color:0x1b1c1f } }),
     new Figure({ sex:'f', h:1.64, skin:0xf2cbb0, hair:0x1a1310, hairStyle:'pony', top:0xf1cdd3, topStyle:'long', topRough:.6, bottom:0x111214, bottomStyle:'shorts', skirt:0x141416, shoes:0xf3a6ba, hat:{ type:'bucket', color:0xdccfb6 } }),
     new Figure({ sex:'f', h:1.6, skin:0xefc7aa, hair:0x15100c, hairStyle:'long', top:0x232428, topStyle:'long', topRough:.55, bottom:0x17181b, bottomStyle:'leggings', skirt:0x1c1d21, shoes:0xf4b2c2, hat:{ type:'bucket', color:0x2d2e33 } }),
   ];
   for (const c of raft.crew) scene.add(c.root);
-  raft.paddle = makePaddle(); raft.crew[0].torso.add(raft.paddle);
+  raft.paddles = raft.crew.map(c => { const p = makePaddle(); c.torso.add(p); return p; });
   raft.seats = [[-.95, 0], [.6, 0], [-.16, 0]];            // boat-local x along the hull (bow +x)
+  raft.sides = [1, -1, 1];                                  // +1 = paddler's right (boat-local +z)
+  raft.lag = [.06, 0, .03];                                 // the stern paddler follows the bow a beat later
   raft.carry = [[.98, .14], [-.02, -.12], [-1.0, .1]];      // along / across the hull while carrying overhead
-  raft.B0 = [creekC(-29.6) - 3.4, -29.6]; raft.B1 = [creekC(85.5) - 3.4, 85.5];
-  raft.path = [[creekC(-30) - 4.7, -29.7], [creekC(-30) - 7.9, -30], [STRIP.x1 - .8, -30], [4.6, -30.6], [4.6, 84.4], [STRIP.x1 - .8, 85], [creekC(85) - 7.9, 85], [creekC(85) - 4.7, 85.4]];
+  raft.L = [creekC(85.6) - 3.4, 85.6];                      // landing spot at the B-end stairs
+  raft.B = [creekC(-29.6) - 3.4, -29.6];                    // launch spot at the 피크닉존 stairs
+  raft.path = [[creekC(85) - 4.7, 85.4], [creekC(85) - 7.9, 85], [STRIP.x1 - .8, 85], [4.6, 84.4], [4.6, -30.6], [STRIP.x1 - .8, -30], [creekC(-30) - 7.9, -30], [creekC(-30) - 4.7, -29.7]];
   raft.cum = [0]; for (let i=1;i<raft.path.length;i++) raft.cum.push(raft.cum[i-1] + Math.hypot(raft.path[i][0] - raft.path[i-1][0], raft.path[i][1] - raft.path[i-1][1]));
-  raft.floatLen = RAFT_TOP - RAFT_BOT;
+  // ripple rings, wake, bow foam and spray
   const rt = canvasTex(128, 128, (c, w, h) => { const gr = c.createRadialGradient(64, 64, 40, 64, 64, 62); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.6, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
-  for (let i=0;i<7;i++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map:rt, transparent:true, depthWrite:false, opacity:0 })); m.rotation.x = -Math.PI/2; m.renderOrder = 3; scene.add(m); raft.ripples.push({ m, age:9 }); }
-  raft.state = 'float'; raft.s = .18;
+  for (let i=0;i<10;i++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map:rt, transparent:true, depthWrite:false, opacity:0 })); m.rotation.x = -Math.PI/2; m.renderOrder = 3; scene.add(m); raft.ripples.push({ m, age:9 }); }
+  const wakeT = canvasTex(128, 256, (c, w, h) => {
+    const r = mulberry32(31); c.clearRect(0, 0, w, h);
+    for (let i=0;i<900;i++){ const v = r(), side = r() < .5 ? -1 : 1, spread = (1 - v)*.46 + .02, x = w*(.5 + side*spread + (r() - .5)*.05), y = h*v; const a = (.15 + .55*v)*(r()*.7 + .3); c.fillStyle = `rgba(255,255,255,${a})`; c.beginPath(); c.arc(x, y, 1 + r()*2.6*v, 0, Math.PI*2); c.fill(); }
+    for (let i=0;i<500;i++){ const v = Math.pow(r(), .6), x = w*(.5 + (r() - .5)*.32*(1 - v*.6)), y = h*v; c.fillStyle = `rgba(255,255,255,${.08 + .3*v*r()})`; c.beginPath(); c.arc(x, y, 1 + r()*3, 0, Math.PI*2); c.fill(); }
+  });
+  wakeT.wrapT = THREE.RepeatWrapping;
+  const wg = new THREE.PlaneGeometry(3.4, 5); wg.rotateX(-Math.PI/2); wg.rotateY(-Math.PI/2); wg.translate(-1.25 - 2.5, -.05, 0);
+  raft.wake = new THREE.Mesh(wg, new THREE.MeshBasicMaterial({ map:wakeT, transparent:true, depthWrite:false, opacity:.7 })); raft.wake.renderOrder = 3; boat.add(raft.wake);
+  const bowT = canvasTex(128, 64, (c, w, h) => { const r = mulberry32(7); c.clearRect(0, 0, w, h); for (let i=0;i<500;i++){ const a = r()*Math.PI, rad = .7 + r()*.3, x = w/2 + Math.cos(a)*w*.45*rad, y = h - Math.sin(a)*h*.9*rad; c.fillStyle = `rgba(255,255,255,${.2 + r()*.6})`; c.beginPath(); c.arc(x, y, 1 + r()*2.5, 0, Math.PI*2); c.fill(); } });
+  const bg = new THREE.PlaneGeometry(1.5, .8); bg.rotateX(-Math.PI/2); bg.rotateY(-Math.PI/2); bg.translate(1.42, -.05, 0);
+  raft.bow = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ map:bowT, transparent:true, depthWrite:false, opacity:.6 })); raft.bow.renderOrder = 3; boat.add(raft.bow);
+  const NP = 220, sp = raft.spray = { n:NP, pos:new Float32Array(NP*3).fill(-999), vel:new Float32Array(NP*3), life:new Float32Array(NP), next:0 };
+  const dropT = canvasTex(32, 32, (c, w, h) => { const gr = c.createRadialGradient(16, 16, 1, 16, 16, 15); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+  sp.geo = new THREE.BufferGeometry(); sp.geo.setAttribute('position', new THREE.BufferAttribute(sp.pos, 3));
+  sp.pts = new THREE.Points(sp.geo, new THREE.PointsMaterial({ map:dropT, size:.07, transparent:true, depthWrite:false, opacity:.9, color:0xf4f8ff })); sp.pts.frustumCulled = false; sp.pts.renderOrder = 4; scene.add(sp.pts);
+  raft.state = 'float'; raft.z = lerp(RAFT_START, RAFT_END, .2);
   npcs.push({ update: dt => raftUpdate(dt) });
 }
+function spray(p, n, up, spread, dir){
+  const sp = raft.spray;
+  for (let k=0;k<n;k++){ const i = sp.next++ % sp.n; sp.pos[i*3] = p.x + R(-.08,.08); sp.pos[i*3+1] = p.y + .02; sp.pos[i*3+2] = p.z + R(-.08,.08);
+    sp.vel[i*3] = R(-spread, spread) + (dir ? dir.x : 0); sp.vel[i*3+1] = up*R(.55, 1.1); sp.vel[i*3+2] = R(-spread, spread) + (dir ? dir.z : 0); sp.life[i] = R(.35, .75); }
+}
+function ripple(x, z, s0=.8){ const rr = raft.ripples.find(r => r.age > 2.6) || raft.ripples[0]; rr.age = 0; rr.s0 = s0; rr.m.position.set(x, WATER_Y + waveH(x, z, U.uTime.value) + .03, z); }
 function pathAt(d){
   const P = raft.path, C = raft.cum; d = clamp(d, 0, C[C.length - 1]);
   let i = 1; while (i < C.length - 1 && C[i] < d) i++;
   const t = (d - C[i-1])/Math.max(1e-6, C[i] - C[i-1]);
   return { x: lerp(P[i-1][0], P[i][0], t), z: lerp(P[i-1][1], P[i][1], t), h: Math.atan2(P[i][0] - P[i-1][0], P[i][1] - P[i-1][1]) };
 }
-function placeBoat(x, y, z, heading, pitch=0, roll=0){ const b = raft.boat; b.position.set(x, y, z); b.rotation.set(roll, heading - Math.PI/2, pitch); }
-function seatWorld(i, x, y, z, heading){ const [sx, sz] = raft.seats[i], ph = heading - Math.PI/2, c = Math.cos(ph), s = Math.sin(ph); return [x + sx*c + sz*s, y - .11, z - sx*s + sz*c]; }
+function placeBoat(x, y, z, heading, pitch=0, roll=0){ const b = raft.boat; b.position.set(x, y, z); b.rotation.set(roll, heading - Math.PI/2, pitch); b.updateMatrixWorld(true); }
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _mIK = new THREE.Matrix4(), _qF = new THREE.Quaternion();
+function seatWorld(i){ const [sx, sz] = raft.seats[i]; const p = raft.boat.localToWorld(_v1.set(sx, -.11, sz)); return [p.x, p.y, p.z]; }
+function seatFlat(i, x, y, z, heading){ const [sx, sz] = raft.seats[i], ph = heading - Math.PI/2, c = Math.cos(ph), s = Math.sin(ph); return [x + sx*c + sz*s, y - .11, z - sx*s + sz*c]; }
 function carryWorld(i, x, z, heading){ const [al, ac] = raft.carry[i], f = [Math.sin(heading), Math.cos(heading)], r = [-Math.cos(heading), Math.sin(heading)]; const px = x + f[0]*al + r[0]*ac, pz = z + f[1]*al + r[1]*ac; return [px, raftGround(px, pz), pz]; }
 function reachPose(fig, base, handY){
-  // bend the elbows so raised hands meet the hull bottom whatever the person's height
   const S = fig.o.h/1.7, sh = 1.43*S; let best = -.5, err = 1e9;
   for (let e = -1.6; e <= -.35; e += .05){ const y = sh + .28*S*Math.cos(Math.PI - 2.78) + .32*S*Math.cos(Math.PI - 2.78 + e); const d = Math.abs(y - handY); if (d < err){ err = d; best = e; } }
   return Object.assign({}, base, { re:best, le:best });
 }
+// two-bone arm IK in the torso frame: upper arm .28, forearm+hand .32, elbow pointing out, down and back
+function solveArm(arm, target, sideX){
+  const T = _v1.copy(target).sub(arm.sh.position); const a = .28, b = .32;
+  const d = clamp(T.length(), .14, a + b - .004); const t = T.normalize();
+  const A = Math.acos(clamp((a*a + d*d - b*b)/(2*a*d), -1, 1)), bend = Math.PI - Math.acos(clamp((a*a + b*b - d*d)/(2*a*b), -1, 1));
+  const w = _v2.set(-sideX*.7, .55, .45).normalize(); w.addScaledVector(t, -w.dot(t)).normalize();
+  const Uv = _v3.copy(t).multiplyScalar(Math.cos(A)).addScaledVector(w, -Math.sin(A)).normalize();
+  const F = t.clone().multiplyScalar(d).addScaledVector(Uv, -a).normalize();
+  const c = F.clone().addScaledVector(Uv, -F.dot(Uv)).normalize(); const N = new THREE.Vector3().crossVectors(c, Uv);
+  _mIK.makeBasis(N, Uv.clone().negate(), c); arm.sh.quaternion.setFromRotationMatrix(_mIK); arm.el.rotation.set(-bend, 0, 0); arm.wr.rotation.set(0, 0, 0);
+}
+// one paddler for one frame: torso wind-up, paddle along the stroke path, hands on the shaft; returns blade world position
+function paddleFrame(i, ph, amt){
+  const c = raft.crew[i], s = raft.sides[i], sx = raft.seats[i][0], spine = c.torso, pad = raft.paddles[i];
+  let bx, by, feather, reach;
+  if (ph < .55){ const q = ph/.55, e = q*q*(3 - 2*q); bx = sx + lerp(.55, -.32, e); by = -.27; feather = 0; reach = 1 - e; }
+  else { const q = (ph - .55)/.45, e = q*q*(3 - 2*q); bx = sx + lerp(-.32, .55, e); by = -.27 + .36*Math.sin(Math.PI*q); feather = 1.25*Math.sin(Math.PI*q); reach = e; }
+  bx = lerp(sx + .1, bx, amt); by = lerp(.25, by, amt);
+  c.apply(Object.assign({}, P_SIT, { lean:.06 + .3*reach*amt, twist:s*.42*reach*amt, hx:-.06 - .1*reach*amt, hy:-s*.15*reach*amt }));
+  c.root.updateMatrixWorld(true);
+  const S = c.o.h/1.7, boat = raft.boat;
+  const Bw = boat.localToWorld(new THREE.Vector3(bx, by, s*.82)), u = new THREE.Vector3(-(bx - sx)*.45, 1, -s*.62).normalize().transformDirection(boat.matrixWorld);
+  const Gw = Bw.clone().addScaledVector(u, 1.04*S);
+  const Bl = spine.worldToLocal(Bw.clone()), Gl = spine.worldToLocal(Gw.clone()), ul = Gl.clone().sub(Bl).normalize();
+  const xA = new THREE.Vector3().crossVectors(ul, new THREE.Vector3(0, 0, 1)).normalize(), zA = new THREE.Vector3().crossVectors(xA, ul);
+  _mIK.makeBasis(xA, ul, zA); pad.quaternion.setFromRotationMatrix(_mIK).multiply(_qF.setFromAxisAngle(_v2.set(0, 1, 0), feather*s));
+  pad.position.copy(Bl).addScaledVector(ul, .62);
+  const lower = Bl.clone().addScaledVector(ul, .5);
+  const [rA, lA] = c.arms;
+  if (s > 0){ solveArm(rA, lower, -1); solveArm(lA, Gl, 1); } else { solveArm(lA, lower, 1); solveArm(rA, Gl, -1); }
+  return Bw;
+}
+function crewPaddle(T, amt, dt){
+  for (let i=0;i<3;i++){
+    const c = raft.crew[i], p = seatWorld(i); c.root.position.set(...p); c.root.rotation.y = raft.heading; c.update(dt);
+    const ph = (((T/raft.P) - raft.lag[i]) % 1 + 1) % 1, Bw = paddleFrame(i, ph, amt), prev = raft.prevPh[i];
+    if (amt > .6){
+      const wy = WATER_Y + waveH(Bw.x, Bw.z, U.uTime.value);
+      if (ph < prev) spray(_v2.set(Bw.x, wy, Bw.z), 12, 1.4, .45);
+      if (prev < .55 && ph >= .55){ spray(_v2.set(Bw.x, wy, Bw.z), 7, 1.0, .35); ripple(Bw.x, Bw.z, .6); }
+    }
+    raft.prevPh[i] = ph;
+  }
+}
+function boatOnWaves(x, z, heading, extraPitch=0){
+  const tw = U.uTime.value, fx = Math.sin(heading), fz = Math.cos(heading), rx = -fz, rz = fx;
+  const hb = waveAt(x + fx*1.2, z + fz*1.2, tw), hs = waveAt(x - fx*1.2, z - fz*1.2, tw), hl = waveAt(x + rx*.55, z + rz*.55, tw), hr = waveAt(x - rx*.55, z - rz*.55, tw);
+  placeBoat(x, WATER_Y + .07 + (hb + hs + hl + hr)/4, z, heading, Math.atan2(hb - hs, 2.4) + extraPitch, Math.atan2(hl - hr, 1.1));
+}
 function raftUpdate(dt){
   const on = season === 'summer' && nightF < .55;
-  if (on !== raft.vis){ raft.vis = on; raft.boat.visible = on; raft.crew.forEach(c => c.root.visible = on); raft.ripples.forEach(r => r.m.visible = on); }
+  if (on !== raft.vis){ raft.vis = on; raft.boat.visible = on; raft.crew.forEach(c => c.root.visible = on); raft.ripples.forEach(r => r.m.visible = on); raft.spray.pts.visible = on; }
   if (!on) return;
   raft.t += dt; const T = raft.t, crew = raft.crew, WY = WATER_Y + .07;
-  const bob = .03*Math.sin(T*1.4), roll = .03*Math.sin(T*1.1), pitch = .02*Math.sin(T*.9);
-  const seatAll = (x, y, z, h, poseFn) => crew.forEach((c, i) => { const [px, py, pz] = seatWorld(i, x, y, z, h); c.root.position.set(px, py, pz); c.root.rotation.y = h; c.update(dt); c.apply(poseFn(i)); });
-  const paddling = i => { if (i !== 0) return Object.assign({}, P_SIT, { hy: .15*Math.sin(T*.4 + i) }); const ph = T*2.1, side = Math.sin(T*.52) > 0 ? 1 : -1; const st = Math.sin(ph); return Object.assign({}, P_SIT, { twist: side*(.28 + .18*st), r:[-1.0 - .25*st, .2*side, .12], re:-.8, l:[-.85 + .2*st, -.2*side, -.12], le:-.9, lean:.12 + .06*Math.max(0, st) }); };
+  const showPaddles = v => { raft.paddles.forEach(p => p.visible = v); raft.stowed.forEach(p => p.visible = !v); };
+  let wakeK = 0;
   if (raft.state === 'float'){
-    raft.s += dt*.95/raft.floatLen;
-    const z = lerp(RAFT_TOP, RAFT_BOT, raft.s), x = floatX(z), x2 = floatX(z - .5);
-    const h = Math.atan2(x2 - x, -.5) + .22*Math.sin(T*.23);
-    raft.heading = lerpAng(raft.heading, h, 1 - Math.exp(-dt*1.5));
-    placeBoat(x, WY + bob, z, raft.heading, pitch, roll); seatAll(x, WY + bob, z, raft.heading, paddling);
-    raft.paddle.visible = true; raft.spare.visible = false;
-    const ph = T*2.1, side = Math.sin(T*.52) > 0 ? 1 : -1, st = Math.sin(ph);
-    raft.paddle.position.set(side*-.36, .1, .28); raft.paddle.rotation.set(-.45 + .5*st, 0, -side*.62);
-    raft.rippleT -= dt;
-    if (raft.rippleT <= 0){ raft.rippleT = .75; const rr = raft.ripples.find(r => r.age > 2.6) || raft.ripples[0]; rr.age = 0; rr.m.position.set(x, WATER_Y + .03, z); }
-    if (raft.s >= 1){ raft.state = 'land'; raft.k = 0; raft.from = [x, z, raft.heading]; }
+    const ph = ((T/raft.P) % 1 + 1) % 1, pull = ph < .55 ? Math.sin(Math.PI*ph/.55) : 0;
+    let rap = 0; for (const wz of WEIR_Z) rap += Math.exp(-(((raft.z - wz - 1)/4)**2));
+    raft.speed = lerp(raft.speed, 1.6 + .7*pull + 1.0*rap, 1 - Math.exp(-dt*3));
+    raft.z += raft.speed*dt;
+    const z = raft.z, x = floatX(z) + .25*Math.sin(T*.35);
+    const h = Math.atan2(floatX(z + .6) - floatX(z), .6) + .05*Math.sin(T*.45) + .035*pull + .08*rap*Math.sin(T*3.1);
+    raft.heading = lerpAng(raft.heading, h, 1 - Math.exp(-dt*2.5));
+    boatOnWaves(x, z, raft.heading, -.025*pull + .05*rap*Math.sin(T*5.3));
+    showPaddles(true); crewPaddle(T, 1, dt); wakeK = clamp(raft.speed/2.2, 0, 1);
+    if (rap > .35 && Math.random() < dt*30){ const bowP = raft.boat.localToWorld(_v2.set(1.45, -.05, R(-.5, .5))); spray(bowP, 3, 1.6, .6); }
+    if (raft.z >= RAFT_END){ raft.state = 'land'; raft.k = 0; raft.from = [x, z, raft.heading]; }
   } else if (raft.state === 'land'){
-    raft.k += dt; const k = raft.k, h0 = pathAt(0).h, [fx, fz, fh] = raft.from, B0 = raft.B0, p0 = pathAt(0);
-    raft.paddle.visible = k < 1.6; raft.spare.visible = k >= 1.6;
-    if (k < 1.6){ const t = smooth(0, 1.6, k), x = lerp(fx, B0[0], t), z = lerp(fz, B0[1], t), h = lerpAng(fh, h0, t); placeBoat(x, WY + bob*.5, z, h); seatAll(x, WY + bob*.5, z, h, i => blendPose(paddling(i), P_SIT, t)); raft.heading = h; }
-    else if (k < 3.4){ const t = smooth(1.6, 3.4, k); placeBoat(B0[0], WY, B0[1], h0); crew.forEach((c, i) => { const s = seatWorld(i, B0[0], WY, B0[1], h0), w = carryWorld(i, p0.x, p0.z, h0); c.root.position.set(lerp(s[0], w[0], t), lerp(s[1], w[1], t), lerp(s[2], w[2], t)); c.root.rotation.y = h0; c.update(dt); c.apply(Figure.gait(blendPose(P_SIT, P_STAND, t), T*5 + i, t*(1 - t)*2)); }); }
-    else { const t = smooth(3.4, 5.2, k), gy = (raftGround(p0.x - Math.sin(h0), p0.z - Math.cos(h0)) + raftGround(p0.x + Math.sin(h0), p0.z + Math.cos(h0)))/2 + 2.1;
-      const x = lerp(B0[0], p0.x, t), z = lerp(B0[1], p0.z, t), y = lerp(WY, gy, t); placeBoat(x, y, z, h0);
+    raft.k += dt; const k = raft.k, h0 = pathAt(0).h, [fx, fz, fh] = raft.from, L = raft.L, p0 = pathAt(0);
+    if (k < 1.8){ const t = smooth(0, 1.8, k), x = lerp(fx, L[0], t), z = lerp(fz, L[1], t); raft.heading = lerpAng(fh, h0, t); boatOnWaves(x, z, raft.heading); showPaddles(true); crewPaddle(T, 1 - t, dt); wakeK = .6*(1 - t); }
+    else if (k < 3.6){ const t = smooth(1.8, 3.6, k); placeBoat(L[0], WY, L[1], h0); showPaddles(false);
+      crew.forEach((c, i) => { const s = seatFlat(i, L[0], WY, L[1], h0), w = carryWorld(i, p0.x, p0.z, h0); c.root.position.set(lerp(s[0], w[0], t), lerp(s[1], w[1], t), lerp(s[2], w[2], t)); c.root.rotation.y = h0; c.update(dt); c.apply(Figure.gait(blendPose(P_SIT, P_STAND, t), T*5 + i, t*(1 - t)*2)); }); }
+    else { const t = smooth(3.6, 5.4, k), gy = (raftGround(p0.x - Math.sin(h0), p0.z - Math.cos(h0)) + raftGround(p0.x + Math.sin(h0), p0.z + Math.cos(h0)))/2 + 2.1;
+      const x = lerp(L[0], p0.x, t), z = lerp(L[1], p0.z, t), y = lerp(WY, gy, t); placeBoat(x, y, z, h0);
       crew.forEach((c, i) => { const w = carryWorld(i, x, z, h0); c.root.position.set(...w); c.root.rotation.y = h0; c.update(dt); c.apply(blendPose(P_STAND, reachPose(c, P_CARRY, y - .19 - w[1]), t)); }); }
-    if (k >= 5.2){ raft.state = 'carry'; raft.d = 0; raft.heading = h0; }
+    if (k >= 5.4){ raft.state = 'carry'; raft.d = 0; raft.heading = h0; }
   } else if (raft.state === 'carry'){
-    raft.d += dt*1.25; const p = pathAt(raft.d), total = raft.cum[raft.cum.length - 1];
+    raft.d += dt*1.3; const p = pathAt(raft.d), total = raft.cum[raft.cum.length - 1];
     raft.heading = lerpAng(raft.heading, p.h, 1 - Math.exp(-dt*2.2));
     const h = raft.heading, fx = Math.sin(h), fz = Math.cos(h);
     const gf = raftGround(p.x + fx*1.1, p.z + fz*1.1), gb = raftGround(p.x - fx*1.1, p.z - fz*1.1), y = (gf + gb)/2 + 2.1;
-    placeBoat(p.x, y + .015*Math.sin(raft.d*4.5), p.z, h, Math.atan2(gf - gb, 2.2)*.8);
-    raft.paddle.visible = false; raft.spare.visible = true;
+    placeBoat(p.x, y + .015*Math.sin(raft.d*4.5), p.z, h, Math.atan2(gf - gb, 2.2)*.8); showPaddles(false);
     crew.forEach((c, i) => { const w = carryWorld(i, p.x, p.z, h); c.root.position.set(...w); c.root.rotation.y = h; c.update(dt); c.apply(Figure.gait(reachPose(c, P_CARRY, y - .19 - w[1]), raft.d*4.4 + i*1.9, 1)); });
     if (raft.d >= total){ raft.state = 'launch'; raft.k = 0; }
   } else if (raft.state === 'launch'){
-    raft.k += dt; const k = raft.k, pe = pathAt(1e9), he = raft.heading, B1 = raft.B1, hF = Math.atan2(floatX(RAFT_TOP - .5) - floatX(RAFT_TOP), -.5);
-    if (k < 1.8){ const t = smooth(0, 1.8, k), gy = raftGround(pe.x, pe.z) + 2.1, x = lerp(pe.x, B1[0], t), z = lerp(pe.z, B1[1], t), y = lerp(gy, WY, t); placeBoat(x, y, z, he);
+    raft.k += dt; const k = raft.k, pe = pathAt(1e9), he = raft.heading, B = raft.B, hF = Math.atan2(floatX(RAFT_START + .6) - floatX(RAFT_START), .6);
+    if (k < 1.8){ const t = smooth(0, 1.8, k), gy = raftGround(pe.x, pe.z) + 2.1, x = lerp(pe.x, B[0], t), z = lerp(pe.z, B[1], t), y = lerp(gy, WY, t); placeBoat(x, y, z, he); showPaddles(false);
       crew.forEach((c, i) => { const w = carryWorld(i, x, z, he); c.root.position.set(...w); c.root.rotation.y = he; c.update(dt); c.apply(blendPose(reachPose(c, P_CARRY, y - .19 - w[1]), P_STAND, t)); }); }
-    else if (k < 3.6){ const t = smooth(1.8, 3.6, k); placeBoat(B1[0], WY, B1[1], he); crew.forEach((c, i) => { const w = carryWorld(i, B1[0], B1[1], he), s = seatWorld(i, B1[0], WY, B1[1], he); c.root.position.set(lerp(w[0], s[0], t), lerp(w[1], s[1], t), lerp(w[2], s[2], t)); c.root.rotation.y = he; c.update(dt); c.apply(Figure.gait(blendPose(P_STAND, P_SIT, t), T*5 + i, t*(1 - t)*2)); }); }
-    else { const t = smooth(3.6, 5.4, k), x = lerp(B1[0], floatX(RAFT_TOP), t), z = lerp(B1[1], RAFT_TOP, t), h = lerpAng(he, hF, t); placeBoat(x, WY + bob*t, z, h); seatAll(x, WY + bob*t, z, h, i => blendPose(P_SIT, paddling(i), t)); raft.paddle.visible = t > .3; raft.spare.visible = t <= .3; }
-    if (k >= 5.4){ raft.state = 'float'; raft.s = 0; raft.heading = hF; }
+    else if (k < 3.6){ const t = smooth(1.8, 3.6, k); placeBoat(B[0], WY, B[1], he); showPaddles(false);
+      crew.forEach((c, i) => { const w = carryWorld(i, B[0], B[1], he), s = seatFlat(i, B[0], WY, B[1], he); c.root.position.set(lerp(w[0], s[0], t), lerp(w[1], s[1], t), lerp(w[2], s[2], t)); c.root.rotation.y = he; c.update(dt); c.apply(Figure.gait(blendPose(P_STAND, P_SIT, t), T*5 + i, t*(1 - t)*2)); }); }
+    else { const t = smooth(3.6, 5.6, k), x = lerp(B[0], floatX(RAFT_START), t), z = lerp(B[1], RAFT_START, t); raft.heading = lerpAng(he, hF, t); boatOnWaves(x, z, raft.heading); showPaddles(true); crewPaddle(T, t, dt); wakeK = .5*t; }
+    if (k >= 5.6){ raft.state = 'float'; raft.z = RAFT_START; raft.speed = 1.2; }
   }
-  for (const r of raft.ripples){ r.age += dt; const a = r.age; r.m.scale.setScalar(.8 + a*1.1); r.m.material.opacity = a < 2.6 ? .45*(1 - a/2.6) : 0; }
+  raft.wake.visible = raft.bow.visible = wakeK > .02;
+  raft.wake.material.opacity = .75*wakeK; raft.bow.material.opacity = .65*wakeK; raft.wake.material.map.offset.y = (raft.wake.material.map.offset.y - dt*raft.speed*.22) % 1;
+  for (const r of raft.ripples){ r.age += dt; const a = r.age; r.m.scale.setScalar((r.s0 || .8) + a*1.1); r.m.material.opacity = a < 2.6 ? .45*(1 - a/2.6) : 0; }
+  const sp = raft.spray;
+  for (let i=0;i<sp.n;i++){ if (sp.life[i] <= 0) continue; sp.life[i] -= dt; sp.vel[i*3+1] -= 9.8*dt; sp.pos[i*3] += sp.vel[i*3]*dt; sp.pos[i*3+1] += sp.vel[i*3+1]*dt; sp.pos[i*3+2] += sp.vel[i*3+2]*dt; if (sp.life[i] <= 0 || sp.pos[i*3+1] < WATER_Y - .1) { sp.life[i] = 0; sp.pos[i*3+1] = -999; } }
+  sp.geo.attributes.position.needsUpdate = true;
 }
 
 
@@ -3324,8 +3433,8 @@ function bindInput(){
         if (view === 'air') setView('tp');
         raftUpdate(1/30);
         const bp = raft.boat.position, onWater = raft.state === 'float' || raft.state === 'land' || raft.state === 'launch';
-        const px = onWater ? creekC(bp.z) - 7.6 : bp.x + 3.2, pz = onWater ? bp.z - 5 : bp.z + 4.5;
-        teleport(px, pz, Math.atan2(-(bp.x - px), -(bp.z - pz)) + .32); toast('<b>여름 계곡 래프팅</b> · 타고 내려온 뒤 보트를 들고 다시 올라갑니다');
+        const px = onWater ? creekC(bp.z) - 7.6 : bp.x + 3.2, pz = onWater ? Math.min(bp.z + 9, RAFT_END - 1) : bp.z + 4.5;
+        teleport(px, pz, Math.atan2(-(bp.x - px), -(bp.z - pz)) + .32); toast('<b>여름 계곡 래프팅</b> · 물살 따라 노 저어 내려간 뒤 보트를 들고 다시 올라갑니다');
       } else { teleport(x, z, yaw); toast('<b>' + name + '</b>'); }
       if (innerWidth < 1100) $('#panel').classList.remove('open');
     });
@@ -3361,7 +3470,7 @@ function tick(dt, t){
   updateFire(dt, t, nightF);
   updateWeather(dt, t);
   updateCreek(dt, t);
-  if (waterMat && SEASONS[season].water !== 'ice'){ waterMat.normalMap.offset.set(t*.02, t*.2); }
+  if (waterMat && SEASONS[season].water !== 'ice'){ waterMat.normalMap.offset.set(t*.02, -t*.25); }
   clouds.forEach(c => { c.position.x += c.userData.v*dt; if (c.position.x > 3000) c.position.x = -3000; });
   if (stars){ stars.rotation.y = t*.004; starsBright.rotation.y = t*.004; stars.userData.extra.rotation.y = t*.004; }
   updateEnv(dt);
@@ -3412,13 +3521,13 @@ async function boot(){
     resetFov:()=>{ camera.fov=62; camera.updateProjectionMatrix(); camera.up.set(0,1,0); },
     stats:()=>({ fps:Math.round(fps), tris:renderer.info.render.triangles, calls:renderer.info.render.calls, pos:player.pos.toArray().map(v=>+v.toFixed(2)), view, hour, season }),
     setDist:d=>camDist=d, orbit:()=>orbit, camera, keys, zoneAt, H,
+    rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ view='air'; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
     raftT:(sec)=>{ for (let i=0;i<sec*30;i++) raftUpdate(1/30); return raft.state; },
-    raft:(st, v=0)=>{ raft.state = st; raft.s = v; raft.d = v; raft.k = 0; raft.from = [floatX(RAFT_BOT), RAFT_BOT, Math.PI]; if (st === 'carry') raft.heading = pathAt(v).h; return st; },
+    raft:(st, v=0)=>{ raft.state = st; raft.d = v; raft.k = 0; if (st === 'float') raft.z = lerp(RAFT_START, RAFT_END, v); raft.from = [floatX(RAFT_END), RAFT_END, 0]; if (st === 'carry') raft.heading = pathAt(v).h; return st; },
     showroom:()=>{ Object.keys(CAR_SPECS).forEach((k,i)=>addCar(k, [0xe9e9e6,0x0e0f11,0x3a3d42,0x24372f,0x1c2638,0xa9adb2][i], 92, -125 + i*8, Math.PI/2)); ['tunnel','air','bell','teepee','dome','cabin','hexa'].forEach((k,i)=>pitch(k, 108, -150 + i*12, -Math.PI/2, {}, i%2===0)); }
   };
 }
 boot();
 </script>
 
-</body>
-</html>
+</body></html>
