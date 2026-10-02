@@ -283,6 +283,7 @@ function mountainH(x,z){
 }
 const byulMask = (x,z) => smooth(-18.2,-19.6,x) * smooth(BYUL.z0-6,BYUL.z0,z) * smooth(BYUL.z1+6,BYUL.z1,z);
 const cMask = (x,z) => smooth(-14.0,-15.4,x) * smooth(CZONE.z0-5,CZONE.z0,z) * smooth(CZONE.z1+5,CZONE.z1,z);
+const CREEK_BARS = [[17, 10, 2.9, 2.0, .8], [-74, 9, 3.0, 1.9, .76], [118, 8, 2.6, 1.7, .7]];
 function floorH(x,z){
   let h = Math.max(BYUL.h*byulMask(x,z), CZONE.h*cMask(x,z));
   h += 1.4*smooth(-25,-34,x)*(1 - Math.max(byulMask(x,z), cMask(x,z)));   // forest floor rising to the SW slope
@@ -291,6 +292,7 @@ function floorH(x,z){
   if (dc < 10.5) {
     h -= 2.45*smooth(10.5,4,dc) + 0.35*smooth(4,0,dc);
     h += 0.5*(fbm(x/3.3, z/3.3, 3)-0.5)*smooth(9.5,4,dc);
+    for (const [bz, bl, bc, bw, bh] of CREEK_BARS){ const u = (z - bz)/bl, v = (x - creekC(z) - bc)/bw, d2 = u*u + v*v; if (d2 < 1) h += bh*Math.pow(1 - d2, 1.4); }
   }
   const ne = x - creekC(z);
   h += 0.9*smooth(9.5,15,ne);                                     // NE bank up to road level
@@ -315,9 +317,9 @@ function gravelMask(x,z){
 
 /* ---------------- seasons ---------------- */
 const SEASONS = {
-  spring: { label:'봄',   sunMax:60, sr:6.0, ss:19.1, snow:0, floor:[1.0,1.22,0.82], forest:[1.2,1.5,0.95], lawn:[1.0,1.3,0.8], grass:[1.0,1.3,0.75], water:[.07,.15,.12], fog:0xa3bad3, weather:'petal' },
-  summer: { label:'여름', sunMax:74, sr:5.3, ss:19.8, snow:0, floor:[0.85,1.0,0.8], forest:[0.88,1.05,0.88], lawn:[0.85,1.15,0.75], grass:[0.8,1.05,0.7], water:[.05,.15,.14], fog:0x93b0d0, weather:'firefly' },
-  autumn: { label:'가을', sunMax:49, sr:6.6, ss:18.4, snow:0, floor:[1.25,1.05,0.7], forest:[1.3,1.0,0.68], lawn:[1.2,1.05,0.68], grass:[1.35,1.0,0.55], water:[.06,.12,.11], fog:0xa8bacd, weather:'leaf' },
+  spring: { label:'봄',   sunMax:60, sr:6.0, ss:19.1, snow:0, floor:[1.0,1.22,0.82], forest:[1.2,1.5,0.95], lawn:[1.0,1.3,0.8], grass:[1.0,1.3,0.75], water:[.07,.12,.1], fog:0xa3bad3, weather:'petal' },
+  summer: { label:'여름', sunMax:74, sr:5.3, ss:19.8, snow:0, floor:[0.85,1.0,0.8], forest:[0.88,1.05,0.88], lawn:[0.85,1.15,0.75], grass:[0.8,1.05,0.7], water:[.055,.115,.095], fog:0x93b0d0, weather:'firefly' },
+  autumn: { label:'가을', sunMax:49, sr:6.6, ss:18.4, snow:0, floor:[1.25,1.05,0.7], forest:[1.3,1.0,0.68], lawn:[1.2,1.05,0.68], grass:[1.35,1.0,0.55], water:[.06,.1,.085], fog:0xa8bacd, weather:'leaf' },
   winter: { label:'겨울', sunMax:30, sr:7.6, ss:17.5, snow:1, floor:[1.1,1.06,1.0], forest:[1.25,1.15,1.05], lawn:[1.1,1.05,1.0], grass:null, water:'ice', fog:0xb7c4d2, weather:'snow' },
 };
 const SEASON_ORDER = ['spring','summer','autumn','winter'];
@@ -856,44 +858,267 @@ function buildGrass(){
 
 /* ---------------- rocks & creek ---------------- */
 let waterMat, rockMat;
+/* ---------------- 담터계곡 (video-matched): clear shallow water over a cobble bed, stacked riprap banks, gravel bars, rock weirs ---------------- */
+const WATER_Y = -2.1;
+const RAFT_TOP = 86, RAFT_BOT = -27;
+const floatX = z => creekC(z) - 1.3 + .8*Math.sin(z/14);
+function cobbleTex(){
+  return canvasTex(512, 512, (g, w, h) => {
+    g.fillStyle = '#5f5a52'; g.fillRect(0, 0, w, h);
+    const r = mulberry32(5), pal = ['#8d8a83','#a19b90','#77736c','#9c8f7c','#b5ad9f','#6c6f72','#857a6a','#a6a29b','#8a8f93','#c2b8a6','#7d7062','#9aa0a3'];
+    const stones = [];
+    for (let i=0;i<1100;i++){ const rx = 5 + Math.pow(r(), 2.4)*30; stones.push([r()*w, r()*h, rx, rx*(.58 + r()*.35), r()*Math.PI, pal[Math.floor(r()*pal.length)]]); }
+    stones.sort((a, b) => b[2] - a[2]);
+    for (const [x, y, rx, ry, a, col] of stones) for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]){
+      const cx = x + ox, cy = y + oy; if (cx < -40 || cx > w + 40 || cy < -40 || cy > h + 40) continue;
+      g.save(); g.translate(cx, cy); g.rotate(a);
+      g.fillStyle = 'rgba(30,27,22,.55)'; g.beginPath(); g.ellipse(1.5, 2, rx + 1.6, ry + 1.6, 0, 0, Math.PI*2); g.fill();
+      const gr = g.createRadialGradient(-rx*.35, -ry*.4, 1, 0, 0, rx*1.05); gr.addColorStop(0, 'rgba(255,255,255,.35)'); gr.addColorStop(.35, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(0,0,0,.28)');
+      g.fillStyle = col; g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI*2); g.fill(); g.fillStyle = gr; g.fill();
+      g.restore();
+    }
+  });
+}
+function foamTex(){
+  const t = canvasTex(256, 256, (g, w, h) => {
+    g.clearRect(0, 0, w, h); const r = mulberry32(9);
+    for (let i=0;i<260;i++){ const x = r()*w, y = r()*h, l = 10 + r()*50; g.strokeStyle = `rgba(255,255,255,${.25 + r()*.5})`; g.lineWidth = 1 + r()*3; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + (r() - .5)*10, y + l*.5, x + (r() - .5)*14, y + l); g.stroke(); }
+    for (let i=0;i<500;i++){ g.fillStyle = `rgba(255,255,255,${.3 + r()*.5})`; g.beginPath(); g.arc(r()*w, r()*h, .8 + r()*2.4, 0, Math.PI*2); g.fill(); }
+  });
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+const creekFx = { foam:[], foamMats:[] };
 function buildCreek(){
-  const segs = 520, z0 = -900, z1 = 900, W = 22;
-  const pos=[], uv=[], idx=[];
+  // water: a grid that knows the depth below it, so shallows are clear and pools darker
+  const segs = 520, NX = 26, z0 = -900, z1 = 900, W = 22;
+  const pos = [], uv = [], dep = [], idx = [];
   for (let i=0;i<=segs;i++){
-    const z = z0 + (z1-z0)*i/segs, cx = creekC(z);
-    pos.push(cx-W/2, -2.1, z, cx+W/2, -2.1, z); uv.push(0, z/10, W/10, z/10);
-    if (i<segs){ const a=i*2; idx.push(a, a+2, a+1, a+1, a+2, a+3); }
+    const z = z0 + (z1 - z0)*i/segs, cx = creekC(z);
+    for (let j=0;j<=NX;j++){ const x = cx - W/2 + W*j/NX; pos.push(x, WATER_Y, z); uv.push(x/4, z/4); dep.push(clamp(WATER_Y - H(x, z), -1, 3)); }
+    if (i < segs) for (let j=0;j<NX;j++){ const a = i*(NX + 1) + j, b = a + NX + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
   }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos,3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv,2)); g.setIndex(idx); g.computeVertexNormals();
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute('aDepth', new THREE.Float32BufferAttribute(dep, 1)); g.setIndex(idx); g.computeVertexNormals();
   const wn = waterNormalTex();
-  waterMat = new THREE.MeshStandardMaterial({ color:0x2f4a3c, roughness:.12, metalness:.02, transparent:true, opacity:.85, normalMap:wn, normalScale:new THREE.Vector2(.25,.25), envMapIntensity:.45 });
-  const water = new THREE.Mesh(g, waterMat); water.receiveShadow = true; scene.add(water);
+  waterMat = carEnv(new THREE.MeshStandardMaterial({ color:0x2f4a3c, roughness:.05, metalness:0, transparent:true, opacity:.85, normalMap:wn, normalScale:new THREE.Vector2(.16, .16), depthWrite:false }), .9);
+  waterMat.userData.uIce = { value:0 };
+  patchMat(waterMat, 'creekDepth', sh => {
+    sh.uniforms.uIce = waterMat.userData.uIce;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aDepth;\nvarying float vDepth;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvDepth = aDepth;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vDepth;\nuniform float uIce;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        float dk = smoothstep(0.0, 1.0, vDepth);
+        vec3 shallow = diffuseColor.rgb*2.4 + vec3(.05, .056, .045);
+        diffuseColor.rgb = mix(mix(shallow, diffuseColor.rgb, dk), diffuseColor.rgb, uIce);
+        float aw = opacity*mix(.26, 1.0, dk)*smoothstep(-.02, .07, vDepth);
+        diffuseColor.a = mix(aw, opacity*smoothstep(-.05, .05, vDepth), uIce);`);
+  });
+  const water = new THREE.Mesh(g, waterMat); water.receiveShadow = true; water.renderOrder = 2; scene.add(water);
+  // cobble bed under the shallows and on the dry bars
+  {
+    const NXb = 44, segsB = 470, zb0 = -235, zb1 = 235, WB = 19.5, p = [], u = [], c = [], ix = [];
+    for (let i=0;i<=segsB;i++){
+      const z = zb0 + (zb1 - zb0)*i/segsB, cx = creekC(z);
+      for (let j=0;j<=NXb;j++){
+        const x = cx - WB/2 + WB*j/NXb, y = H(x, z); p.push(x, y + .012, z); u.push(x/2.6, z/2.6);
+        const wet = smooth(WATER_Y + .12, WATER_Y - .05, y), edge = smooth(9.75, 8.6, Math.abs(x - cx));
+        const k = lerp(1.0, .62, wet); c.push(k*lerp(1, .96, wet), k*lerp(1, 1.0, wet), k*lerp(1, .9, wet));
+        if (edge < .02) p[p.length - 2] -= .2;   // tuck the outer rim into the bank under the riprap
+      }
+      if (i < segsB) for (let j=0;j<NXb;j++){ const a = i*(NXb + 1) + j, b = a + NXb + 1; ix.push(a, b, a + 1, a + 1, b, b + 1); }
+    }
+    const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(u, 2)); bg.setAttribute('color', new THREE.Float32BufferAttribute(c, 3)); bg.setIndex(ix); bg.computeVertexNormals();
+    const ct = cobbleTex(); ct.wrapS = ct.wrapT = THREE.RepeatWrapping;
+    const bed = new THREE.Mesh(bg, snowPatch(new THREE.MeshStandardMaterial({ map:ct, vertexColors:true, roughness:.88, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-1 }), .9));
+    bed.receiveShadow = true; scene.add(bed);
+  }
+  // rocks: angular quarried riprap stacked on both banks, rounded boulders in the bed, weirs and a lengthwise berm
+  const angG = (() => { let a = new THREE.IcosahedronGeometry(1, 0); a.deleteAttribute('uv'); a.deleteAttribute('normal'); a = mergeVertices(a); const ap = a.attributes.position; for (let i=0;i<ap.count;i++){ const x=ap.getX(i), y=ap.getY(i), z=ap.getZ(i), n=.8 + .4*vnoise(x*2.3+5, y*2.1 + z*1.7); ap.setXYZ(i, x*n*1.12, y*n*.86, z*n); } a = a.toNonIndexed(); a.computeVertexNormals();
+    // box-projected UVs per facet so the granite grain never smears across a face
+    const pp = a.attributes.position, nn = a.attributes.normal, uu = new Float32Array(pp.count*2);
+    for (let k=0;k<pp.count;k+=3){ const ax = Math.abs(nn.getX(k)), ay = Math.abs(nn.getY(k)), az = Math.abs(nn.getZ(k)); for (let q=0;q<3;q++){ const x = pp.getX(k+q), y = pp.getY(k+q), z = pp.getZ(k+q); const [u, v] = ax >= ay && ax >= az ? [z, y] : ay >= az ? [x, z] : [x, y]; uu[(k+q)*2] = u*.55 + k*.013; uu[(k+q)*2+1] = v*.55 + k*.007; } }
+    a.setAttribute('uv', new THREE.BufferAttribute(uu, 2)); return a; })();
+  const graniteTex = canvasTex(256, 256, (c, w, h) => { const r = mulberry32(13); c.fillStyle = '#b9b6b0'; c.fillRect(0, 0, w, h); for (let i=0;i<5000;i++){ const v = r(); c.fillStyle = v < .45 ? `rgba(60,58,56,${.25 + r()*.4})` : v < .8 ? `rgba(245,243,238,${.3 + r()*.5})` : `rgba(150,128,105,${.2 + r()*.3})`; const s = .8 + r()*2.6; c.fillRect(r()*w, r()*h, s, s*(.6 + r()*.8)); } for (let i=0;i<6;i++){ c.strokeStyle = 'rgba(80,78,74,.25)'; c.lineWidth = 1 + r()*2; c.beginPath(); let x = r()*w, y = r()*h; c.moveTo(x, y); for (let k=0;k<6;k++){ x += (r()-.5)*70; y += (r()-.5)*70; c.lineTo(x, y); } c.stroke(); } });
+  graniteTex.wrapS = graniteTex.wrapT = THREE.RepeatWrapping;
+  const ripMat = snowPatch(new THREE.MeshStandardMaterial({ roughness:.88, map:graniteTex, color:0xf2f0ec }), .9);
   const rockG = new THREE.IcosahedronGeometry(1, 1); rockG.deleteAttribute('uv'); rockG.deleteAttribute('normal');
-  let rg = mergeVertices(rockG); const p = rg.attributes.position;
-  for (let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i), z=p.getZ(i); const n=.75+.45*vnoise(x*1.7+2,y*1.9+z*1.3); p.setXYZ(i,x*n,y*n*.62,z*n); }
+  let rg = mergeVertices(rockG); const rp0 = rg.attributes.position;
+  for (let i=0;i<rp0.count;i++){ const x=rp0.getX(i), y=rp0.getY(i), z=rp0.getZ(i); const n=.75+.45*vnoise(x*1.7+2,y*1.9+z*1.3); rp0.setXYZ(i,x*n,y*n*.62,z*n); }
   rg = rg.toNonIndexed(); rg.computeVertexNormals();
   { const rp = rg.attributes.position, ruv = new Float32Array(rp.count*2); for (let k=0;k<rp.count;k++){ ruv[k*2] = rp.getX(k)*.5 + rp.getZ(k)*.3; ruv[k*2+1] = rp.getY(k)*.5 + rp.getZ(k)*.2; } rg.setAttribute('uv', new THREE.BufferAttribute(ruv,2)); }
-  const n = Math.round(1900*Q) + 500;
-  rockMat = snowPatch(new THREE.MeshStandardMaterial({ roughness:.92, map:detailTex, color:0xd8d4cc }), .9);
-  const im = new THREE.InstancedMesh(rg, rockMat, n);
-  const col = new THREE.Color(); let i=0;
-  for (let z = -230; z < 230 && i < n; z += 1.0){
-    if (Math.abs(z-ENTRY.z) < 5) continue;
-    // riprap facing the camp-side bank (photos and video)
-    const bx = creekC(z) - 9.2 + R(-.8,.8);
-    const s = R(.45,1.05);
-    tmpM.compose(tmpV.set(bx, H(bx,z)-s*.25, z), tmpQ.setFromEuler(new THREE.Euler(R(-.3,.3), rng()*6.28, R(-.3,.3))), tmpS.set(s*R(1,1.5), s, s*R(.9,1.3)));
-    im.setMatrixAt(i, tmpM); const v=R(.2,.32); col.setRGB(v, v*.97, v*.9); im.setColorAt(i++, col);
-    if (rng() < .6 && i<n){ const ex = creekC(z) + 8.8 + R(-.6,.6), s2=R(.4,.9); tmpM.compose(tmpV.set(ex, H(ex,z)-s2*.25, z), tmpQ.setFromEuler(new THREE.Euler(R(-.3,.3), rng()*6.28, 0)), tmpS.set(s2*1.3, s2, s2)); im.setMatrixAt(i, tmpM); col.setRGB(v*.95,v*.93,v*.88); im.setColorAt(i++, col); }
+  rockMat = snowPatch(new THREE.MeshStandardMaterial({ roughness:.92, map:detailTex, color:0xdedbd4 }), .9);
+  const nA = 2900, nR = Math.round(1100*Q) + 400;
+  const imA = new THREE.InstancedMesh(angG, ripMat, nA), imR = new THREE.InstancedMesh(rg, rockMat, nR);
+  const col = new THREE.Color(); let a = 0, b = 0;
+  const putA = (x, z, s, dy = .25, v = R(.42, .62)) => { if (a >= nA) return; tmpM.compose(tmpV.set(x, H(x, z) - s*dy, z), tmpQ.setFromEuler(new THREE.Euler(R(-.25,.25), rng()*6.28, R(-.25,.25))), tmpS.set(s*R(.95,1.35), s*R(.8,1.1), s*R(.85,1.2))); imA.setMatrixAt(a, tmpM); col.setRGB(v, v*.985, v*.94); imA.setColorAt(a++, col); };
+  const nearStairs = z => STAIRS_Z.some(sz => Math.abs(z - sz) < 1.7) || Math.abs(z - ENTRY.z) < 5;
+  for (let z = -232; z < 232; z += 1.05){
+    if (nearStairs(z)) continue;
+    const cx = creekC(z);
+    for (const [d, s0, s1] of [[-9.8, .6, .95], [-8.75, .65, 1.05], [-7.7, .6, 1.0], [-6.75, .5, .85]]) putA(cx + d + R(-.25, .25), z + R(-.3, .3), R(s0, s1), .22, rng() < .15 ? R(.3,.38) : undefined);
+    for (const [d, s0, s1, pr] of [[9.6, .5, .9, .85], [8.5, .55, .95, .8], [7.4, .45, .8, .55]]) if (rng() < pr) putA(cx + d + R(-.3, .3), z + R(-.3, .3), R(s0, s1), .25);
   }
-  while (i < n){
+  // rock weirs across the stream (gap left for the raft line) and a lengthwise berm making a still pool
+  const weirs = [[-58, .12], [34, -.1]];
+  for (const [wz, sk] of weirs){
+    for (let d = -6; d <= 6; d += .62){ const z = wz + d*sk, x = creekC(z) + d; if (Math.abs(x - floatX(z)) < 1.7) continue; putA(x, z + R(-.15,.15), R(.42, .7), .45, R(.36, .52)); }
+  }
+  for (let z = -54; z < -36; z += .6){ const x = creekC(z) + 3.5 + R(-.2, .2); putA(x, z, R(.38, .62), .45, R(.36, .5)); }
+  imA.count = a; imA.castShadow = imA.receiveShadow = true; imA.frustumCulled = false; scene.add(imA);
+  while (b < nR){
     const z = R(-260, 260), x = creekC(z) + R(-8, 8);
-    const s = Math.pow(rng(), 2.2)*0.9 + 0.15;
+    if (z > RAFT_BOT - 6 && z < RAFT_TOP + 6 && Math.abs(x - floatX(z)) < 2.2) continue;
+    const s = Math.pow(rng(), 2.2)*0.85 + 0.15;
     tmpM.compose(tmpV.set(x, H(x,z) - s*.3, z), tmpQ.setFromEuler(new THREE.Euler(R(-.4,.4), rng()*6.28, R(-.4,.4))), tmpS.set(s*R(1,1.6), s, s*R(.9,1.4)));
-    im.setMatrixAt(i, tmpM); const v=R(.18,.34); col.setRGB(v*1.04, v, v*.9); im.setColorAt(i++, col);
+    imR.setMatrixAt(b, tmpM); const v = R(.24,.42); col.setRGB(v*1.04, v, v*.9); imR.setColorAt(b++, col);
   }
-  im.castShadow = true; im.receiveShadow = true; im.frustumCulled = false; scene.add(im);
+  imR.castShadow = imR.receiveShadow = true; imR.frustumCulled = false; scene.add(imR);
+  // white water spilling over the weirs and through the gap
+  const ft = foamTex();
+  const foamStrip = (cxz, len, wid, rot, speed) => {
+    const t = ft.clone(); t.needsUpdate = true; t.repeat.set(len/2.5, wid/2.5);
+    const m = new THREE.MeshBasicMaterial({ map:t, transparent:true, opacity:.75, depthWrite:false, fog:true });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(len, wid), m); mesh.rotation.set(-Math.PI/2, 0, rot); mesh.position.set(cxz[0], WATER_Y + .02, cxz[1]); mesh.renderOrder = 3; scene.add(mesh);
+    creekFx.foam.push({ mesh, t, speed });
+  };
+  for (const [wz, sk] of weirs){
+    const ang = -Math.atan(sk);
+    foamStrip([creekC(wz) + .2, wz - .7], 11.5, .9, ang, .35);
+    foamStrip([floatX(wz - 2.5), wz - 2.5], 1.6, 5.5, 0, .55);
+  }
 }
+function updateCreek(dt, t){
+  const ice = SEASONS[season].water === 'ice';
+  for (const f of creekFx.foam){ f.mesh.visible = !ice; f.t.offset.y = (f.t.offset.y + dt*f.speed) % 1; f.mesh.material.opacity = .62 + .12*Math.sin(t*2.3 + f.speed*10); }
+}
+
+/* ---------------- 여름 계곡 래프팅: float down the creek, land, carry the boat overhead back up, relaunch ---------------- */
+function buildRaftMesh(){
+  const g = new THREE.Group(), L = 2.9, W = 1.18, r = .2, hx = L/2 - r, hz = W/2 - r;
+  const N = 96, pts = [];
+  for (let i=0;i<N;i++){ const a = i/N*Math.PI*2, c = Math.cos(a), s = Math.sin(a); pts.push(new THREE.Vector3(hx*Math.sign(c)*Math.pow(Math.abs(c), .7), .1*Math.pow(Math.abs(c), 8), hz*s)); }
+  const curve = new THREE.CatmullRomCurve3(pts, true, 'centripetal');
+  const TS = 192, RS = 20, tube = new THREE.TubeGeometry(curve, TS, r, RS, true);
+  const lav = new THREE.Color('#8f8ff2'), grey = new THREE.Color('#d2d5de'), dark = new THREE.Color('#585d6e'), white = new THREE.Color('#f3f3f6'), cc = new THREE.Color();
+  const tp = tube.attributes.position, colors = new Float32Array(tp.count*3), C = new THREE.Vector3();
+  for (let i=0;i<=TS;i++){ curve.getPointAt((i/TS) % 1, C); for (let j=0;j<=RS;j++){ const k = i*(RS + 1) + j, dy = tp.getY(k) - C.y, ax = Math.abs(C.x);
+    if (ax > hx - .1) cc.copy(white); else if (dy < -r*.2) cc.copy(grey); else if ((ax > .74 && ax < .84) || (ax > .9 && ax < .97)) cc.copy(dark); else cc.copy(lav);
+    colors[k*3] = cc.r; colors[k*3+1] = cc.g; colors[k*3+2] = cc.b; } }
+  tube.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const tm = new THREE.Mesh(tube, new THREE.MeshPhysicalMaterial({ vertexColors:true, roughness:.32, clearcoat:.7, clearcoatRoughness:.25 })); tm.castShadow = true; tm.receiveShadow = true; g.add(tm);
+  // floor
+  const fl = []; for (let i=0;i<48;i++){ curve.getPointAt(i/48, C); fl.push(new THREE.Vector2(C.x*.93, -C.z*.8)); }
+  const fg = new THREE.ShapeGeometry(new THREE.Shape(fl)); fg.rotateX(-Math.PI/2); fg.translate(0, -.12, 0);
+  const floor = new THREE.Mesh(fg, new THREE.MeshStandardMaterial({ color:0x6f7690, roughness:.6, side:THREE.DoubleSide })); floor.receiveShadow = true; g.add(floor);
+  // perimeter grab line with D-rings
+  const rope = [], ringM = new THREE.MeshStandardMaterial({ color:0x15161a, roughness:.5 }), NR = 18;
+  for (let i=0;i<=144;i++){ const u = i/144; curve.getPointAt(u % 1, C); const n = new THREE.Vector3(C.x/(hx*hx), 0, C.z/(hz*hz)).normalize(); const fr = (u*NR) % 1; rope.push(C.clone().addScaledVector(n, r*.8).add(new THREE.Vector3(0, r*.58 - .04*Math.sin(Math.PI*fr)**2, 0))); }
+  const rp = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rope, true), 200, .007, 5, true), ringM); g.add(rp);
+  for (let i=0;i<NR;i++){ curve.getPointAt(i/NR, C); const n = new THREE.Vector3(C.x/(hx*hx), 0, C.z/(hz*hz)).normalize(); const d = new THREE.Mesh(new THREE.TorusGeometry(.02, .005, 6, 10), ringM); d.position.copy(C).addScaledVector(n, r*.78).add(new THREE.Vector3(0, r*.6, 0)); d.lookAt(d.position.clone().add(n)); g.add(d); }
+  return g;
+}
+function makePaddle(){
+  const g = new THREE.Group(), blk = new THREE.MeshStandardMaterial({ color:0x17181b, roughness:.5 }), shaft = new THREE.MeshStandardMaterial({ color:0xb7bcc2, roughness:.3, metalness:.8 });
+  const s = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, 1.25, 8), shaft); g.add(s);
+  const b = new THREE.Mesh(new THREE.BoxGeometry(.19, .4, .014), blk); b.position.y = -.8; g.add(b);
+  const tip = new THREE.Mesh(new THREE.CylinderGeometry(.095, .095, .014, 16, 1, false, 0, Math.PI), blk); tip.rotation.set(Math.PI/2, 0, 0); tip.position.y = -1.0; g.add(tip);
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(.13, .035, .035), blk); grip.position.y = .63; g.add(grip);
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+const lerpAng = (a, b, t) => { let d = ((b - a + Math.PI) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) - Math.PI; return a + d*t; };
+const raft = { state:'float', s:0, t:0, d:0, vis:true, ripples:[], rippleT:0, heading:Math.PI };
+const P_SIT = { py:.19, lean:.08, r:[-.3, 0, -.42], re:-.6, l:[-.3, 0, .42], le:-.6, rh:-1.95, lh:-1.95, rk:1.25, lk:1.25, ra:.55, la:.55, rhz:.12, lhz:-.12, hx:-.04 };
+const P_STAND = { r:[.05, 0, -.1], re:-.2, l:[.05, 0, .1], le:-.2 };
+const P_CARRY = { r:[-2.78, 0, -.17], re:-.5, l:[-2.78, 0, .17], le:-.5, hx:-.08, lean:-.03 };
+function raftGround(x, z){
+  for (const sz of STAIRS_Z){ if (Math.abs(z - sz) < 1.25){ const x0 = STRIP.x1 - .3, x1 = creekC(sz) - 7.4; if (x >= x0 - .05 && x <= x1 + .05){ const t = (x - x0)/(x1 - x0); return lerp(H(x0, sz), H(x1, sz), t) + .06; } } }
+  return H(x, z);
+}
+function buildRafting(){
+  const boat = raft.boat = buildRaftMesh(); scene.add(boat);
+  const spare = raft.spare = makePaddle(); spare.rotation.set(Math.PI/2, 0, Math.PI/2 + .08); spare.position.set(-.05, -.08, .18); boat.add(spare);
+  raft.crew = [
+    new Figure({ sex:'m', h:1.79, skin:0xd29c78, hair:0x15110e, hairStyle:'short', top:0x18191c, topStyle:'sleeveless', topRough:.5, bottom:0x161719, bottomStyle:'shorts', shoes:0xcfe83a, sole:0x1f1f1f, gaiter:0xe8eaee, glasses:true, hat:{ type:'cap', color:0x1b1c1f } }),
+    new Figure({ sex:'f', h:1.64, skin:0xf2cbb0, hair:0x1a1310, hairStyle:'pony', top:0xf1cdd3, topStyle:'long', topRough:.6, bottom:0x111214, bottomStyle:'shorts', skirt:0x141416, shoes:0xf3a6ba, hat:{ type:'bucket', color:0xdccfb6 } }),
+    new Figure({ sex:'f', h:1.6, skin:0xefc7aa, hair:0x15100c, hairStyle:'long', top:0x232428, topStyle:'long', topRough:.55, bottom:0x17181b, bottomStyle:'leggings', skirt:0x1c1d21, shoes:0xf4b2c2, hat:{ type:'bucket', color:0x2d2e33 } }),
+  ];
+  for (const c of raft.crew) scene.add(c.root);
+  raft.paddle = makePaddle(); raft.crew[0].torso.add(raft.paddle);
+  raft.seats = [[-.95, 0], [.6, 0], [-.16, 0]];            // boat-local x along the hull (bow +x)
+  raft.carry = [[.98, .14], [-.02, -.12], [-1.0, .1]];      // along / across the hull while carrying overhead
+  raft.B0 = [creekC(-29.6) - 3.4, -29.6]; raft.B1 = [creekC(85.5) - 3.4, 85.5];
+  raft.path = [[creekC(-30) - 4.7, -29.7], [creekC(-30) - 7.9, -30], [STRIP.x1 - .8, -30], [4.6, -30.6], [4.6, 84.4], [STRIP.x1 - .8, 85], [creekC(85) - 7.9, 85], [creekC(85) - 4.7, 85.4]];
+  raft.cum = [0]; for (let i=1;i<raft.path.length;i++) raft.cum.push(raft.cum[i-1] + Math.hypot(raft.path[i][0] - raft.path[i-1][0], raft.path[i][1] - raft.path[i-1][1]));
+  raft.floatLen = RAFT_TOP - RAFT_BOT;
+  const rt = canvasTex(128, 128, (c, w, h) => { const gr = c.createRadialGradient(64, 64, 40, 64, 64, 62); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.6, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+  for (let i=0;i<7;i++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map:rt, transparent:true, depthWrite:false, opacity:0 })); m.rotation.x = -Math.PI/2; m.renderOrder = 3; scene.add(m); raft.ripples.push({ m, age:9 }); }
+  raft.state = 'float'; raft.s = .18;
+  npcs.push({ update: dt => raftUpdate(dt) });
+}
+function pathAt(d){
+  const P = raft.path, C = raft.cum; d = clamp(d, 0, C[C.length - 1]);
+  let i = 1; while (i < C.length - 1 && C[i] < d) i++;
+  const t = (d - C[i-1])/Math.max(1e-6, C[i] - C[i-1]);
+  return { x: lerp(P[i-1][0], P[i][0], t), z: lerp(P[i-1][1], P[i][1], t), h: Math.atan2(P[i][0] - P[i-1][0], P[i][1] - P[i-1][1]) };
+}
+function placeBoat(x, y, z, heading, pitch=0, roll=0){ const b = raft.boat; b.position.set(x, y, z); b.rotation.set(roll, heading - Math.PI/2, pitch); }
+function seatWorld(i, x, y, z, heading){ const [sx, sz] = raft.seats[i], ph = heading - Math.PI/2, c = Math.cos(ph), s = Math.sin(ph); return [x + sx*c + sz*s, y - .11, z - sx*s + sz*c]; }
+function carryWorld(i, x, z, heading){ const [al, ac] = raft.carry[i], f = [Math.sin(heading), Math.cos(heading)], r = [-Math.cos(heading), Math.sin(heading)]; const px = x + f[0]*al + r[0]*ac, pz = z + f[1]*al + r[1]*ac; return [px, raftGround(px, pz), pz]; }
+function reachPose(fig, base, handY){
+  // bend the elbows so raised hands meet the hull bottom whatever the person's height
+  const S = fig.o.h/1.7, sh = 1.43*S; let best = -.5, err = 1e9;
+  for (let e = -1.6; e <= -.35; e += .05){ const y = sh + .28*S*Math.cos(Math.PI - 2.78) + .32*S*Math.cos(Math.PI - 2.78 + e); const d = Math.abs(y - handY); if (d < err){ err = d; best = e; } }
+  return Object.assign({}, base, { re:best, le:best });
+}
+function raftUpdate(dt){
+  const on = season === 'summer' && nightF < .55;
+  if (on !== raft.vis){ raft.vis = on; raft.boat.visible = on; raft.crew.forEach(c => c.root.visible = on); raft.ripples.forEach(r => r.m.visible = on); }
+  if (!on) return;
+  raft.t += dt; const T = raft.t, crew = raft.crew, WY = WATER_Y + .07;
+  const bob = .03*Math.sin(T*1.4), roll = .03*Math.sin(T*1.1), pitch = .02*Math.sin(T*.9);
+  const seatAll = (x, y, z, h, poseFn) => crew.forEach((c, i) => { const [px, py, pz] = seatWorld(i, x, y, z, h); c.root.position.set(px, py, pz); c.root.rotation.y = h; c.update(dt); c.apply(poseFn(i)); });
+  const paddling = i => { if (i !== 0) return Object.assign({}, P_SIT, { hy: .15*Math.sin(T*.4 + i) }); const ph = T*2.1, side = Math.sin(T*.52) > 0 ? 1 : -1; const st = Math.sin(ph); return Object.assign({}, P_SIT, { twist: side*(.28 + .18*st), r:[-1.0 - .25*st, .2*side, .12], re:-.8, l:[-.85 + .2*st, -.2*side, -.12], le:-.9, lean:.12 + .06*Math.max(0, st) }); };
+  if (raft.state === 'float'){
+    raft.s += dt*.95/raft.floatLen;
+    const z = lerp(RAFT_TOP, RAFT_BOT, raft.s), x = floatX(z), x2 = floatX(z - .5);
+    const h = Math.atan2(x2 - x, -.5) + .22*Math.sin(T*.23);
+    raft.heading = lerpAng(raft.heading, h, 1 - Math.exp(-dt*1.5));
+    placeBoat(x, WY + bob, z, raft.heading, pitch, roll); seatAll(x, WY + bob, z, raft.heading, paddling);
+    raft.paddle.visible = true; raft.spare.visible = false;
+    const ph = T*2.1, side = Math.sin(T*.52) > 0 ? 1 : -1, st = Math.sin(ph);
+    raft.paddle.position.set(side*-.36, .1, .28); raft.paddle.rotation.set(-.45 + .5*st, 0, -side*.62);
+    raft.rippleT -= dt;
+    if (raft.rippleT <= 0){ raft.rippleT = .75; const rr = raft.ripples.find(r => r.age > 2.6) || raft.ripples[0]; rr.age = 0; rr.m.position.set(x, WATER_Y + .03, z); }
+    if (raft.s >= 1){ raft.state = 'land'; raft.k = 0; raft.from = [x, z, raft.heading]; }
+  } else if (raft.state === 'land'){
+    raft.k += dt; const k = raft.k, h0 = pathAt(0).h, [fx, fz, fh] = raft.from, B0 = raft.B0, p0 = pathAt(0);
+    raft.paddle.visible = k < 1.6; raft.spare.visible = k >= 1.6;
+    if (k < 1.6){ const t = smooth(0, 1.6, k), x = lerp(fx, B0[0], t), z = lerp(fz, B0[1], t), h = lerpAng(fh, h0, t); placeBoat(x, WY + bob*.5, z, h); seatAll(x, WY + bob*.5, z, h, i => blendPose(paddling(i), P_SIT, t)); raft.heading = h; }
+    else if (k < 3.4){ const t = smooth(1.6, 3.4, k); placeBoat(B0[0], WY, B0[1], h0); crew.forEach((c, i) => { const s = seatWorld(i, B0[0], WY, B0[1], h0), w = carryWorld(i, p0.x, p0.z, h0); c.root.position.set(lerp(s[0], w[0], t), lerp(s[1], w[1], t), lerp(s[2], w[2], t)); c.root.rotation.y = h0; c.update(dt); c.apply(Figure.gait(blendPose(P_SIT, P_STAND, t), T*5 + i, t*(1 - t)*2)); }); }
+    else { const t = smooth(3.4, 5.2, k), gy = (raftGround(p0.x - Math.sin(h0), p0.z - Math.cos(h0)) + raftGround(p0.x + Math.sin(h0), p0.z + Math.cos(h0)))/2 + 2.1;
+      const x = lerp(B0[0], p0.x, t), z = lerp(B0[1], p0.z, t), y = lerp(WY, gy, t); placeBoat(x, y, z, h0);
+      crew.forEach((c, i) => { const w = carryWorld(i, x, z, h0); c.root.position.set(...w); c.root.rotation.y = h0; c.update(dt); c.apply(blendPose(P_STAND, reachPose(c, P_CARRY, y - .19 - w[1]), t)); }); }
+    if (k >= 5.2){ raft.state = 'carry'; raft.d = 0; raft.heading = h0; }
+  } else if (raft.state === 'carry'){
+    raft.d += dt*1.25; const p = pathAt(raft.d), total = raft.cum[raft.cum.length - 1];
+    raft.heading = lerpAng(raft.heading, p.h, 1 - Math.exp(-dt*2.2));
+    const h = raft.heading, fx = Math.sin(h), fz = Math.cos(h);
+    const gf = raftGround(p.x + fx*1.1, p.z + fz*1.1), gb = raftGround(p.x - fx*1.1, p.z - fz*1.1), y = (gf + gb)/2 + 2.1;
+    placeBoat(p.x, y + .015*Math.sin(raft.d*4.5), p.z, h, Math.atan2(gf - gb, 2.2)*.8);
+    raft.paddle.visible = false; raft.spare.visible = true;
+    crew.forEach((c, i) => { const w = carryWorld(i, p.x, p.z, h); c.root.position.set(...w); c.root.rotation.y = h; c.update(dt); c.apply(Figure.gait(reachPose(c, P_CARRY, y - .19 - w[1]), raft.d*4.4 + i*1.9, 1)); });
+    if (raft.d >= total){ raft.state = 'launch'; raft.k = 0; }
+  } else if (raft.state === 'launch'){
+    raft.k += dt; const k = raft.k, pe = pathAt(1e9), he = raft.heading, B1 = raft.B1, hF = Math.atan2(floatX(RAFT_TOP - .5) - floatX(RAFT_TOP), -.5);
+    if (k < 1.8){ const t = smooth(0, 1.8, k), gy = raftGround(pe.x, pe.z) + 2.1, x = lerp(pe.x, B1[0], t), z = lerp(pe.z, B1[1], t), y = lerp(gy, WY, t); placeBoat(x, y, z, he);
+      crew.forEach((c, i) => { const w = carryWorld(i, x, z, he); c.root.position.set(...w); c.root.rotation.y = he; c.update(dt); c.apply(blendPose(reachPose(c, P_CARRY, y - .19 - w[1]), P_STAND, t)); }); }
+    else if (k < 3.6){ const t = smooth(1.8, 3.6, k); placeBoat(B1[0], WY, B1[1], he); crew.forEach((c, i) => { const w = carryWorld(i, B1[0], B1[1], he), s = seatWorld(i, B1[0], WY, B1[1], he); c.root.position.set(lerp(w[0], s[0], t), lerp(w[1], s[1], t), lerp(w[2], s[2], t)); c.root.rotation.y = he; c.update(dt); c.apply(Figure.gait(blendPose(P_STAND, P_SIT, t), T*5 + i, t*(1 - t)*2)); }); }
+    else { const t = smooth(3.6, 5.4, k), x = lerp(B1[0], floatX(RAFT_TOP), t), z = lerp(B1[1], RAFT_TOP, t), h = lerpAng(he, hF, t); placeBoat(x, WY + bob*t, z, h); seatAll(x, WY + bob*t, z, h, i => blendPose(P_SIT, paddling(i), t)); raft.paddle.visible = t > .3; raft.spare.visible = t <= .3; }
+    if (k >= 5.4){ raft.state = 'float'; raft.s = 0; raft.heading = hF; }
+  }
+  for (const r of raft.ripples){ r.age += dt; const a = r.age; r.m.scale.setScalar(.8 + a*1.1); r.m.material.opacity = a < 2.6 ? .45*(1 - a/2.6) : 0; }
+}
+
 
 /* ---------------- characters ---------------- */
 class Hiker {
@@ -2180,76 +2405,160 @@ function parasolTable(x, z, color){
   shadowAll(g); place(g, x, H(x,z), z);
 }
 
-/* ---------------- people: procedural figures in casual clothes (generic, not likenesses) ---------------- */
-class Person {
+/* ---------------- people: articulated figures with faces, hair, hats and outfits (generic, not likenesses) ---------------- */
+function limbGeo(r0, r1, len, bulge=0, at=.35, seg=16){
+  const pts = [];
+  for (let k=0;k<=5;k++){ const a = (1 - k/5)*Math.PI/2; pts.push(new THREE.Vector2(r0*Math.cos(a), r0*.8*Math.sin(a))); }
+  for (let k=1;k<=10;k++){ const t = k/10; pts.push(new THREE.Vector2(lerp(r0, r1, t)*(1 + bulge*Math.exp(-(((t - at)/.2)**2))), -t*len)); }
+  for (let k=1;k<=5;k++){ const a = k/5*Math.PI/2; pts.push(new THREE.Vector2(r1*Math.cos(a), -len - r1*.8*Math.sin(a))); }
+  const g = new THREE.LatheGeometry(pts.reverse(), seg); g.rotateY(Math.PI); return g;
+}
+function headGeo(f){
+  const g = new THREE.SphereGeometry(1, 36, 28), p = g.attributes.position;
+  for (let i=0;i<p.count;i++){
+    let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    if (y < 0){ const t = -y; x *= 1 - (f ? .34 : .27)*Math.pow(t, 1.6); z *= 1 - .1*t*t; }
+    if (z < 0) z *= .96;
+    if (y > .1 && z > .2) z *= 1 - .05*(y - .1);            // forehead slopes back slightly
+    if (Math.abs(y + .05) < .3 && z > .3) x *= 1 + .04*(1 - Math.abs(y + .05)/.3);   // cheekbones
+    p.setXYZ(i, x*.076, y*.108, z*.094);
+  }
+  g.computeVertexNormals(); return g;
+}
+const POSE0 = { py:.97, lean:0, twist:0, side:0, hx:0, hy:0, r:[0,0,-.07], re:-.14, l:[0,0,.07], le:-.14, rw:0, lw:0, rh:0, lh:0, rk:0, lk:0, ra:0, la:0, rhz:0, lhz:0 };
+function blendPose(A, B, t){
+  const o = {};
+  for (const k in POSE0){ const a = A[k] ?? POSE0[k], b = B[k] ?? POSE0[k]; o[k] = Array.isArray(a) ? a.map((v, i) => lerp(v, b[i], t)) : lerp(a, b, t); }
+  return o;
+}
+class Figure {
   constructor(o){
-    const root = this.root = new THREE.Group(), body = this.body = new THREE.Group(); body.scale.setScalar(o.h/1.7); root.add(body);
-    const MS = (c, r=.85, side=THREE.FrontSide) => new THREE.MeshStandardMaterial({ color:c, roughness:r, side });
-    const skin = MS(o.skin, .6), hair = MS(o.hair, .5), top = MS(o.top, .92, THREE.DoubleSide), pants = MS(o.pants, .9, THREE.DoubleSide), shoes = MS(o.shoes, .45);
-    const add = (parent, geo, m, x=0, y=0, z=0) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); me.castShadow = true; me.receiveShadow = true; parent.add(me); return me; };
-    // legs and shoes
-    const lb = o.wide ? .03 : .06;
+    const f = o.sex === 'f', root = this.root = new THREE.Group(), body = this.body = new THREE.Group();
+    body.scale.setScalar(o.h/1.7); root.add(body); this.o = o;
+    const mat = (c, r=.8, extra={}) => new THREE.MeshStandardMaterial(Object.assign({ color:c, roughness:r }, extra));
+    const skin = mat(o.skin, .5), hairM = mat(o.hair, .58), topM = mat(o.top, o.topRough ?? .7), botM = mat(o.bottom, .78, { side:THREE.DoubleSide }), shoeM = mat(o.shoes, .45);
+    const add = (p, g, m, x=0, y=0, z=0) => { const me = new THREE.Mesh(g, m); me.position.set(x, y, z); me.castShadow = true; me.receiveShadow = true; p.add(me); return me; };
+    const bs = o.bottomStyle || 'shorts';
+    // pelvis and legs
+    const pelvis = this.pelvis = new THREE.Group(); pelvis.position.y = .97; body.add(pelvis);
+    const hips = add(pelvis, new THREE.SphereGeometry(1, 26, 16), botM, 0, -.025, -.005); hips.scale.set(f ? .162 : .152, .12, .118);
+    this.legs = [];
     for (const sx of [-1, 1]){
-      const leg = new THREE.CylinderGeometry(.084, o.wide ? .1 : .06, .9 - lb, 18, 6, true);
-      const p = leg.attributes.position; for (let i=0;i<p.count;i++){ const y = p.getY(i)/(.9 - lb) + .5; if (o.wide) p.setX(i, p.getX(i) + sx*.02*(1 - y)); p.setZ(i, p.getZ(i)*(1 - .08*Math.sin(Math.PI*y))); } leg.computeVertexNormals();
-      add(body, leg, pants, sx*.1, (.9 + lb)/2, 0);
-      const sh = add(body, new THREE.SphereGeometry(1, 18, 10), shoes, sx*.098, .045, .05); sh.scale.set(.054, .048, .13);
-      if (!o.wide) add(body, new THREE.CylinderGeometry(.034, .036, .06, 10), skin, sx*.093, .075, 0);
+      const hip = new THREE.Group(); hip.position.set(sx*(f ? .088 : .092), -.045, 0); pelvis.add(hip);
+      const thighCloth = bs === 'leggings' || bs === 'jeans' || bs === 'wide';
+      add(hip, limbGeo(bs === 'wide' ? .09 : f ? .075 : .08, bs === 'wide' ? .078 : .052, .43, thighCloth ? .02 : .1, .25), thighCloth ? botM : skin);
+      if (bs === 'shorts') add(hip, limbGeo(f ? .088 : .094, f ? .082 : .088, f ? .14 : .22), botM, 0, .015, 0);
+      const knee = new THREE.Group(); knee.position.y = -.43; hip.add(knee);
+      add(knee, limbGeo(bs === 'wide' ? .08 : bs === 'jeans' ? .058 : .05, bs === 'wide' ? .102 : bs === 'jeans' ? .05 : .033, bs === 'wide' ? .395 : .41, thighCloth && bs !== 'leggings' ? .0 : .15, .28), thighCloth ? botM : skin);
+      const ankle = new THREE.Group(); ankle.position.y = -.41; knee.add(ankle);
+      const shoe = add(ankle, new THREE.SphereGeometry(1, 18, 12), shoeM, 0, -.035, .045); shoe.scale.set(.047, .037, .125);
+      add(ankle, new THREE.BoxGeometry(.088, .012, .235), mat(o.sole ?? 0x2a2a2c, .9), 0, -.068, .045);
+      this.legs.push({ hip, knee, ankle });
     }
-    const hip = add(body, new THREE.SphereGeometry(1, 22, 14), pants, 0, .9, 0); hip.scale.set(.185, .13, .13);
-    // torso (tee) on a waist pivot
-    const torso = this.torso = new THREE.Group(); torso.position.y = .98; body.add(torso);
-    const hem = o.oversize ? -.2 : -.12;
-    const prof = [[0, hem], [o.oversize ? .19 : .165, hem], [o.oversize ? .19 : .168, hem + .08], [.166, .06], [.17, .2], [.182, .32], [.19, .4], [.17, .45], [.11, .49], [.055, .5]].map(q => new THREE.Vector2(q[0], q[1]));
-    const tg = new THREE.LatheGeometry(prof, 30); tg.scale(1, 1, .62); add(torso, tg, top);
-    add(torso, new THREE.CylinderGeometry(.043, .05, .12, 12), skin, 0, .53, .005);
-    // head
-    const head = this.head = new THREE.Group(); head.position.set(0, .56, .012); torso.add(head);
-    const skull = add(head, new THREE.SphereGeometry(.1, 30, 22), skin, 0, .07, 0); skull.scale.set(.77, 1.1, .96);
-    const jaw = add(head, new THREE.SphereGeometry(.07, 18, 12), skin, 0, .02, .02); jaw.scale.set(.85, .8, .9);
-    const nose = add(head, new THREE.ConeGeometry(.013, .038, 8), skin, 0, .06, .1); nose.rotation.x = Math.PI/2.4;
+    if (o.skirt){ const sk = add(pelvis, new THREE.CylinderGeometry(.158, .24, .3, 28, 3, true), mat(o.skirt, .85, { side:THREE.DoubleSide }), 0, -.13, 0); sk.scale.z = .82; }
+    // torso
+    const spine = this.torso = new THREE.Group(); spine.position.y = .06; pelvis.add(spine);
+    const prof = f ? [[0,-.15],[.128,-.15],[.131,-.08],[.118,0],[.115,.06],[.13,.14],[.144,.2],[.142,.27],[.15,.33],[.163,.38],[.15,.41],[.11,.44],[.066,.458],[.044,.466]]
+                   : [[0,-.15],[.142,-.15],[.146,-.07],[.145,0],[.149,.08],[.168,.17],[.187,.26],[.2,.33],[.198,.38],[.17,.415],[.12,.44],[.075,.458],[.05,.466]];
+    if (o.oversize){ prof[1][0] += .05; prof[2][0] += .04; prof[3][0] += .03; prof[4][0] += .025; prof[1][1] = prof[0][1] = -.22; }
+    const tg = new THREE.LatheGeometry(prof.map(q => new THREE.Vector2(q[0], q[1])), 34); tg.rotateY(Math.PI); const tp = tg.attributes.position;
+    for (let i=0;i<tp.count;i++){ const y = tp.getY(i); let z = tp.getZ(i)*(f ? .66 : .62); if (f && z > 0) z *= 1 + .17*Math.exp(-(((y - .23)/.055)**2)); if (z < 0) z *= .95; tp.setZ(i, z); }
+    tg.computeVertexNormals(); add(spine, tg, topM);
+    if (o.topStyle === 'sleeveless'){ for (const sx of [-1,1]){ const sc = add(spine, new THREE.SphereGeometry(1, 14, 10), skin, sx*(f ? .145 : .17), .375, 0); sc.scale.set(.05, .045, .06); } }
+    add(spine, new THREE.CylinderGeometry(.041, .047, .12, 16), skin, 0, .5, .004);
+    if (o.gaiter){ add(spine, new THREE.CylinderGeometry(.058, .064, .095, 18, 1, true), mat(o.gaiter, .9, { side:THREE.DoubleSide }), 0, .5, .006); }
+    // head and face
+    const head = this.head = new THREE.Group(); head.position.set(0, .562, .012); spine.add(head);
+    add(head, headGeo(f), skin);
+    const white = mat(0xf4f2ee, .3), iris = mat(o.eyes ?? 0x2a1c14, .25), dark = mat(0x1b1410, .6), lip = mat(o.lips ?? (f ? 0xc27a7a : 0xb08070), .5);
     for (const sx of [-1, 1]){
-      const ear = add(head, new THREE.SphereGeometry(1, 8, 6), skin, sx*.077, .065, -.005); ear.scale.set(.012, .026, .018);
-      const eye = add(head, new THREE.SphereGeometry(.0085, 8, 6), MS(0x1c1612, .3), sx*.029, .085, .089); eye.scale.z = .5;
-      const brow = add(head, new THREE.BoxGeometry(.03, .006, .006), hair, sx*.03, .102, .089); brow.rotation.z = sx*.12;
+      const sc = add(head, new THREE.SphereGeometry(.0125, 14, 10), white, sx*.03, .006, .0805); sc.scale.set(1.2, .72, .55);
+      const ir = add(head, new THREE.SphereGeometry(.0074, 12, 10), iris, sx*.03, .0055, .0866); ir.scale.z = .45;
+      add(head, new THREE.SphereGeometry(.0018, 6, 4), white, sx*.03 + .0022, .008, .0901);
+      const lid = add(head, new THREE.BoxGeometry(f ? .028 : .025, f ? .0042 : .003, .005), dark, sx*.03, .0145, .0858); lid.rotation.z = sx*-.12;
+      const brow = add(head, new THREE.BoxGeometry(.03, f ? .0045 : .0065, .006), mat(o.hair, .6), sx*.031, .028, .0835); brow.rotation.z = sx*-.05;
+      const ear = add(head, new THREE.SphereGeometry(1, 10, 8), skin, sx*.075, -.002, -.008); ear.scale.set(.011, .026, .019);
     }
-    const capG = new THREE.SphereGeometry(.106, 30, 18, 0, Math.PI*2, 0, Math.PI*(o.pony ? .55 : .5));
-    const cap = add(head, capG, hair, 0, .078, -.006); cap.scale.set(.81, 1.08, .99); cap.rotation.x = o.pony ? -.5 : -.32;
-    if (o.pony){
-      const pt = new THREE.LatheGeometry([[0,.0],[.026,.01],[.04,.06],[.044,.13],[.036,.22],[.018,.29],[0,.31]].map(q => new THREE.Vector2(q[0], -q[1])), 14);
-      const tail = add(head, pt, hair, 0, .12, -.1); tail.rotation.x = .45;
-      if (o.scrunchie){ const sc = add(head, new THREE.TorusGeometry(.03, .016, 8, 16), MS(o.scrunchie, .7), 0, .108, -.108); sc.rotation.x = Math.PI/2 + .45; }
+    const nb = add(head, new THREE.SphereGeometry(.009, 10, 8), skin, 0, -.014, .088); nb.scale.set(.7, 2.4, 1); nb.rotation.x = -.3;
+    const nt = add(head, new THREE.SphereGeometry(.0095, 12, 8), skin, 0, -.036, .0935); nt.scale.set(1.15, .85, .9);
+    const ul = add(head, new THREE.SphereGeometry(1, 14, 8), lip, 0, -.0565, .0768); ul.scale.set(.0148, .0042, .008);
+    const ll = add(head, new THREE.SphereGeometry(1, 14, 8), lip, 0, -.0645, .0748); ll.scale.set(.0138, .0055, .0085);
+    // hair
+    const hs = o.hairStyle || (f ? 'long' : 'short');
+    const capG = new THREE.SphereGeometry(1, 34, 22, 0, Math.PI*2, 0, Math.PI*(hs === 'short' ? .52 : .6));
+    const cap = add(head, capG, hairM, 0, .007, -.007); cap.scale.set(.081, .116, .1).multiplyScalar(o.hat ? .975 : 1); cap.rotation.x = hs === 'short' ? -.3 : hs === 'pony' && !o.hat ? -.3 : -.42;
+    if (hs === 'short'){ const top = add(head, new THREE.SphereGeometry(1, 16, 10), hairM, 0, .085, .01); top.scale.set(.068, .035, .08); }
+    if (hs === 'long'){
+      const back = add(head, new THREE.SphereGeometry(1, 20, 16), hairM, 0, -.115, -.06); back.scale.set(.083, .2, .052); back.rotation.x = .1;
+      for (const sx of [-1, 1]){ const lock = add(head, limbGeo(.017, .012, .15), hairM, sx*.069, -.005, .028); lock.rotation.z = sx*.06; }
+      const bang = add(head, new THREE.SphereGeometry(1, 18, 10), hairM, 0, .068, .066); bang.scale.set(.074, .042, .032); bang.rotation.x = .55;
     }
-    // arms: shoulder → elbow → hand; arms[0] is the right arm (−x when facing +z)
+    if (hs === 'pony'){
+      const tail = add(head, limbGeo(.028, .011, .23, .35, .3), hairM, 0, o.hat ? -.04 : .035, -.1); tail.rotation.x = o.hat ? .2 : .22;
+      if (o.scrunchie){ const scr = add(head, new THREE.TorusGeometry(.029, .014, 8, 16), mat(o.scrunchie, .7), 0, o.hat ? -.04 : .035, -.102); scr.rotation.x = Math.PI/2 + (o.hat ? .2 : .22); }
+    }
+    if (o.hat && o.hat.type === 'bucket'){
+      const pts = [[.172,-.045],[.144,-.029],[.11,-.008],[.1,.015],[.097,.05],[.09,.082],[.066,.094],[0,.095]].map(q => new THREE.Vector2(q[0], q[1]));
+      const hat = add(head, new THREE.LatheGeometry(pts, 32), mat(o.hat.color, .9, { side:THREE.DoubleSide }), 0, .05, -.006); hat.scale.set(.93, 1, 1.08); hat.rotation.x = -.08;
+    }
+    if (o.hat && o.hat.type === 'cap'){
+      const cr = add(head, new THREE.SphereGeometry(1, 24, 12, 0, Math.PI*2, 0, Math.PI/2), mat(o.hat.color, .7), 0, .03, -.006); cr.scale.set(.088, .084, .106);
+      const br = add(head, new THREE.SphereGeometry(1, 20, 6), mat(o.hat.color, .7), 0, .032, .096); br.scale.set(.068, .007, .07); br.rotation.x = .1;
+    }
+    if (o.glasses){
+      const lens = mat(0x101418, .08, { metalness:.9 });
+      for (const sx of [-1, 1]){ const l = add(head, new THREE.SphereGeometry(1, 14, 8), lens, sx*.031, .007, .092); l.scale.set(.021, .0135, .006); const arm = add(head, new THREE.BoxGeometry(.004, .005, .085), lens, sx*.072, .012, .045); arm.rotation.y = sx*-.08; }
+      add(head, new THREE.BoxGeometry(.016, .004, .004), lens, 0, .012, .094);
+    }
+    // arms
     this.arms = [];
-    const sl = o.sleeve || .2;
+    const shW = f ? .163 : .19, sl = o.topStyle || 'tee';
     for (const sx of [-1, 1]){
-      const sh = new THREE.Group(); sh.position.set(sx*.19, .425, 0); torso.add(sh);
-      const cap2 = add(sh, new THREE.SphereGeometry(.07, 14, 10), top); cap2.scale.set(.95, .85, .9);
-      add(sh, new THREE.CylinderGeometry(.064, o.oversize ? .078 : .066, sl, 14, 1, true), top, 0, -sl/2 + .02, 0);
-      add(sh, new THREE.CapsuleGeometry(.035, .2, 4, 10), skin, 0, -.15, 0);
-      const el = new THREE.Group(); el.position.y = -.285; sh.add(el);
-      add(el, new THREE.CapsuleGeometry(.031, .19, 4, 10), skin, 0, -.12, 0);
-      const hand = add(el, new THREE.SphereGeometry(1, 12, 10), skin, 0, -.265, .006); hand.scale.set(.028, .068, .042);
-      const grip = new THREE.Group(); grip.position.set(0, -.26, .03); el.add(grip);
-      this.arms.push({ sh, el, grip });
+      const sh = new THREE.Group(); sh.position.set(sx*shW, .392, 0); spine.add(sh);
+      const capS = add(sh, new THREE.SphereGeometry(f ? .039 : .048, 16, 12), sl === 'sleeveless' ? skin : topM, f ? -sx*.006 : -sx*.008, -.012, 0); capS.scale.set(1, .95, .95);
+      add(sh, limbGeo(f ? .036 : .044, f ? .029 : .033, .27, f ? .05 : .17, .35), sl === 'long' ? topM : skin);
+      if (sl === 'tee') add(sh, limbGeo(f ? (o.oversize ? .05 : .044) : .052, f ? (o.oversize ? .056 : .045) : .05, o.oversize ? .19 : .14), topM, 0, -.004, 0);
+      const el = new THREE.Group(); el.position.y = -.28; sh.add(el);
+      add(el, limbGeo(f ? .03 : .036, f ? .022 : .026, .24, .1, .25), sl === 'long' ? topM : skin);
+      const wr = new THREE.Group(); wr.position.y = -.245; el.add(wr);
+      const hand = add(wr, new THREE.SphereGeometry(1, 14, 10), skin, 0, -.068, .004); hand.scale.set(.023, .07, .041);
+      const th = add(wr, limbGeo(.0105, .0085, .045), skin, 0, -.018, .03); th.rotation.x = -.6;
+      const grip = new THREE.Group(); grip.position.set(0, -.075, .02); wr.add(grip);
+      this.arms.push({ sh, el, wr, grip });
     }
-    this.t = rng()*10; this.pose = o.pose || {}; this.anim = o.anim || null;
-    this.setPose(this.pose);
+    this.t = rng()*10; this.anim = o.anim || null; this.P = Object.assign({}, POSE0, o.pose || {});
+    this.apply(this.P);
   }
-  setPose(P){
+  apply(P){
+    const Q = Object.assign({}, POSE0, P);
+    this.pelvis.position.y = Q.py; this.pelvis.rotation.set(0, Q.twist*.4, Q.side);
+    this.torso.rotation.set(Q.lean, Q.twist*.6, 0); this.head.rotation.set(Q.hx, Q.hy, 0);
     const [r, l] = this.arms;
-    if (P.r) r.sh.rotation.set(...P.r); if (P.re !== undefined) r.el.rotation.x = P.re;
-    if (P.l) l.sh.rotation.set(...P.l); if (P.le !== undefined) l.el.rotation.x = P.le;
-    this.torso.rotation.x = P.lean || 0; this.head.rotation.set(P.hx || 0, P.hy || 0, 0);
+    r.sh.rotation.set(...Q.r); r.el.rotation.x = Q.re; r.wr.rotation.x = Q.rw;
+    l.sh.rotation.set(...Q.l); l.el.rotation.x = Q.le; l.wr.rotation.x = Q.lw;
+    const [rl, ll] = this.legs;
+    rl.hip.rotation.set(Q.rh, 0, Q.rhz); rl.knee.rotation.x = Q.rk; rl.ankle.rotation.x = Q.ra;
+    ll.hip.rotation.set(Q.lh, 0, Q.lhz); ll.knee.rotation.x = Q.lk; ll.ankle.rotation.x = Q.la;
   }
+  setPose(P){ this.P = Object.assign({}, POSE0, P); this.apply(this.P); }
   hold(side, obj){ this.arms[side].grip.add(obj); }
+  // walking: adds a gait to a pose
+  static gait(P, ph, amt){
+    const s = Math.sin(ph), c = Math.cos(ph), Q = Object.assign({}, P);
+    Q.rh = (P.rh ?? 0) - .42*s*amt; Q.lh = (P.lh ?? 0) + .42*s*amt;
+    Q.rk = (P.rk ?? 0) + (.12 + .62*Math.max(0, Math.sin(ph + 1.9)))*amt; Q.lk = (P.lk ?? 0) + (.12 + .62*Math.max(0, Math.sin(ph + 1.9 + Math.PI)))*amt;
+    Q.ra = (P.ra ?? 0) + .18*Math.sin(ph - .6)*amt; Q.la = (P.la ?? 0) - .18*Math.sin(ph - .6)*amt;
+    Q.py = (P.py ?? .97) - .02*amt + .022*Math.abs(c)*amt;
+    Q.side = (P.side ?? 0) + .03*s*amt; Q.twist = (P.twist ?? 0) + .08*s*amt;
+    return Q;
+  }
   update(dt){
-    this.t += dt; const t = this.t;
-    this.torso.scale.y = 1 + .006*Math.sin(t*1.7);
-    if (this.anim) this.anim(this, t);
+    this.t += dt;
+    this.torso.scale.y = 1 + .005*Math.sin(this.t*1.7);
+    if (this.anim) this.anim(this, this.t);
   }
 }
+
 /* barrel charcoal grill on a cart, meat on the grate, smoke, and a family-style group around it */
 const bbq = { smoke:[], light:null };
 function bbqScene(x, z){
@@ -2294,17 +2603,17 @@ function bbqScene(x, z){
   const tongs = () => { const s = new THREE.Group(); for (const dx of [-.008, .008]){ const c = new THREE.Mesh(new THREE.BoxGeometry(.008, .34, .012), grate); c.position.set(dx, -.15, 0); s.add(c); } return s; };
   // the group: man cooking at the grill end, two girls eating with chopsticks on the shelf side
   const face = (px, pz, tx, tz) => Math.atan2(tx - px, tz - pz);
-  const man = new Person({ h:1.73, skin:0xe0b394, hair:0x17120f, top:0xf3f3f1, pants:0x3f5678, shoes:0xd9c4a6, sleeve:.17, wide:false, pony:false,
+  const man = new Figure({ sex:'m', h:1.74, skin:0xdcae8f, hair:0x17120f, hairStyle:'short', top:0xf3f3f1, topStyle:'tee', bottom:0x3f5678, bottomStyle:'jeans', shoes:0xd9c4a6, sole:0xb9a37f,
     pose:{ r:[-.6, .1, .25], re:-.9, l:[-.5, 0, -.12], le:-.7, lean:.14, hx:.4 },
     anim:(p, t) => { p.arms[0].el.rotation.x = -.9 + .2*Math.sin(t*1.9); p.arms[0].sh.rotation.y = .1 + .12*Math.sin(t*.8); p.head.rotation.y = .1*Math.sin(t*.5); } });
   man.hold(0, tongs()); man.arms[0].grip.rotation.x = -1.1;
   const pm = [x - .78, z + .22]; place(man.root, pm[0], H(pm[0], pm[1]), pm[1], face(pm[0], pm[1], x + .1, z - .1));
-  const girlB = new Person({ h:1.58, skin:0xe8c0a4, hair:0x15110e, top:0xf1efe8, pants:0xa9aec4, shoes:0xf2f1ea, sleeve:.25, wide:true, oversize:true, pony:true, scrunchie:0xf0d27a,
+  const girlB = new Figure({ sex:'f', h:1.58, skin:0xf0c8ab, hair:0x15110e, hairStyle:'pony', scrunchie:0xf0d27a, top:0xf1efe8, topStyle:'tee', oversize:true, bottom:0xa9aec4, bottomStyle:'wide', shoes:0xf2f1ea, sole:0xe3e1da,
     pose:{ r:[-.35, 0, .12], re:-1.25, l:[-.25, 0, -.1], le:-.95, lean:.05, hx:.3 },
     anim:(p, t) => { p.head.rotation.y = .15*Math.sin(t*.6); p.arms[0].el.rotation.x = -1.25 + .1*Math.sin(t*1.3); } });
   girlB.hold(0, stick()); girlB.arms[0].grip.rotation.x = -1.3;
   const pb = [x + .78, z - .62]; place(girlB.root, pb[0], H(pb[0], pb[1]), pb[1], face(pb[0], pb[1], x + .2, z));
-  const girlA = new Person({ h:1.6, skin:0xe6bd9f, hair:0x14100d, top:0x1b1b1d, pants:0x93a1b6, shoes:0xf0efe8, sleeve:.25, wide:true, oversize:true, pony:true,
+  const girlA = new Figure({ sex:'f', h:1.6, skin:0xeec4a6, hair:0x14100d, hairStyle:'pony', top:0x1b1b1d, topStyle:'tee', oversize:true, bottom:0x93a1b6, bottomStyle:'wide', shoes:0xf0efe8, sole:0xe3e1da,
     pose:{ r:[-.75, 0, .32], re:-2.1, l:[-.12, 0, -.06], le:-.3, lean:.02, hx:.05 },
     anim:(p, t) => { const c = (t % 7)/7, k = c < .5 ? smooth(.05, .25, c) : 1 - smooth(.55, .8, c); p.arms[0].el.rotation.x = lerp(-1.25, -2.15, k); p.arms[0].sh.rotation.x = lerp(-.45, -.75, k); p.head.rotation.x = lerp(.28, .02, k); } });
   girlA.hold(0, stick()); girlA.arms[0].grip.rotation.x = -1.6;
@@ -2808,7 +3117,7 @@ function applySeason(s, announce=false){
   if (mapleMesh) mapleMesh.visible = !bare;
   if (!bare){ leafYoungMat.map = leafTex.young[s]; leafBroadMat.map = leafTex.broad[s]; leafYoungMat.needsUpdate = leafBroadMat.needsUpdate = true; }
   if (grassMesh){ grassMesh.visible = !!S.grass; if (S.grass) grassMat.color.setRGB(...S.grass); }
-  if (waterMat){ const ice = S.water === 'ice'; waterMat.roughness = ice ? .32 : .12; waterMat.opacity = ice ? .97 : .85; waterMat.normalScale.setScalar(ice ? .04 : .25); }
+  if (waterMat){ const ice = S.water === 'ice'; waterMat.roughness = ice ? .32 : .05; waterMat.opacity = ice ? .97 : .9; waterMat.normalScale.setScalar(ice ? .04 : .16); waterMat.userData.uIce.value = ice ? 1 : 0; }
   if (WX.pts) setWeather(S.weather);
   document.querySelectorAll('#seg-season button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === s)));
   setHour(wasDusk ? presetHour('dusk') : hourTarget, true);
@@ -3002,12 +3311,24 @@ function bindInput(){
   const places = [
     ['진입로', 9, -128, Math.PI], ['멀티존', 4, -104, -Math.PI/2], ['A1', 4, -88, -Math.PI/2], ['별빛존 ★1', -26, -78, -Math.PI/2],
     ['피크닉존', 4, -35, -Math.PI/2], ['관리동·매점', -7, -1, Math.PI/2], ['불멍 B3', 6.2, -12.5, -2.45], ['C1·C2', -9.5, 38, Math.PI/2],
-    ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['항공 전경', null]
+    ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['여름 래프팅', 'raft'], ['항공 전경', null]
   ];
   const pl = $('#places');
   for (const [name, x, z, yaw] of places){
     const b = document.createElement('button'); b.textContent = name;
-    b.addEventListener('click', () => { if (x === null) setView('air'); else { teleport(x, z, yaw); toast('<b>' + name + '</b>'); } if (innerWidth < 1100) $('#panel').classList.remove('open'); });
+    b.addEventListener('click', () => {
+      if (x === null) setView('air');
+      else if (x === 'raft'){
+        if (season !== 'summer') applySeason('summer', true);
+        if (nightF > .4) setHour(13, true);
+        if (view === 'air') setView('tp');
+        raftUpdate(1/30);
+        const bp = raft.boat.position, onWater = raft.state === 'float' || raft.state === 'land' || raft.state === 'launch';
+        const px = onWater ? creekC(bp.z) - 7.6 : bp.x + 3.2, pz = onWater ? bp.z - 5 : bp.z + 4.5;
+        teleport(px, pz, Math.atan2(-(bp.x - px), -(bp.z - pz)) + .32); toast('<b>여름 계곡 래프팅</b> · 타고 내려온 뒤 보트를 들고 다시 올라갑니다');
+      } else { teleport(x, z, yaw); toast('<b>' + name + '</b>'); }
+      if (innerWidth < 1100) $('#panel').classList.remove('open');
+    });
     pl.appendChild(b);
   }
   addEventListener('resize', () => { camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
@@ -3039,7 +3360,8 @@ function tick(dt, t){
   SC.left = SC.bottom = view === 'air' ? -150 : -58; SC.right = SC.top = view === 'air' ? 150 : 58; SC.updateProjectionMatrix();
   updateFire(dt, t, nightF);
   updateWeather(dt, t);
-  if (waterMat && SEASONS[season].water !== 'ice'){ waterMat.normalMap.offset.set(t*.01, t*.06); }
+  updateCreek(dt, t);
+  if (waterMat && SEASONS[season].water !== 'ice'){ waterMat.normalMap.offset.set(t*.02, t*.2); }
   clouds.forEach(c => { c.position.x += c.userData.v*dt; if (c.position.x > 3000) c.position.x = -3000; });
   if (stars){ stars.rotation.y = t*.004; starsBright.rotation.y = t*.004; stars.userData.extra.rotation.y = t*.004; }
   updateEnv(dt);
@@ -3064,6 +3386,7 @@ async function boot(){
   setMsg('캐릭터 불러오는 중');
   if (await loadAvatar()){ hero = new Avatar(avatarSrc, avatarClips, { Wolf3D_Outfit_Top:0xa7b98a, Wolf3D_Outfit_Bottom:0x7b88a4 }); }
   addCampers();
+  buildRafting();
   scene.add(hero.root);
   orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.autoRotateSpeed = .4; orbit.maxPolarAngle = 1.25; orbit.minDistance = 30; orbit.maxDistance = 320; orbit.minAzimuthAngle = AIR.minAz; orbit.maxAzimuthAngle = AIR.maxAz; orbit.enabled = false;
   drawMapBase(); bindInput();
@@ -3089,6 +3412,8 @@ async function boot(){
     resetFov:()=>{ camera.fov=62; camera.updateProjectionMatrix(); camera.up.set(0,1,0); },
     stats:()=>({ fps:Math.round(fps), tris:renderer.info.render.triangles, calls:renderer.info.render.calls, pos:player.pos.toArray().map(v=>+v.toFixed(2)), view, hour, season }),
     setDist:d=>camDist=d, orbit:()=>orbit, camera, keys, zoneAt, H,
+    raftT:(sec)=>{ for (let i=0;i<sec*30;i++) raftUpdate(1/30); return raft.state; },
+    raft:(st, v=0)=>{ raft.state = st; raft.s = v; raft.d = v; raft.k = 0; raft.from = [floatX(RAFT_BOT), RAFT_BOT, Math.PI]; if (st === 'carry') raft.heading = pathAt(v).h; return st; },
     showroom:()=>{ Object.keys(CAR_SPECS).forEach((k,i)=>addCar(k, [0xe9e9e6,0x0e0f11,0x3a3d42,0x24372f,0x1c2638,0xa9adb2][i], 92, -125 + i*8, Math.PI/2)); ['tunnel','air','bell','teepee','dome','cabin','hexa'].forEach((k,i)=>pitch(k, 108, -150 + i*12, -Math.PI/2, {}, i%2===0)); }
   };
 }
