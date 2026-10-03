@@ -212,6 +212,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
       <dt>피크닉존</dt><dd>A5와 B1 사이, 계곡으로 내려가는 계단 옆</dd>
       <dt>대피로</dt><dd>중앙 통로를 따라 진입로(북서쪽 다리) 방향으로 이동합니다. 메뉴의 ‘대피로 표시’로 바닥 화살표를 볼 수 있습니다.</dd>
       <dt>입·퇴실</dt><dd>입실 14:00 · 퇴실 11:00 (연중 운영)</dd>
+      <dt>마스코트</dt><dd>은빛 스코티시폴드 고양이 ‘봄이’ — 관리동 앞을 돌아다니다 나비를 보면 살금살금 따라가 덮치고, 밤과 겨울엔 매점 문 앞에서 낮잠을 잡니다 (바로가기 ‘고양이 봄이’)</dd>
       <dt>렌더링</dt><dd>직접 작성한 GLSL 셰이더: 화면공간 앰비언트 오클루전·대기 원근·블룸·필름 톤, 숲 잎 뭉치 노이즈·투과광, 피부 피하산란·머리카락 이방성 하이라이트·옷 주름, 절차적 구름, 지면 범프. 메뉴의 ‘그래픽’에서 단계 조절</dd>
     </dl>
     <div class="src">배치는 캠핑장 배치도 및 대피안내도를 따랐고, 운영 정보 출처는 <a href="https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=1499&viewType=read01" target="_blank" rel="noopener">한국관광공사 고캠핑 · 별빛캠핑장</a>입니다. 요금과 운영 정보는 바뀔 수 있으니 예약 전에 확인하세요.</div>
@@ -2941,6 +2942,436 @@ function bbqScene(x, z){
   for (const [p, q] of [[man, pm], [girlB, pb], [girlA, pa]]){ npcs.push(p); colliders.push({ x:q[0], z:q[1], r:.3 }); }
 }
 
+/* ---------------- 봄이: the campground mascot — a silver-white Scottish Fold drawn with GLSL shell fur, who wanders in front of 관리동,
+   naps in the shop doorway, and stalks, chases and pounces on butterflies ---------------- */
+const CAT = { S:1.16, home:[-13.55, .95], area:{ x0:-13.8, x1:-6.4, z0:-3.4, z1:12.4 } };
+const catEyeU = { pupilW:{ value:.16 }, pupilH:{ value:.3 } };
+function catFurMat(pat, len, n, comb, den = 300){
+  den *= 1.65;
+  const m = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.88, alphaToCoverage:true });
+  const u = m.userData; u.uPat = { value:pat }; u.uLen = { value:len }; u.uN = { value:n }; u.uComb = { value:comb || new THREE.Vector3(0, -.3, -.55) }; u.uDen = { value:den }; u.uSeg = { value:0 };
+  return patchMat(m, 'catFur', sh => {
+    Object.assign(sh.uniforms, { uPat:u.uPat, uLen:u.uLen, uN:u.uN, uComb:u.uComb, uDen:u.uDen, uSeg:u.uSeg });
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uLen; uniform float uN; uniform vec3 uComb; varying vec3 vFP; varying float vSh;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        float shl = float(gl_InstanceID)/max(uN - 1.0, 1.0);
+        vFP = position; vSh = shl;
+        transformed += objectNormal*uLen*shl + uComb*uLen*shl*shl;`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      uniform float uPat; uniform float uDen; uniform float uSeg; varying vec3 vFP; varying float vSh;` + GLSL_NOISE + `
+      vec3 catCol(vec3 p){
+        const vec3 cW = vec3(0.84, 0.83, 0.81), cG = vec3(0.5, 0.515, 0.55), cD = vec3(0.24, 0.25, 0.28);
+        float n = gN3(p*30.0), n2 = gN3(p*70.0 + 3.0), tab = 0.0, str = 0.0;
+        if (uPat < 0.5){                 // body: silver tabby saddle over back and rump, white chest, belly and flanks
+          float top = p.y - 0.01 + 0.04*smoothstep(0.06, 0.2, p.z) + 0.03*(n - 0.5) - 0.02*smoothstep(-0.12, -0.2, p.z);
+          tab = smoothstep(-0.008, 0.012, top);
+          str = smoothstep(0.42, 0.85, sin(p.z*92.0 + n*6.0 + abs(p.x)*30.0 - p.y*20.0)*0.5 + 0.5);
+          str = max(str, smoothstep(0.05, 0.075, p.y)*smoothstep(0.6, 0.9, sin(p.x*260.0 + n*4.0)*0.5 + 0.5)*0.6);
+        } else if (uPat < 1.5){          // head: tabby cap and the back of the head, white face, cheeks and muzzle
+          float top = p.y - 0.064 + 0.9*max(0.035 - p.z, 0.0) + 0.06*smoothstep(0.03, 0.075, abs(p.x))*smoothstep(0.02, 0.08, p.y) + 0.012*(n - 0.5);
+          tab = smoothstep(-0.004, 0.01, top);
+          str = smoothstep(0.5, 0.92, sin(p.x*170.0 + n*3.0 + p.z*40.0)*0.5 + 0.5)*smoothstep(-0.03, 0.05, p.z);
+          str = max(str, smoothstep(0.55, 0.9, sin(p.y*120.0 - p.z*60.0 + n*5.0)*0.5 + 0.5)*smoothstep(0.0, -0.04, p.z));
+        } else if (uPat < 2.5){          // tail: grey with dark rings, darker tip
+          tab = 1.0; float along = uSeg + clamp(-p.z/0.036, 0.0, 1.0);
+          str = smoothstep(0.35, 0.8, sin(along*2.7 + n*0.8)*0.5 + 0.5) + smoothstep(6.5, 8.8, along)*0.45;
+        } else if (uPat < 3.5){          // white legs, paws, chest ruff
+          tab = smoothstep(0.75, 0.95, n)*0.12;
+        } else if (uPat < 4.5){          // folded ears
+          tab = 1.0; str = 0.35 + 0.5*n;
+        } else {                         // haunch: grey patch on the upper outer thigh
+          tab = smoothstep(-0.01, 0.015, p.y + 0.012*(n - 0.5) - 0.004)*smoothstep(-0.005, 0.02, abs(p.x) - 0.005);
+          str = smoothstep(0.5, 0.9, sin(p.y*150.0 + n*4.0)*0.5 + 0.5);
+        }
+        vec3 tc = mix(cG, cD, clamp(str, 0.0, 1.0)*0.85)*(0.88 + 0.24*n2);
+        return mix(cW*(0.96 + 0.07*n2), tc, clamp(tab, 0.0, 1.0));
+      }`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        vec3 fq = vFP*uDen; vec3 fcell = floor(fq); vec3 ffr = fract(fq) - 0.5;
+        float fhv = gH31(fcell + 7.3), frr = length(ffr + (vec3(gH31(fcell + 1.1), gH31(fcell + 2.2), gH31(fcell + 3.3)) - 0.5)*0.35);
+        float strand = step(frr, 0.42*(1.0 - vSh) + 0.07)*step(vSh, 0.22 + 0.78*fhv);
+        float ffw = length(fwidth(fq));
+        float favg = clamp((1.0 - vSh)*(1.0 - vSh)*0.95 + 0.03, 0.0, 1.0);
+        float fa = vSh < 0.001 ? 1.0 : mix(strand, favg, smoothstep(0.7, 2.0, ffw));
+        if (fa < 0.03) discard;
+        diffuseColor.a = fa;
+        diffuseColor.rgb *= catCol(vFP)*mix(0.58, 1.07, sqrt(vSh));`)
+      .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+        { vec3 V = normalize(vViewPosition); float rim = pow(1.0 - max(dot(normal, V), 0.0), 2.5);
+          reflectedLight.indirectDiffuse += diffuseColor.rgb*rim*0.4*(0.3 + vSh);
+          #if NUM_DIR_LIGHTS > 0
+          float ndl = dot(normal, directionalLights[0].direction);
+          float wrap = max(0.0, (ndl + 0.45)/1.45) - max(0.0, ndl);
+          float bt = pow(clamp(dot(V, -directionalLights[0].direction), 0.0, 1.0), 3.0);
+          reflectedLight.directDiffuse += diffuseColor.rgb*directionalLights[0].color*(wrap*0.5*RECIPROCAL_PI + bt*0.45*vSh);
+          #endif
+        }`);
+  });
+}
+function catEyeMat(){
+  const m = new THREE.MeshPhysicalMaterial({ color:0xffffff, roughness:.06, clearcoat:1, clearcoatRoughness:.02 });
+  return patchMat(m, 'catEye', sh => {
+    sh.uniforms.uPW = catEyeU.pupilW; sh.uniforms.uPH = catEyeU.pupilH;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vEP;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvEP = position;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uPW; uniform float uPH; varying vec3 vEP;' + GLSL_NOISE)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        vec3 ed = normalize(vEP); vec2 eq = ed.xy/(1.0 + max(ed.z, -0.9));
+        float er = length(eq), ea = atan(eq.y, eq.x);
+        float streak = gN3(vec3(ea*9.0, er*14.0, 0.0));
+        vec3 iris = mix(vec3(0.66, 0.34, 0.04), vec3(0.78, 0.66, 0.16), smoothstep(0.06, 0.38, er))*(0.82 + 0.3*streak);
+        iris = mix(iris, vec3(0.16, 0.11, 0.03), smoothstep(0.36, 0.46, er));
+        float pup = length(vec2(eq.x/uPW, eq.y/uPH));
+        vec3 ec = mix(iris, vec3(0.008, 0.007, 0.006), smoothstep(1.06, 0.94, pup));
+        diffuseColor.rgb = ed.z < -0.2 ? vec3(0.1) : ec;`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        totalEmissiveRadiance += vec3(1.0)*(smoothstep(0.07, 0.035, length(eq - vec2(-0.13, 0.17)))*2.2 + smoothstep(0.035, 0.015, length(eq - vec2(0.12, -0.12)))*0.9);`);
+  });
+}
+function catBuild(){
+  const cat = CAT, root = cat.root = new THREE.Group(); root.scale.setScalar(cat.S);
+  const body = cat.body = new THREE.Group(); root.add(body);
+  const shells = cat.shellMeshes = [];
+  const fur = (geo, mat, parent, x = 0, y = 0, z = 0) => { const n = mat.userData.uN.value, m = new THREE.InstancedMesh(geo, mat, n); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; parent.add(m); shells.push(m); return m; };
+  const plain = (geo, mat, parent, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m; };
+  const ell = (rx, ry, rz, ws = 36, hs = 24, ox = 0, oy = 0, oz = 0) => { const g = new THREE.SphereGeometry(1, ws, hs); g.scale(rx, ry, rz); g.translate(ox, oy, oz); return g; };
+  // torso: pear-shaped, slightly saggy belly, broad rump (Scottish Folds are cobby and round)
+  const bg = new THREE.SphereGeometry(1, 48, 32), bp = bg.attributes.position;
+  for (let i=0;i<bp.count;i++){ const x = bp.getX(i), y = bp.getY(i), z = bp.getZ(i), Z = z*.188;
+    const w = .074 + .016*Math.exp(-(((Z + .06)/.11)**2)), hgt = .078 + .01*Math.exp(-(((Z + .02)/.12)**2));
+    bp.setXYZ(i, x*w, y*hgt + (y < 0 ? y*.012 : 0) + .012*Math.exp(-(((Z - .14)/.08)**2))*Math.max(y, 0), Z); }
+  bg.computeVertexNormals();
+  fur(bg, catFurMat(0, .022, 14, new THREE.Vector3(0, -.25, -.65), 300), body);
+  // chest ruff and neck
+  fur(ell(.06, .065, .068, 32, 22, 0, .035, .15), catFurMat(3, .026, 14, new THREE.Vector3(0, -.6, .25), 280), body);
+  // head: round skull, chubby cheeks, puffy whisker pads, chin
+  const head = cat.head = new THREE.Group(); head.position.set(0, .085, .205); body.add(head);
+  const hg = mergeGeometries([ell(.07, .064, .064, 40, 28, 0, .036, .04), ell(.04, .036, .036, 24, 16, .036, .016, .066), ell(.04, .036, .036, 24, 16, -.036, .016, .066),
+    ell(.019, .016, .016, 18, 12, .014, .005, .1), ell(.019, .016, .016, 18, 12, -.014, .005, .1), ell(.016, .012, .014, 16, 10, 0, -.008, .09)]);
+  fur(hg, catFurMat(1, .009, 11, new THREE.Vector3(0, .05, -.6), 330), head);
+  // folded ears: small flaps pressed forward against the skull
+  for (const s of [-1, 1]){ const eg = new THREE.ConeGeometry(.024, .03, 18, 1); eg.scale(1, 1, .42); const e = fur(eg, catFurMat(4, .006, 6, new THREE.Vector3(0, .2, 0), 330), head, s*.036, .092, .03); e.rotation.set(1.85, 0, s*-.45); }
+  // eyes: big round amber-gold eyes with dark rims, eyelids for blinking and naps
+  cat.eyes = []; cat.lids = [];
+  const eyeM = catEyeMat(), rimM = new THREE.MeshStandardMaterial({ color:0x2e2a28, roughness:.6 }), lidM = new THREE.MeshStandardMaterial({ color:0xd2cfcb, roughness:.9 });
+  for (const s of [-1, 1]){
+    const eg = new THREE.Group(); eg.position.set(s*.028, .046, .09); eg.rotation.y = s*.2; head.add(eg);
+    const eye = plain(new THREE.SphereGeometry(.0175, 28, 20), eyeM, eg); eye.castShadow = false;
+    const rim = plain(new THREE.TorusGeometry(.0172, .0026, 8, 28), rimM, eg, 0, 0, .004); rim.castShadow = false;
+    const lid = plain(new THREE.SphereGeometry(.0192, 24, 10, 0, Math.PI*2, 0, Math.PI/2), lidM, eg); lid.castShadow = false;
+    cat.eyes.push(eye); cat.lids.push(lid);
+  }
+  // nose, mouth, whiskers
+  const nose = plain(ell(.0085, .006, .006, 16, 10), new THREE.MeshStandardMaterial({ color:0xd88a8c, roughness:.45 }), head, 0, .023, .116); nose.rotation.x = -.35;
+  const mouthM = new THREE.MeshStandardMaterial({ color:0x6d5050, roughness:.7 });
+  for (const s of [-1, 1]){ const c = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, .015, .118), new THREE.Vector3(s*.006, .007, .119), new THREE.Vector3(s*.013, .01, .116)); plain(new THREE.TubeGeometry(c, 8, .0012, 5), mouthM, head).castShadow = false; }
+  plain(new THREE.CylinderGeometry(.0011, .0011, .008, 5), mouthM, head, 0, .019, .118).castShadow = false;
+  const wp = [];
+  for (const s of [-1, 1]) for (let k=0;k<3;k++){ const y0 = .012 - k*.005; wp.push(s*.02, y0, .1, s*(.085 + k*.004), y0 + .012 - k*.012, .085 + k*.006); }
+  const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wp, 3));
+  head.add(new THREE.LineSegments(wg, new THREE.LineBasicMaterial({ color:0xf4f2ee, transparent:true, opacity:.85 })));
+  // legs: front (elbow back) and hind (knee forward, big fluffy haunch); pink toe beans under every paw
+  const padM = new THREE.MeshStandardMaterial({ color:0xe39a9c, roughness:.5 });
+  const legFur = catFurMat(3, .008, 9, new THREE.Vector3(0, -.5, 0), 320), pawFur = catFurMat(3, .008, 7, new THREE.Vector3(0, 0, .3), 340), thighFur = catFurMat(5, .02, 12, new THREE.Vector3(0, -.4, -.3), 300);
+  cat.legs = [];
+  const mkLeg = (side, front) => {
+    const L1 = front ? .09 : .085, L2 = front ? .085 : .1;
+    const piv = new THREE.Group(); piv.position.set(side*(front ? .042 : .046), front ? -.03 : -.02, front ? .135 : -.125); body.add(piv);
+    if (front) fur(ell(.023, .056, .024, 22, 14, 0, -.045, 0), legFur, piv); else { fur(ell(.048, .066, .056, 26, 18, side*.004, -.033, .004), thighFur, piv); }
+    const knee = new THREE.Group(); knee.position.y = -L1; piv.add(knee);
+    fur(ell(front ? .0172 : .016, L2*.56, front ? .018 : .017, 20, 12, 0, -L2*.5, 0), legFur, knee);
+    const paw = new THREE.Group(); paw.position.y = -L2; knee.add(paw);
+    fur(ell(.022, .013, .028, 20, 12, 0, -.006, .01), pawFur, paw);
+    plain(ell(.011, .004, .01, 12, 6, 0, -.018, .004), padM, paw).castShadow = false;
+    for (let k=0;k<4;k++) plain(ell(.0045, .003, .0045, 8, 5, (k - 1.5)*.0085, -.0175, .021 + (k === 0 || k === 3 ? -.004 : 0)), padM, paw).castShadow = false;
+    const leg = { piv, knee, paw, L1, L2, side, front, a1:0, a2:0, a3:0 }; cat.legs.push(leg); return leg;
+  };
+  cat.LF = mkLeg(-1, true); cat.RF = mkLeg(1, true); cat.LH = mkLeg(-1, false); cat.RH = mkLeg(1, false);
+  // tail: nine fluffy ringed segments
+  cat.tail = []; let parent = body, tz = -.19;
+  for (let i=0;i<9;i++){
+    const g = new THREE.Group(); g.position.set(0, i ? 0 : .035, i ? -.036 : tz); parent.add(g);
+    const r = .022 - i*.0012, m = catFurMat(2, .03 - i*.0006, 14, new THREE.Vector3(0, -.15, -.7), 300); m.userData.uSeg.value = i;
+    fur(ell(r, r, .024, 18, 12, 0, 0, -.018), m, g);
+    cat.tail.push(g); parent = g;
+  }
+  // name tag
+  const tagT = canvasTex(256, 96, (c, w, h) => { c.fillStyle = 'rgba(16,20,28,.72)'; c.beginPath(); c.roundRect(8, 10, w - 16, h - 20, 30); c.fill();
+    c.fillStyle = '#ffd27a'; c.font = '700 40px "IBM Plex Sans KR", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('봄이', w/2 - 16, h/2 - 2);
+    c.fillStyle = '#ffd27a'; for (const [dx, dy, r] of [[0, 6, 8], [-9, -5, 4], [-3, -10, 4], [4, -10, 4], [10, -5, 4]]){ c.beginPath(); c.arc(w/2 + 52 + dx, h/2 + dy - 2, r, 0, 7); c.fill(); } });
+  cat.tag = new THREE.Sprite(new THREE.SpriteMaterial({ map:tagT, transparent:true, depthTest:false, opacity:0 })); cat.tag.scale.set(.42, .16, 1); cat.tag.renderOrder = 9; scene.add(cat.tag);
+  // state
+  Object.assign(cat, { x:cat.home[0] + .9, z:cat.home[1] + .4, h:Math.PI/2, state:'wander', st:0, tgt:null, speed:0, phase:0, gait:'walk', blink:2, met:false,
+    P:{ bodyY:.205, pitch:0, roll:0, hy:0, hp:0, tailUp:1, curl:.05, lid:0, wig:0, jump:0 }, look:new THREE.Vector3() });
+  scene.add(root);
+  catPickTarget();
+}
+/* ------- butterflies ------- */
+const BF = { list:[], next:6, mats:{} };
+function bfWingTex(kind){
+  return canvasTex(128, 128, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    const base = kind === 'yellow' ? '#f6d93a' : kind === 'blue' ? '#9fc0f2' : '#f7f4ea', edge = kind === 'yellow' ? '#5a4a12' : kind === 'blue' ? '#3b4f86' : '#2b2b2b';
+    // forewing (top) and hindwing (bottom), hinge on the left edge
+    const fw = new Path2D(); fw.moveTo(2, 62); fw.bezierCurveTo(30, 8, 92, 0, 122, 14); fw.bezierCurveTo(118, 44, 90, 62, 2, 66); fw.closePath();
+    const hw = new Path2D(); hw.moveTo(2, 64); hw.bezierCurveTo(60, 66, 100, 80, 96, 104); hw.bezierCurveTo(84, 126, 36, 124, 2, 70); hw.closePath();
+    for (const p of [hw, fw]){ const gr = c.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, kind === 'white' ? '#d8d6cc' : base); gr.addColorStop(.25, base); gr.addColorStop(1, base); c.fillStyle = gr; c.fill(p); }
+    c.save(); c.clip(fw); c.fillStyle = edge;
+    if (kind === 'white'){ c.beginPath(); c.ellipse(118, 16, 26, 16, -.3, 0, 7); c.fill(); c.beginPath(); c.arc(78, 40, 6, 0, 7); c.fill(); }
+    else if (kind === 'yellow'){ c.lineWidth = 7; c.strokeStyle = edge; c.stroke(fw); c.fillStyle = '#e8892a'; c.beginPath(); c.arc(70, 36, 5, 0, 7); c.fill(); }
+    else { c.lineWidth = 6; c.strokeStyle = edge; c.stroke(fw); }
+    c.restore();
+    if (kind !== 'white'){ c.save(); c.clip(hw); c.lineWidth = 6; c.strokeStyle = edge; c.stroke(hw); c.restore(); }
+    c.strokeStyle = 'rgba(40,36,30,.35)'; c.lineWidth = 1; for (let k=0;k<5;k++){ c.beginPath(); c.moveTo(4, 64); c.lineTo(40 + k*18, 18 + k*9); c.stroke(); }
+  });
+}
+function bfMake(kind){
+  if (!BF.mats[kind]) BF.mats[kind] = new THREE.MeshStandardMaterial({ map:bfWingTex(kind), alphaTest:.4, side:THREE.DoubleSide, roughness:.7, emissive:0xffffff, emissiveIntensity:.08, emissiveMap:null });
+  const g = new THREE.Group(), sz = kind === 'blue' ? .058 : .072;
+  const bodyM = new THREE.Mesh(new THREE.CapsuleGeometry(.0045, .03, 4, 8), new THREE.MeshStandardMaterial({ color:0x2a2622, roughness:.7 })); bodyM.rotation.x = Math.PI/2; g.add(bodyM);
+  for (const a of [-1, 1]){ const c = new THREE.Mesh(new THREE.CylinderGeometry(.0006, .0006, .03, 3), bodyM.material); c.position.set(a*.006, .008, .028); c.rotation.set(1.0, 0, a*-.35); g.add(c); }
+  const wings = [];
+  for (const s of [-1, 1]){
+    const pg = new THREE.PlaneGeometry(sz, sz); pg.translate(sz/2, 0, 0); pg.rotateX(Math.PI/2); if (s < 0){ pg.scale(-1, 1, 1); }
+    const piv = new THREE.Group(); g.add(piv); const wm = new THREE.Mesh(pg, BF.mats[kind]); wm.castShadow = true; piv.add(wm); wings.push({ piv, s });
+  }
+  scene.add(g);
+  return { g, wings, kind, pos:new THREE.Vector3(), vel:new THREE.Vector3(), tgt:new THREE.Vector3(), mode:'enter', life:0, ttl:R(38, 58), ph:rng()*6, perch:0, seed:rng()*100 };
+}
+function bfSpawn(){
+  const A = CAT.area, kinds = season === 'spring' ? ['white', 'yellow', 'white'] : season === 'autumn' ? ['yellow', 'white'] : ['white', 'yellow', 'blue'];
+  const b = bfMake(kinds[Math.floor(rng()*kinds.length)]);
+  const side = rng() < .5 ? A.z0 - 6 : A.z1 + 6; b.pos.set(R(A.x0, A.x1), groundAt(-9, 4) + R(2.4, 3.4), side);
+  b.tgt.set(CAT.x + R(-1.5, 1.5), 0, CAT.z + R(-1.5, 1.5)); b.alt = R(.5, 1.1);
+  BF.list.push(b);
+}
+const POTS = []; for (let z = -11.6 + .7; z < 12.1 - .5; z += 1.15){ if (![7.9, 10.6, -5.4, -8.8, .95].some(dz => Math.abs(z - dz) < .65)) POTS.push(z); }
+function bfUpdate(dt, t){
+  const on = season !== 'winter' && nightF < .35;
+  BF.next -= dt;
+  if (on && BF.next <= 0 && BF.list.length < (season === 'summer' ? 2 : 1)){ bfSpawn(); BF.next = R(14, 26); }
+  for (let i=BF.list.length - 1;i>=0;i--){
+    const b = BF.list[i]; b.life += dt;
+    const gy = groundAt(b.pos.x, b.pos.z), A = CAT.area;
+    const cd = Math.hypot(b.pos.x - CAT.x, b.pos.z - CAT.z), catAir = CAT.state === 'pounce' && CAT.st > .16;
+    if ((!on || b.life > b.ttl) && b.mode !== 'leave'){ b.mode = 'leave'; b.tgt.set(b.pos.x + R(-20, 20), 0, b.pos.z + R(-30, 30)); }
+    if (b.mode !== 'leave' && b.mode !== 'perch' && (cd < (catAir ? 1.6 : .75) || (CAT.state === 'chase' && cd < 1.1))){ b.mode = 'flee'; b.fleeT = R(1.2, 2.2); }
+    let want, spd = 1.15, alt;
+    if (b.mode === 'enter'){ alt = b.alt; if (Math.hypot(b.pos.x - b.tgt.x, b.pos.z - b.tgt.z) < 1) b.mode = 'roam'; }
+    else if (b.mode === 'roam'){
+      alt = b.alt + .25*Math.sin(t*.7 + b.seed);
+      if (Math.hypot(b.pos.x - b.tgt.x, b.pos.z - b.tgt.z) < .5 || rng() < dt*.25){
+        if (rng() < .22){ b.mode = 'toPerch'; const pz = POTS[Math.floor(rng()*POTS.length)]; b.tgt.set(-13.1, 0, pz); }
+        else { const near = rng() < .65; b.tgt.set(near ? CAT.x + R(-1.8, 1.8) : R(A.x0, A.x1), 0, near ? CAT.z + R(-1.8, 1.8) : R(A.z0, A.z1)); b.alt = R(.35, 1.3); }
+      }
+    } else if (b.mode === 'toPerch'){ alt = .48; spd = .9; if (Math.hypot(b.pos.x - b.tgt.x, b.pos.z - b.tgt.z) < .12){ b.mode = 'perch'; b.perch = R(3, 7); } }
+    else if (b.mode === 'perch'){ b.perch -= dt; if (b.perch <= 0 || cd < .55){ b.mode = 'flee'; b.fleeT = 1.5; } }
+    else if (b.mode === 'flee'){ alt = 2.1; spd = 2.3; b.fleeT -= dt; if (b.fleeT <= 0){ b.mode = 'roam'; b.alt = R(.6, 1.4); b.tgt.set(R(A.x0, A.x1), 0, R(A.z0, A.z1)); } }
+    else { alt = 6; spd = 1.6; }
+    if (b.mode === 'perch'){
+      b.vel.multiplyScalar(Math.exp(-dt*8)); b.pos.set(b.tgt.x, H(-14.4, 0) + .46, b.tgt.z);
+    } else {
+      if (b.mode === 'flee'){ const ax = b.pos.x - CAT.x, az = b.pos.z - CAT.z, l = Math.hypot(ax, az) + 1e-3; want = new THREE.Vector3(ax/l, 0, az/l); }
+      else { want = new THREE.Vector3(b.tgt.x - b.pos.x, 0, b.tgt.z - b.pos.z); const l = want.length(); if (l > 1e-3) want.multiplyScalar(1/l); }
+      want.x += .9*Math.sin(t*2.3 + b.seed) + .5*Math.sin(t*5.1 + b.seed*2); want.z += .9*Math.cos(t*1.9 + b.seed*1.7) + .5*Math.sin(t*4.3 + b.seed);
+      want.normalize().multiplyScalar(spd);
+      want.y = clamp((gy + alt - b.pos.y)*1.6, -1.2, 1.6) + .9*Math.sin(b.ph*1.0);
+      b.vel.lerp(want, 1 - Math.exp(-dt*3.2)); b.pos.addScaledVector(b.vel, dt);
+      if (b.mode !== 'leave'){ b.pos.x = clamp(b.pos.x, A.x0 - 3, A.x1 + 3); b.pos.z = clamp(b.pos.z, A.z0 - 8, A.z1 + 8); }
+      b.pos.y = Math.max(b.pos.y, gy + .12);
+    }
+    // wings: fast flapping in flight, slow open/close while perched (wings up)
+    const perched = b.mode === 'perch';
+    b.ph += dt*(perched ? 3 : 52);
+    const ang = perched ? 1.15 + .35*Math.sin(b.ph) : .1 + 1.05*(.5 + .5*Math.sin(b.ph));
+    b.wings.forEach(w => w.piv.rotation.z = w.s*ang);
+    b.g.position.copy(b.pos);
+    const hv = Math.hypot(b.vel.x, b.vel.z); if (hv > .05) b.g.rotation.y = lerpAng(b.g.rotation.y, Math.atan2(b.vel.x, b.vel.z), 1 - Math.exp(-dt*6));
+    b.g.rotation.x = perched ? 0 : -clamp(b.vel.y*.25, -.4, .4);
+    if (b.mode === 'leave' && (b.pos.y - gy > 5.5 || b.life > b.ttl + 20)){ scene.remove(b.g); BF.list.splice(i, 1); }
+  }
+}
+/* ------- cat brain and body ------- */
+function catFree(x, z){
+  const A = CAT.area; if (x < A.x0 || x > A.x1 || z < A.z0 || z > A.z1) return false;
+  for (const c of colliders) if (Math.hypot(x - c.x, z - c.z) < c.r + .3) return false;
+  for (const [px, pz] of [[-12.0, -1.75], [-12.0, 7.6]]) if (Math.hypot(x - px, z - pz) < 1.25) return false;
+  if (x < -12.84) for (const pz of POTS) if (Math.hypot(x + 13.1, z - pz) < .22) return false;
+  return true;
+}
+function catPickTarget(){
+  for (let k=0;k<40;k++){ const x = R(CAT.area.x0, CAT.area.x1), z = R(CAT.area.z0, CAT.area.z1); if (catFree(x, z) && Math.hypot(x - CAT.x, z - CAT.z) > 1.2){ CAT.tgt = [x, z]; return; } }
+  CAT.tgt = [CAT.home[0] + 1.2, CAT.home[1]];
+}
+function catGround(x, z){ return (x < -12.84 && x > -14.4 && z > -11.6 && z < 12.1) ? H(-14.4, 0) + .06 : groundAt(x, z); }
+function catTarget(){ let best = null, bd = 6.5; for (const b of BF.list){ if (b.mode === 'leave') continue; const d = Math.hypot(b.pos.x - CAT.x, b.pos.z - CAT.z); if (d < bd){ bd = d; best = b; } } return best; }
+function catSet(st){ CAT.state = st; CAT.st = 0; }
+function catIK(leg, tx, ty, tz, P){
+  // foot target in cat space -> body space (undo body height and pitch), then two-bone IK in the leg's sagittal plane
+  const c = Math.cos(-P.pitch), s = Math.sin(-P.pitch), y = ty - P.bodyY, z = tz;
+  const by = y*c - z*s, bz = y*s + z*c;
+  const dy = by - leg.piv.position.y, dz = bz - leg.piv.position.z;
+  let d = Math.hypot(dy, dz); d = clamp(d, .03, leg.L1 + leg.L2 - .002);
+  const a = Math.atan2(dz, -dy), B = Math.acos(clamp((leg.L1*leg.L1 + d*d - leg.L2*leg.L2)/(2*leg.L1*d), -1, 1));
+  const p1 = leg.front ? a - B : a + B, kz = leg.L1*Math.sin(p1), ky = -leg.L1*Math.cos(p1), p2 = Math.atan2(dz - kz, -(dy - ky));
+  return [-p1, -(p2 - p1), p2 - P.pitch];
+}
+function catUpdate(dt, t){
+  const cat = CAT; if (!cat.root) return;
+  bfUpdate(dt, t);
+  cat.st += dt;
+  const P = cat.P, day = nightF < .35, winter = season === 'winter';
+  const bf = catTarget(), pd = Math.hypot(player.pos.x - cat.x, player.pos.z - cat.z);
+  let goal = null, speed = 0, gait = 'walk', look = null;
+  const T = { bodyY:.205, pitch:0, roll:0, tailUp:.95, curl:.06, lid:0, wig:0, sway:.18, swayF:1.6, sitK:0 };
+  // ---- decide ----
+  if (!day && cat.state !== 'nap' && cat.state !== 'goHome'){ catSet('goHome'); }
+  if (day && bf && ['wander', 'idle', 'nap', 'goHome', 'lookup'].includes(cat.state) && !(cat.state === 'lookup' && cat.st < 2.5)){ catSet('notice'); cat.prey = bf; }
+  const prey = cat.prey && BF.list.includes(cat.prey) && cat.prey.mode !== 'leave' ? cat.prey : null;
+  if (['notice', 'stalk', 'wiggle', 'chase', 'lookup'].includes(cat.state) && !prey){ catSet('idle'); cat.idleT = R(2, 4); }
+  const s = cat.state;
+  if (s === 'goHome'){ goal = [cat.home[0] + .25, cat.home[1]]; speed = .42; if (Math.hypot(cat.x - goal[0], cat.z - goal[1]) < .12){ catSet('nap'); cat.napT = day ? R(14, 26) : 1e9; } }
+  else if (s === 'nap'){
+    Object.assign(T, { bodyY:.082, pitch:.05, roll:1.3, tailUp:-.05, curl:.02, lid:day ? .62 : 1, sway:.05, swayF:.6 });
+    cat.h = lerpAng(cat.h, Math.PI/2 - .5, 1 - Math.exp(-dt*1.5));
+    if (day && cat.napT > 1e8) cat.napT = cat.st + R(4, 12);
+    if (day && cat.st > cat.napT){ catSet('wander'); catPickTarget(); }
+    if (day && pd < 2.2) look = player.pos;
+  }
+  else if (s === 'wander'){ goal = cat.tgt; speed = .45; if (Math.hypot(cat.x - goal[0], cat.z - goal[1]) < .2){ catSet('idle'); cat.idleT = R(2.5, 6); cat.sit = rng() < .6; } }
+  else if (s === 'idle'){
+    if (cat.sit) Object.assign(T, { bodyY:.15, pitch:-.5, tailUp:-.4, curl:.12, sway:.1, swayF:.9, sitK:1 });
+    else Object.assign(T, { tailUp:1.15, curl:.12 });
+    if (pd < 2.6) look = player.pos;
+    if (cat.st > cat.idleT){ if (winter ? rng() < .55 : rng() < .2) catSet('goHome'); else { catSet('wander'); catPickTarget(); } }
+  }
+  else if (s === 'notice'){ look = prey.pos; Object.assign(T, { bodyY:.17, pitch:.08, tailUp:.35, curl:.0, sway:.35, swayF:3 }); if (cat.st > .9) catSet(prey.mode === 'perch' || prey.pos.y - catGround(prey.pos.x, prey.pos.z) < 1.0 ? 'stalk' : 'lookup'); }
+  else if (s === 'stalk'){
+    look = prey.pos; Object.assign(T, { bodyY:.135, pitch:.1, tailUp:.05, curl:-.02, sway:.3, swayF:4 });
+    const d = Math.hypot(prey.pos.x - cat.x, prey.pos.z - cat.z), hgt = prey.pos.y - catGround(prey.pos.x, prey.pos.z);
+    goal = [prey.pos.x, prey.pos.z]; speed = .26; gait = 'stalk';
+    if (d < 1.25 && hgt < 1.05) catSet('wiggle');
+    else if (hgt > 1.5 || cat.st > 9) catSet(hgt > 1.5 ? 'lookup' : 'chase');
+  }
+  else if (s === 'wiggle'){
+    look = prey.pos; Object.assign(T, { bodyY:.125, pitch:.12, tailUp:.1, curl:0, sway:.45, swayF:7, wig:1 });
+    cat.h = lerpAng(cat.h, Math.atan2(prey.pos.x - cat.x, prey.pos.z - cat.z), 1 - Math.exp(-dt*6));
+    if (cat.st > .75){ catSet('pounce'); cat.j0 = [cat.x, cat.z]; const d = Math.min(1.15, Math.hypot(prey.pos.x - cat.x, prey.pos.z - cat.z)); cat.j1 = [cat.x + Math.sin(cat.h)*d, cat.z + Math.cos(cat.h)*d]; }
+  }
+  else if (s === 'pounce'){
+    const D = .62, k = clamp(cat.st/D, 0, 1);
+    look = prey.pos; Object.assign(T, { bodyY:.2, pitch:-.55*Math.sin(Math.PI*Math.min(1, k*1.25)), tailUp:.45, curl:.05, sway:.1, swayF:2 });
+    const nx = lerp(cat.j0[0], cat.j1[0], smooth(0, 1, k)), nz = lerp(cat.j0[1], cat.j1[1], smooth(0, 1, k));
+    if (catFree(nx, nz)){ cat.x = nx; cat.z = nz; }
+    P.jump = .38*Math.sin(Math.PI*k);
+    if (k >= 1){ P.jump = 0; const hgt = prey.pos.y - catGround(prey.pos.x, prey.pos.z); catSet(hgt < 1.2 && rng() < .6 ? 'chase' : 'lookup'); }
+  }
+  else if (s === 'chase'){
+    look = prey.pos; goal = [prey.pos.x, prey.pos.z]; speed = 1.9; gait = 'run'; Object.assign(T, { bodyY:.19, tailUp:.45, curl:0, sway:.15, swayF:2 });
+    const d = Math.hypot(prey.pos.x - cat.x, prey.pos.z - cat.z), hgt = prey.pos.y - catGround(prey.pos.x, prey.pos.z);
+    if (d < .9 && hgt < 1.1 && cat.st > .6){ catSet('pounce'); cat.j0 = [cat.x, cat.z]; cat.j1 = [cat.x + Math.sin(cat.h)*.8, cat.z + Math.cos(cat.h)*.8]; }
+    else if (cat.st > 5.5 || hgt > 1.6) catSet('lookup');
+  }
+  else if (s === 'lookup'){
+    look = prey.pos; Object.assign(T, { bodyY:.15, pitch:-.5, tailUp:-.35, curl:.1, sway:.4, swayF:3.5, sitK:1 });
+    cat.h = lerpAng(cat.h, Math.atan2(prey.pos.x - cat.x, prey.pos.z - cat.z), 1 - Math.exp(-dt*3));
+    const d = Math.hypot(prey.pos.x - cat.x, prey.pos.z - cat.z), hgt = prey.pos.y - catGround(prey.pos.x, prey.pos.z);
+    cat.swipe = d < 1.1 && hgt < 1.3 ? (cat.swipe || 0) + dt : 0;
+    if (cat.st > 3 && hgt < 1.0 && d < 2.5 && rng() < dt*.8) catSet('stalk');
+    if (cat.st > 14){ catSet('idle'); cat.idleT = 2; cat.sit = true; }
+  }
+  if (cat.state !== 'pounce') P.jump = 0;
+  // ---- move ----
+  if (goal){
+    const dx = goal[0] - cat.x, dz = goal[1] - cat.z, d = Math.hypot(dx, dz);
+    const want = Math.atan2(dx, dz); cat.h = lerpAng(cat.h, want, 1 - Math.exp(-dt*(gait === 'run' ? 6 : 3.5)));
+    const face = Math.cos(((want - cat.h + Math.PI*3) % (Math.PI*2)) - Math.PI);
+    const v = speed*clamp(face, .15, 1)*clamp(d/.35, .25, 1);
+    cat.speed = lerp(cat.speed, d > .05 ? v : 0, 1 - Math.exp(-dt*5));
+    const nx = cat.x + Math.sin(cat.h)*cat.speed*dt, nz = cat.z + Math.cos(cat.h)*cat.speed*dt;
+    if (catFree(nx, nz) || s === 'goHome'){ cat.x = nx; cat.z = nz; }
+    else if (s === 'wander') catPickTarget();
+  } else cat.speed = lerp(cat.speed, 0, 1 - Math.exp(-dt*6));
+  cat.gait = gait;
+  // ---- blink and pupils ----
+  cat.blink -= dt; let blinkK = 0; if (cat.blink < .14){ blinkK = Math.sin(Math.PI*clamp(cat.blink/.14, 0, 1)); if (cat.blink <= 0) cat.blink = R(2.5, 6); }
+  const hunt = ['notice', 'stalk', 'wiggle', 'pounce', 'chase', 'lookup'].includes(s);
+  catEyeU.pupilW.value = lerp(catEyeU.pupilW.value, hunt ? .27 : day ? .12 : .3, 1 - Math.exp(-dt*3));
+  catEyeU.pupilH.value = lerp(catEyeU.pupilH.value, hunt ? .32 : .3, 1 - Math.exp(-dt*3));
+  // ---- pose smoothing ----
+  const k = 1 - Math.exp(-dt*7);
+  for (const key of ['bodyY', 'pitch', 'roll', 'tailUp', 'curl', 'lid', 'wig', 'sway', 'swayF', 'sitK']) P[key] = lerp(P[key] ?? T[key], T[key], key === 'roll' ? 1 - Math.exp(-dt*3) : k);
+  // gait phase
+  const stride = gait === 'run' ? .78 : gait === 'stalk' ? .2 : .3;
+  cat.phase = (cat.phase + cat.speed*dt/stride) % 1;
+  const moving = cat.speed > .03, run = gait === 'run' && moving;
+  let pitch = P.pitch, bodyY = P.bodyY + (P.jump || 0);
+  if (run){ pitch += .13*Math.sin(cat.phase*Math.PI*2); bodyY += .018*Math.sin(cat.phase*Math.PI*4); }
+  else if (moving) bodyY += .006*Math.sin(cat.phase*Math.PI*4);
+  const body = cat.body;
+  body.position.set(P.wig*.012*Math.sin(t*14), bodyY, 0); body.rotation.set(pitch, P.wig*.08*Math.sin(t*14), P.roll);
+  body.scale.set(1 + .07*P.sitK, 1 + .015*Math.sin(t*(s === 'nap' ? 1.6 : 2.6)), (run ? 1 + .06*Math.sin(cat.phase*Math.PI*2 + 1) : 1) - .1*P.sitK);
+  const PP = { bodyY, pitch };
+  // legs
+  const lie = P.roll > .6, sitting = (s === 'idle' && cat.sit) || s === 'lookup';
+  const duty = run ? .42 : .64, lift = run ? .07 : gait === 'stalk' ? .028 : .04;
+  const offs = run ? { LH:0, RH:.1, LF:.5, RF:.62 } : { LH:0, LF:.25, RH:.5, RF:.75 };
+  for (const name of ['LF', 'RF', 'LH', 'RH']){
+    const leg = cat[name]; let a = [0, 0, 0];
+    const homeZ = leg.front ? .13 : -.12, homeX = leg.side*(leg.front ? .042 : .048);
+    if (lie){
+      a = leg.front ? [-.95 + .05*Math.sin(t*.7 + leg.side), -.25, .5] : [-.35, .55, .4];
+    } else if (s === 'pounce' && P.jump > .02){
+      a = leg.front ? [-2.2 + .35*Math.sin(t*16 + leg.side), .35, .9] : [.75, .35, -.4];
+    } else {
+      let fx = homeX, fy = .016, fz = homeZ;
+      if (sitting){ fz = leg.front ? .1 : -.02; if (!leg.front){ fy = .016; } }
+      if (moving && !sitting){
+        const lp = (cat.phase + offs[name]) % 1, stepLen = duty*stride;
+        if (lp < duty) fz += (.5 - lp/duty)*stepLen; else { const q = (lp - duty)/(1 - duty); fz += (-.5 + q)*stepLen; fy += Math.sin(Math.PI*q)*lift; }
+      }
+      a = catIK(leg, fx, fy, fz, PP);
+      if (sitting && leg.front && leg.side > 0 && cat.swipe > .2){ const sw = Math.sin(t*9); if (sw > 0) a = [-2.3*sw + a[0]*(1 - sw), .3*sw, .8*sw]; }
+    }
+    const kk = 1 - Math.exp(-dt*(lie ? 6 : 16));
+    leg.a1 = lerp(leg.a1, a[0], kk); leg.a2 = lerp(leg.a2, a[1], kk); leg.a3 = lerp(leg.a3, a[2], kk);
+    leg.piv.rotation.x = leg.a1; leg.knee.rotation.x = leg.a2; leg.paw.rotation.x = leg.a3;
+    leg.piv.rotation.z = smooth(.3, 1.2, P.roll)*(leg.side > 0 ? -.32 : .08);
+  }
+  // head: look at prey / player, compensate body pitch and roll
+  let hy = 0, hp = .05;
+  if (look){
+    const lx = look.x - cat.x, lz = look.z - cat.z, ly = look.y - (catGround(cat.x, cat.z) + bodyY*CAT.S + .1);
+    const yaw = Math.atan2(lx, lz) - cat.h, rel = ((yaw + Math.PI*3) % (Math.PI*2)) - Math.PI;
+    hy = clamp(rel, -1.1, 1.1); hp = -clamp(Math.atan2(ly, Math.hypot(lx, lz)), -.6, .62);
+    if (Math.abs(rel) > 1.3 && !moving && s !== 'nap') cat.h = lerpAng(cat.h, cat.h + rel, 1 - Math.exp(-dt*1.5));
+  } else if (moving) { hp = .12; hy = .15*Math.sin(t*.8); }
+  else { hy = .5*Math.sin(t*.35) ; hp = .02; }
+  P.hy = lerp(P.hy, hy, 1 - Math.exp(-dt*5)); P.hp = lerp(P.hp, hp - pitch*.85, 1 - Math.exp(-dt*5));
+  cat.head.rotation.set(P.hp, P.hy, lie ? -P.roll*.72 : 0, 'YXZ');
+  // eyes: lids (sleep, blink, sleepy squint) and a little extra gaze
+  const lid = clamp(Math.max(P.lid, blinkK), 0, 1);
+  cat.lids.forEach(l => l.rotation.x = lerp(-.95, 1.5, lid));
+  cat.eyes.forEach(e => e.rotation.set(clamp((P.hp - hp)*.0, -.3, .3), clamp((hy - P.hy)*.6, -.3, .3), 0));
+  // tail
+  const tw = P.swayF, ta = P.sway*(moving ? 1.2 : 1);
+  cat.tail.forEach((g, i) => {
+    const w = Math.sin(t*tw - i*.55);
+    if (i === 0){ g.rotation.set(P.tailUp + .05*Math.sin(t*1.3), w*ta*.5, 0); }
+    else { g.rotation.set(P.curl*(i > 5 ? 2.2 : 1) + (lie ? 0 : .02), w*ta*(.5 + i*.08) + (sitting ? .4 : 0), 0); }
+  });
+  // place
+  cat.x = clamp(cat.x, -14.2, CAT.area.x1 + 1); cat.z = clamp(cat.z, CAT.area.z0 - 1, CAT.area.z1 + 1);
+  cat.root.position.set(cat.x, catGround(cat.x, cat.z), cat.z); cat.root.rotation.y = cat.h;
+  // fur LOD: drop the shells when far away
+  const cd = camera.position.distanceTo(cat.root.position), full = cd < 45;
+  if (full !== cat.lodFull){ cat.lodFull = full; cat.shellMeshes.forEach(m => m.count = full ? m.material.userData.uN.value : 1); }
+  // name tag and first meeting
+  const tagOn = view !== 'air' && cd < 9;
+  cat.tag.material.opacity = lerp(cat.tag.material.opacity, tagOn ? .95 : 0, 1 - Math.exp(-dt*4)); cat.tag.visible = cat.tag.material.opacity > .02;
+  cat.tag.position.set(cat.x, cat.root.position.y + (lie ? .42 : .62), cat.z);
+  if (started && !cat.met && pd < 4){ cat.met = true; toast('<b>봄이</b> · 별빛캠핑장 마스코트 고양이'); }
+}
+
 /* ---------------- fire ---------------- */
 const fire = { sprites:[], light:null, embers:null, pos:new THREE.Vector3() };
 function firePit(x, z){
@@ -3638,13 +4069,20 @@ function bindInput(){
   const places = [
     ['진입로', 9, -128, Math.PI], ['멀티존', 4, -104, -Math.PI/2], ['A1', 4, -88, -Math.PI/2], ['별빛존 ★1', -26, -78, -Math.PI/2],
     ['피크닉존', 4, -35, -Math.PI/2], ['관리동·매점', -7, -1, Math.PI/2], ['불멍 B3', 6.2, -12.5, -2.45], ['C1·C2', -9.5, 38, Math.PI/2],
-    ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['여름 래프팅', 'raft'], ['항공 전경', null]
+    ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['여름 래프팅', 'raft'], ['고양이 봄이', 'cat'], ['항공 전경', null]
   ];
   const pl = $('#places');
   for (const [name, x, z, yaw] of places){
     const b = document.createElement('button'); b.textContent = name;
     b.addEventListener('click', () => {
       if (x === null) setView('air');
+      else if (x === 'cat'){
+        if (nightF > .4) setHour(14, true);
+        if (view === 'air') setView('tp');
+        const cx = CAT.x, cz = CAT.z, px = clamp(cx + 2.1, -10.8, -5.6), pz = cz + 1.2;
+        teleport(px, pz, Math.atan2(-(cx - px), -(cz - pz)) - .38); camDist = 2.4; camPitch = -.32;
+        toast('<b>봄이</b> · 별빛캠핑장 마스코트 고양이' + (season === 'winter' ? ' — 겨울엔 관리동 문 앞에서 낮잠을 자요' : ' — 나비가 날아오면 살금살금 따라가요'));
+      }
       else if (x === 'raft'){
         if (season !== 'summer') applySeason('summer', true);
         if (nightF > .4) setHour(13, true);
@@ -3870,6 +4308,7 @@ async function boot(){
   if (await loadAvatar()){ hero = new Avatar(avatarSrc, avatarClips, { Wolf3D_Outfit_Top:0xa7b98a, Wolf3D_Outfit_Bottom:0x7b88a4 }); }
   addCampers();
   buildRafting();
+  catBuild(); npcs.push({ update: dt => catUpdate(dt, U.uTime.value) });
   scene.add(hero.root);
   orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.autoRotateSpeed = .4; orbit.maxPolarAngle = 1.25; orbit.minDistance = 30; orbit.maxDistance = 320; orbit.minAzimuthAngle = AIR.minAz; orbit.maxAzimuthAngle = AIR.maxAz; orbit.enabled = false;
   drawMapBase(); bindInput();
@@ -3895,7 +4334,7 @@ async function boot(){
     resetFov:()=>{ camera.fov=62; camera.updateProjectionMatrix(); camera.up.set(0,1,0); },
     stats:()=>({ fps:Math.round(fps), tris:renderer.info.render.triangles, calls:renderer.info.render.calls, pos:player.pos.toArray().map(v=>+v.toFixed(2)), view, hour, season }),
     setDist:d=>camDist=d, orbit:()=>orbit, camera, keys, zoneAt, H,
-    post: POST, postReset:()=>{ post.w = 0; }, rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ view='air'; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
+    cat: CAT, catSet, BF, bfSpawn, catT:(sec)=>{ for (let i=0;i<sec*30;i++){ simT += 1/30; U.uTime.value = simT; catUpdate(1/30, simT); } return CAT.state; }, post: POST, postReset:()=>{ post.w = 0; }, rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ view='air'; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
     raftT:(sec)=>{ for (let i=0;i<sec*30;i++) raftUpdate(1/30); return raft.state; },
     raft:(st, v=0)=>{ raft.state = st; raft.d = v; raft.k = 0; if (st === 'float') raft.z = lerp(RAFT_START, RAFT_END, v); raft.from = [floatX(RAFT_END), RAFT_END, 0]; if (st === 'carry') raft.heading = pathAt(v).h; return st; },
     showroom:()=>{ Object.keys(CAR_SPECS).forEach((k,i)=>addCar(k, [0xe9e9e6,0x0e0f11,0x3a3d42,0x24372f,0x1c2638,0xa9adb2][i], 92, -125 + i*8, Math.PI/2)); ['tunnel','air','bell','teepee','dome','cabin','hexa'].forEach((k,i)=>pitch(k, 108, -150 + i*12, -Math.PI/2, {}, i%2===0)); }
