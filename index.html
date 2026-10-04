@@ -141,6 +141,9 @@ body.scoping #c{cursor:grab}
 }
 /* 체험하기 HUD */
 .btn-alt{background:var(--pine);color:#0f2416}
+.hero-pick{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;color:var(--muted,#9aa7b5)}
+.hero-pick .seg{grid-template-columns:repeat(2,1fr)}
+.hero-pick .seg button{min-width:96px;padding:7px 12px}
 .xp-quest{position:fixed;left:16px;top:calc(124px + env(safe-area-inset-top,0px));width:276px;padding:12px 14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:3}
 .xp-quest h3{margin:0 0 8px;font-size:12px;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;justify-content:space-between;font-weight:600}
 .xp-quest h3 button{border:0;background:transparent;color:var(--muted);font-size:11px;padding:2px 4px}
@@ -382,6 +385,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
       <img src="tex/photo2.jpg" alt="화로대 불멍 사이트">
       <img src="tex/photo3.jpg" alt="별빛존 소나무 아래 2번 사이트">
     </div>
+    <div class="hero-pick" role="group" aria-label="주인공 선택"><span>주인공</span><div class="seg" id="seg-hero"><button data-g="f" aria-pressed="true">30대 여성</button><button data-g="m" aria-pressed="false">30대 남성</button></div></div>
     <div class="intro-actions">
       <button class="btn-main" id="btn-start" disabled>불러오는 중…</button>
       <button class="btn-main btn-alt" id="btn-exp" disabled>체험하기</button>
@@ -1767,13 +1771,203 @@ class Avatar {
     this.phase += dt * speed / lerp(1.45, 2.9, run) * Math.PI * 2;
   }
 }
-let avatarSrc = null, avatarClips = null;
+let avatarSrc = null, avatarClips = null, femSrc = null, femClips = null, femTex = null;
+/* q_target = Rp_t^-1 · Rp_s · q_src · Rw_s^-1 · Rw_t  (rest world rotations of each bone and its parent in both rigs) */
+function retargetClips(tgt, src, clips){
+  tgt.updateMatrixWorld(true); src.updateMatrixWorld(true);
+  const rw = root => { const m = {}; root.traverse(o => { if (o.isBone) m[o.name] = { w:o.getWorldQuaternion(new THREE.Quaternion()), p:o.parent.getWorldQuaternion(new THREE.Quaternion()) }; }); return m; };
+  const T = rw(tgt), S = rw(src), q = new THREE.Quaternion(), A = new THREE.Quaternion(), B = new THREE.Quaternion();
+  return clips.map(c => { c = c.clone(); c.tracks = c.tracks.filter(t => { const [bn, prop] = t.name.split('.'); if (!T[bn] || !S[bn] || prop !== 'quaternion') return false;
+    A.copy(T[bn].p).invert().multiply(S[bn].p); B.copy(S[bn].w).invert().multiply(T[bn].w); const v = t.values = t.values.slice();
+    for (let i = 0; i < v.length; i += 4){ q.fromArray(v, i); q.premultiply(A).multiply(B); q.toArray(v, i); }
+    return true; }); return c; });
+}
 async function loadAvatar(){
   try {
     const [g, cj] = await Promise.all([ new GLTFLoader().loadAsync('tex/hiker.gltf.json'), fetch('tex/hiker_anims.json').then(r => r.json()) ]);
     avatarSrc = g.scene; avatarClips = cj.map(c => THREE.AnimationClip.parse(c));
-    return true;
   } catch (e){ console.warn('avatar fallback', e); return false; }
+  try {   // female body (Mixamo rig) driven by the Mixamo idle / walk / run clips, retargeted bone by bone, root motion stripped
+    const TL = new THREE.TextureLoader(), tx = u => TL.loadAsync(u).then(t => { t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; });
+    const [f, x, ta] = await Promise.all([ new GLTFLoader().loadAsync('tex/Michelle.glb'), new GLTFLoader().loadAsync('tex/Xbot.glb'), tx('tex/fem_a.jpg') ]);
+    // the body's armature is stored rotated +90° with the hips at -90°: fold the two rotations away so it matches the clips' upright armature
+    f.scene.traverse(o => { if (o.isMesh) o.material.name = 'Fem_Body'; if (o.name === 'Character') o.quaternion.identity(); if (o.isBone && /Hips$/.test(o.name)){ o.quaternion.identity(); o.position.set(o.position.x, -o.position.z, o.position.y); } });
+    femClips = retargetClips(f.scene, x.scene, x.animations.filter(c => /^(idle|walk|run)$/.test(c.name)));
+    if (femClips.length === 3){ femSrc = f.scene; femTex = ta; }
+  } catch (e){ console.warn('female avatar fallback', e); }
+  return true;
+}
+/* everyday clothes on the stock avatar: the hat, beard and long coat go; short hair, a hip-length jacket or hoodie, jeans and trainers.
+   vRest = vertex in the avatar's own frame (metres), because the stock mesh is quantized */
+const STYLED = []; let styledN = 0;
+function styleCasual(av, o){
+  const inv = { value:new THREE.Matrix4() }, id = ++styledN;
+  const restV = sh => { sh.uniforms.uCasInv = inv; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vRest; uniform mat4 uCasInv;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\nvRest = (uCasInv*modelMatrix*vec4(transformed, 1.0)).xyz;'); sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vRest;'); };
+  const C = c => new THREE.Color(c), v3 = c => { const k = C(c); return `vec3(${k.r.toFixed(4)}, ${k.g.toFixed(4)}, ${k.b.toFixed(4)})`; };
+  av.model.traverse(m => {
+    if (!m.isMesh) return; const nm = m.material.name;
+    if (nm === 'Wolf3D_Headwear' || nm === 'Wolf3D_Beard'){ m.visible = false; return; }
+    if (!/Outfit/.test(nm)) return;
+    const mat = m.material = m.material.clone(); mat.userData = {}; mat.name = nm;
+    if (nm === 'Wolf3D_Outfit_Top'){
+      mat.map = null; mat.color.set(o.top); mat.roughness = .85; clothPatch(mat, .6);
+      const inner = o.plainTop ? '' : `if (vRest.z > 0.0 && abs(vRest.x) < 0.045 + 0.02*smoothstep(1.2, 1.42, vRest.y) && vRest.y > 1.0 && vRest.y < 1.45) diffuseColor.rgb = ${v3(o.inner || 0xe9e6df)};
+        if (vRest.z > 0.0 && abs(abs(vRest.x) - 0.047) < 0.004 && vRest.y > 0.95 && vRest.y < 1.4) diffuseColor.rgb *= 0.55;`;
+      const hood = o.hood ? `if (vRest.z > 0.0 && abs(vRest.x) < 0.11 && vRest.y > 1.02 && vRest.y < 1.17) diffuseColor.rgb *= 0.86;
+        if (vRest.z > 0.0 && abs(abs(vRest.x) - 0.04) < 0.006 && vRest.y > 1.3 && vRest.y < 1.43) diffuseColor.rgb = vec3(0.93);` : '';
+      patchMat(mat, 'casTop' + id, sh => { restV(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        if (vRest.y < ${o.trim.toFixed(3)}) discard;
+        if (vRest.y < ${(o.trim + .045).toFixed(3)}) diffuseColor.rgb *= 0.8;
+        if (abs(vRest.x) > 0.5) diffuseColor.rgb *= 0.82;
+        ${inner}
+        ${hood}`); });
+    } else if (nm === 'Wolf3D_Outfit_Bottom'){
+      mat.map = null; mat.color.set(o.bottom); mat.roughness = .9; clothPatch(mat, .6);
+      patchMat(mat, 'casBot' + id, sh => { restV(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        float sx = abs(abs(vRest.x) - 0.1) - 0.055; if (abs(sx) < 0.003 && vRest.y < 0.9) diffuseColor.rgb *= 1.25;
+        if (vRest.y < 0.12) diffuseColor.rgb *= 0.85;`); });
+    } else if (nm === 'Wolf3D_Outfit_Footwear'){
+      mat.map = null; mat.color.set(o.shoes); mat.roughness = .7;
+      patchMat(mat, 'casShoe' + id, sh => { restV(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        if (vRest.y < 0.025) diffuseColor.rgb = vec3(0.12);`); });
+    }
+  });
+  // short hair on the head bone
+  const hm = hairPatch(new THREE.MeshStandardMaterial({ color:o.hair, roughness:.6 })), hair = new THREE.Group();
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(.108, 28, 16, 0, Math.PI*2, 0, Math.PI*.56), hm); cap.scale.set(1.0, 1.0, 1.08); cap.rotation.x = -.45; hair.add(cap);
+  const fr = new THREE.Mesh(new THREE.SphereGeometry(.109, 20, 6, Math.PI*.22, Math.PI*.56, Math.PI*.36, Math.PI*.1), hm); fr.scale.set(1.0, 1.0, 1.1); hair.add(fr);
+  hair.traverse(m => { if (m.isMesh) m.castShadow = true; });
+  boneAttach(av.model, 'Head', hair, new THREE.Vector3(0, o.hairY || .095, -.01));
+  if (o.hood){  // a folded hood behind the neck
+    const hd = new THREE.Mesh(new THREE.TorusGeometry(.085, .035, 10, 20, Math.PI*1.25), clothPatch(new THREE.MeshStandardMaterial({ color:C(o.top).multiplyScalar(.85), roughness:.9 }), .6));
+    hd.rotation.set(Math.PI/2 + .35, 0, Math.PI*.62 + Math.PI); hd.castShadow = true;
+    boneAttach(av.model, 'Neck', hd, new THREE.Vector3(0, .02, -.035));
+  }
+  STYLED.push({ av, inv, ref:av.model });
+  return av;
+}
+function styledUpdate(){
+  for (let i = STYLED.length - 1; i >= 0; i--){
+    const s = STYLED[i]; let n = s.av.root; while (n.parent) n = n.parent;
+    if (n !== scene){ if (s.dead) STYLED.splice(i, 1); else if (s.av.root.parent) {} continue; }
+    s.ref.updateMatrixWorld(true); s.inv.value.copy(s.ref.matrixWorld).invert();
+  }
+}
+/* ---- the women of the family, built on one female body (bind pose: metres, y up, +z front, arms out at y≈1.26) ----
+   the stock hair / headphones are dropped, the joggers are slimmed below the hem into bare legs, the clothes are painted by region,
+   and each gets her own hair: mum = brown jaw-length bob + sunglasses, pink tee, beige pleated shorts;
+   아윤 = open light-blue pinstripe shirt over a dotted white camisole, denim shorts, ponytail;
+   하윤 = light-blue knit cardigan over a white top, white shorts, low bun */
+const FEM_V = {
+  mom:   { hem:.56, topHem:.955, sleeve:.27, top:0xf1b4a9, inner:0xf1b4a9, open:0, shorts:0xd5c7ab, hair:0x7a5538, glasses:true, pat:0 },
+  ayun:  { hem:.62, topHem:.84, sleeve:.30, top:0xa9c7ee, inner:0xf4f1e8, open:.065, shorts:0x6584b6, hair:0x17110e, glasses:false, pat:1 },
+  hayun: { hem:.60, topHem:.90, sleeve:.585, top:0xbdd5ef, inner:0xf5f5f7, open:.034, shorts:0xededf0, hair:0x17110e, glasses:false, pat:2 },
+};
+const FEM_GEO = {};
+function femGeom(geo, V){
+  const key = V.hem + (V.glasses ? 'g' : '');
+  if (FEM_GEO[key]) return FEM_GEO[key];
+  const g = geo.clone(), P = g.attributes.position, n = P.count, a = P.array;
+  // connected components (welded by position) to find the stock hair, headphones and glasses
+  const weld = new Map(), wid = new Int32Array(n);
+  for (let i = 0; i < n; i++){ const k = Math.round(a[i*3]*1e4) + ',' + Math.round(a[i*3+1]*1e4) + ',' + Math.round(a[i*3+2]*1e4); let w = weld.get(k); if (w === undefined){ w = weld.size; weld.set(k, w); } wid[i] = w; }
+  const par = new Int32Array(weld.size).map((_, i) => i), find = x => { while (par[x] !== x){ par[x] = par[par[x]]; x = par[x]; } return x; };
+  const idx = g.index.array;
+  for (let t = 0; t < idx.length; t += 3){ const r0 = find(wid[idx[t]]); par[find(wid[idx[t+1]])] = r0; par[find(wid[idx[t+2]])] = r0; }
+  const box = new Map();
+  for (let i = 0; i < n; i++){ const c = find(wid[i]); let b = box.get(c); if (!b){ b = { n:0, x0:1e9, x1:-1e9, y0:1e9, y1:-1e9, z0:1e9, z1:-1e9 }; box.set(c, b); } b.n++;
+    const x = a[i*3], y = a[i*3+1], z = a[i*3+2]; b.x0 = Math.min(b.x0, x); b.x1 = Math.max(b.x1, x); b.y0 = Math.min(b.y0, y); b.y1 = Math.max(b.y1, y); b.z0 = Math.min(b.z0, z); b.z1 = Math.max(b.z1, z); }
+  const hide = new Set();
+  for (const [c, b] of box){
+    if (b.y0 > 1.25 && b.y1 > 1.6 && b.x1 - b.x0 > .2 && b.z1 < .085) hide.add(c);                       // hair puffs + braids, headphone band
+    if (!V.glasses && b.y0 > 1.4 && b.y1 < 1.5 && b.z1 > .084 && b.n < 400 && (b.z0 > .07 || b.x1 - b.x0 < .03)) hide.add(c);   // lenses + bridge
+    if (!V.glasses && b.y0 > 1.44 && b.y1 < 1.47 && b.n < 40) hide.add(c);                              // temple arms
+  }
+  const keep = [];
+  for (let t = 0; t < idx.length; t += 3) if (!hide.has(find(wid[idx[t]]))) keep.push(idx[t], idx[t+1], idx[t+2]);
+  g.setIndex(keep);
+  // slim the jogger legs below the hem into calves: ring by ring, toward a leg axis with a calf profile
+  const prof = [[.14, .032], [.22, .04], [.32, .05], [.42, .045], [.5, .05], [.6, .06], [.7, .066]];
+  const rt = y => { for (let i = 1; i < prof.length; i++) if (y <= prof[i][0]){ const [y0, r0] = prof[i-1], [y1, r1] = prof[i]; return r0 + (r1 - r0)*clamp((y - y0)/(y1 - y0), 0, 1); } return .066; };
+  const top = V.hem - .012, Nn = g.attributes.normal.array, cand = [[], []];
+  for (let i = 0; i < n; i++){ const x = a[i*3], y = a[i*3+1]; if (y < .14 || y > top || Math.abs(x) < .015 || Math.abs(x) > .3) continue; cand[x > 0 ? 0 : 1].push(i); }
+  cand.forEach((list, sd) => {
+    // smooth leg axis: centroid and mean radius from a sliding window of ±3 cm, then a near-round calf of the profile radius
+    const fit = list.map(i => { const y = a[i*3+1]; let cx = 0, cz = 0, m = 0; for (const j of list) if (Math.abs(a[j*3+1] - y) < .03){ cx += a[j*3]; cz += a[j*3+2]; m++; } return [cx/m, cz/m]; });
+    const rr = list.map((i, q) => Math.hypot(a[i*3] - fit[q][0], a[i*3+2] - fit[q][1]));
+    const rm = list.map((i, q) => { const y = a[i*3+1]; let s2 = 0, m = 0; list.forEach((j, w) => { if (Math.abs(a[j*3+1] - y) < .03){ s2 += rr[w]; m++; } }); return s2/m; });
+    list.forEach((i, q) => {
+      const y = a[i*3+1], [cx, cz] = fit[q], dx0 = a[i*3] - cx, dz0 = a[i*3+2] - cz, d = Math.hypot(dx0, dz0) || 1e-4;
+      const R = Math.min(d, rt(y)*Math.pow(d/Math.max(rm[q], 1e-4), .15)), tx = (sd ? -1 : 1)*lerp(.1, .088, clamp((y - .14)/.4, 0, 1));
+      a[i*3] = tx + dx0/d*R; a[i*3+2] = .005 + dz0/d*R; Nn[i*3] = dx0/d; Nn[i*3+1] = 0; Nn[i*3+2] = dz0/d;
+    });
+  });
+  g.attributes.normal.needsUpdate = true;
+  P.needsUpdate = true; g.computeBoundingSphere();
+  return FEM_GEO[key] = g;
+}
+function femHair(v, col){
+  const hm = new THREE.MeshStandardMaterial({ color:col, roughness:.72, side:THREE.DoubleSide }), g = new THREE.Group(), add = (geo, f) => { const m = new THREE.Mesh(geo, hm); f && f(m); m.castShadow = true; g.add(m); return m; };
+  if (v === 'mom'){   // jaw-length bob with a soft side part
+    add(new THREE.SphereGeometry(.112, 32, 14, 0, Math.PI*2, 0, Math.PI*.42), m => { m.scale.set(1.02, 1, 1.05); m.rotation.z = .06; });
+    add(new THREE.SphereGeometry(.12, 32, 16, Math.PI*.5 + Math.PI*.34, Math.PI*2 - Math.PI*.68, Math.PI*.22, Math.PI*.52), m => m.scale.set(1.03, 1, 1.07));
+    add(new THREE.SphereGeometry(.115, 20, 6, Math.PI*.18, Math.PI*.42, Math.PI*.36, Math.PI*.1), m => { m.scale.set(1.02, 1, 1.07); m.rotation.z = .12; });
+  } else {            // hair pulled back
+    add(new THREE.SphereGeometry(.112, 28, 16, 0, Math.PI*2, 0, Math.PI*.55), m => { m.rotation.x = -.75; m.scale.set(1.0, 1, 1.05); });
+    const tie = new THREE.Mesh(new THREE.TorusGeometry(.016, .006, 8, 16), new THREE.MeshStandardMaterial({ color:v === 'ayun' ? 0x6f8fc9 : 0xf3f0ea, roughness:.6 }));
+    if (v === 'ayun'){ tie.position.set(0, .0, -.122); add(new THREE.SphereGeometry(.036, 16, 12), m => { m.scale.set(.85, 1.9, .8); m.position.set(0, -.06, -.14); m.rotation.x = .25; }); }
+    else { tie.position.set(0, -.03, -.12); add(new THREE.SphereGeometry(.042, 16, 12), m => { m.scale.set(1.1, .9, .85); m.position.set(0, -.035, -.15); }); }
+    tie.rotation.x = .2; g.add(tie);
+  }
+  return g;
+}
+function attachAtBind(model, boneRe, obj, at){   // place obj at a bind-pose model-space point, then parent it to the bone
+  let bone = null; model.traverse(o => { if (o.isBone && boneRe.test(o.name)) bone = o; }); if (!bone) return;
+  model.updateMatrixWorld(true);
+  const m = new THREE.Matrix4().copy(bone.matrixWorld).invert().multiply(model.matrixWorld).multiply(new THREE.Matrix4().makeTranslation(at.x, at.y, at.z));
+  m.decompose(obj.position, obj.quaternion, obj.scale); bone.add(obj);
+}
+function femAvatar(k, v){
+  const V = FEM_V[v] || FEM_V.mom, av = new Avatar(femSrc, femClips, {}); av.model.scale.multiplyScalar(k); av.k = k;
+  const C = c => new THREE.Color(c), U2 = { uTop:{ value:C(V.top) }, uInner:{ value:C(V.inner) }, uShorts:{ value:C(V.shorts) }, uSkinC:{ value:C(0xd6a383) } };
+  av.model.traverse(o => {
+    if (!o.isMesh) return;
+    o.geometry = femGeom(o.geometry, V);
+    const m = o.material = o.material.clone(); m.userData = {}; m.map = femTex; m.metalness = 0; m.metalnessMap = null; m.roughness = .85; m.roughnessMap = null; m.specularColorMap = null;
+    skinPatch(m);
+    patchMat(m, 'fem_' + v, sh => { Object.assign(sh.uniforms, U2);
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vBind;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvBind = position;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vBind; uniform vec3 uTop, uInner, uShorts, uSkinC;').replace('#include <map_fragment>', `#include <map_fragment>
+        { vec3 p = vBind; float ax = abs(p.x); vec3 col = diffuseColor.rgb; bool paint = true;
+          vec3 top = uTop;
+          ${V.pat === 1 ? 'top *= 0.94 + 0.08*step(0.82, fract(p.x*95.0 + p.z*95.0));' : V.pat === 2 ? 'top *= 0.9 + 0.1*(0.5 + 0.5*sin(p.y*700.0 + 2.0*sin(p.x*300.0)));' : ''}
+          vec3 inner = uInner; ${V.pat === 1 ? 'if (length(fract(vec2(p.x*80.0, p.y*80.0)) - 0.5) < 0.17) inner = vec3(0.32, 0.45, 0.72);' : ''}
+          bool front = p.z > 0.0;
+          if (ax > 0.17 && p.y > 1.17 && p.y < 1.35){ if (ax < ${V.sleeve.toFixed(3)}) col = top; else paint = false; }
+          else if (p.y > 1.31){ paint = false; if (p.y < 1.375 && !(col.r > col.g*1.12 && col.g > col.b*1.04)){ col = uSkinC; paint = true; } }
+          else if (p.y > ${V.topHem.toFixed(3)}){ col = top; if (front && ax < ${V.open.toFixed(3)}) col = p.y > 0.98 ? inner : uShorts;
+            if (p.y > 1.255 && front && ax < 0.06 - 0.25*(1.31 - p.y)) paint = false; }
+          else if (p.y > ${V.hem.toFixed(3)}){ col = uShorts; ${V.pat === 0 ? 'if (front && abs(ax - 0.062) < 0.0028 && p.y < 0.93) col *= 0.82;' : V.pat === 1 ? 'col *= 0.95 + 0.07*fract(sin(dot(floor(p.xy*400.0), vec2(12.9898, 78.233)))*43758.5);' : ''}
+            if (p.y < ${V.hem.toFixed(3)} + 0.012) col *= 0.86; }
+          else if (p.y > 0.105) col = uSkinC;
+          else paint = false;
+          if (paint) diffuseColor.rgb = col; }`); });
+  });
+  attachAtBind(av.model, /Head$/, femHair(v, V.hair), new THREE.Vector3(0, 1.468, -.01));
+  return av;
+}
+let HERO_G = 'f'; try { HERO_G = localStorage.getItem('damteoHero') === 'm' ? 'm' : 'f'; } catch (e){}
+function makeHero(g){
+  if (g === 'f' && femSrc) return femAvatar(.97, 'mom');
+  return styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:0x5b6650, plainTop:true, trim:.93, bottom:0x3a4d6d, shoes:0xe6e6e2, hair:0x1a1410 });
+}
+function setHero(g){
+  HERO_G = g === 'm' ? 'm' : 'f'; try { localStorage.setItem('damteoHero', HERO_G); } catch (e){}
+  if (!avatarSrc) return;
+  const old = hero, nh = makeHero(HERO_G);
+  nh.root.position.copy(old.root.position); nh.root.rotation.copy(old.root.rotation); nh.root.visible = old.root.visible;
+  if (old.root.parent){ old.root.parent.add(nh.root); old.root.parent.remove(old.root); }
+  hero = nh;
 }
 
 /* ---------------- props ---------------- */
@@ -4318,7 +4512,7 @@ function addCampers(){
   const spots = [[10.5, -6.6, { Wolf3D_Outfit_Top:0xc9937a, Wolf3D_Outfit_Bottom:0x5d6470 }], [7.9, -6.8, { Wolf3D_Outfit_Top:0x8fa6c9, Wolf3D_Outfit_Bottom:0x6b5f52, Wolf3D_Headwear:0x8a6a45 }]];
   for (const [x,z,tint] of spots){
     let n;
-    if (avatarSrc){ n = new Avatar(avatarSrc, avatarClips, tint); n.mixer.update(rng()*3); }
+    if (avatarSrc){ n = styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:tint.Wolf3D_Outfit_Top, trim:.93, bottom:tint.Wolf3D_Outfit_Bottom, shoes:0xdedcd6, hair:tint.Wolf3D_Headwear ? 0x3a2a1c : 0x1a1410 }); n.mixer.update(rng()*3); }
     else { n = new Hiker({ jacket:0x6a2f2a, pants:0x2b2e33, cap:0x2d2d2d }); shadowAll(n.root,true,false); }
     place(n.root, x, H(x,z), z, faceFire(x,z)); npcs.push(n); colliders.push({ x, z, r:.3 });
   }
@@ -4380,6 +4574,7 @@ function jump(){ if (!player.air && view !== 'air'){ player.air = true; player.v
 const camTarget = new THREE.Vector3(), camPos = new THREE.Vector3();
 const AIR = { minAz:.35, maxAz:2.1 };
 function updateCamera(dt){
+  if (window.__camHold) return;
   if (view === 'cat'){ catCamUpdate(dt); return; }
   if (view === 'scope') return;
   if (view === 'drive'){ carCam(dt); return; }
@@ -4407,6 +4602,7 @@ function catView(){
   toast('<b>봄이</b> 가까이 보기 · 드래그로 돌려 보고 휠로 거리 조절, 이동키를 누르면 돌아가요' + (season === 'winter' ? ' — 겨울엔 관리동 문 앞에서 낮잠을 자요' : ''));
 }
 function setView(v){
+  window.__camHold = false;
   if (EXP.on && (view === 'drive' || view === 'xpcam') && v !== view){ toast(view === 'drive' ? '운전 중에는 시점을 바꿀 수 없어요 · E로 내리기' : '지금 하는 활동을 먼저 마쳐 주세요'); return; }
   const wasCat = view === 'cat';
   view = v;
@@ -5244,7 +5440,7 @@ function xpHud(){
     ['fire', '빨간 벽돌 위에 모닥불 피우기'],
     ['grill', '고기 굽기'],
     ['fish', '계곡에서 물고기 잡기'],
-    ['hg', '친구들과 할리갈리 한 판'],
+    ['hg', '아윤·하윤과 할리갈리 한 판'],
     ['tube', '튜브 타고 계곡 물놀이'],
     ['recycle', '분리수거장에서 분리수거 → 체험 마치기', true]];
   $('#xp-quest-list').innerHTML = q.map(([k, t, req]) => `<li class="${EXP.done[k] ? 'ok' : ''}"><span class="ck">${EXP.done[k] ? '✓' : ''}</span>${t}${req ? ' <em>필수</em>' : ''}</li>`).join('');
@@ -5395,7 +5591,7 @@ function xpPitch(s, kind){
   EXP.camp = camp;
   xpProgress(`${TENTS.find(t => t.id === kind).name} 설치 중 · 펙 박기 → 폴 세우기 → 타프 → 테이블·의자`, 3.4, () => {
     EXP.done.tent = true; EXP.stats.tents++; xpFriends(true); xpHud();
-    toast(`<b>${s.id}</b> 피칭 완료 · 친구 지훈·서연이 도착했어요`); xpAddTrash({ n:'텐트 펙 포장 비닐', c:'plastic', i:'🛍️' });
+    toast(`<b>${s.id}</b> 피칭 완료 · 딸 아윤·하윤이 의자에 앉았어요`); xpAddTrash({ n:'텐트 펙 포장 비닐', c:'plastic', i:'🛍️' });
   });
   xpHud();
 }
@@ -5409,25 +5605,32 @@ function xpStrike(){
   xpProgress('철수 중 · 의자·테이블 접기 → 타프 → 텐트 걷기', 2.6, () => { EXP.camp = null; xpHud(); toast('<b>철수 완료</b> · 다른 사이트에 다시 칠 수도 있어요'); });
 }
 /* friends: two seated/standing companions for Halli Galli */
-const FRIEND_DEF = [{ name:'지훈', tint:{ Wolf3D_Outfit_Top:0x9c4a3a, Wolf3D_Outfit_Bottom:0x3c4450 } }, { name:'서연', tint:{ Wolf3D_Outfit_Top:0xd7c9a4, Wolf3D_Outfit_Bottom:0x5b6b7c, Wolf3D_Headwear:0x8a6a45 } }];
+const FRIEND_DEF = [{ name:'아윤', v:'ayun' }, { name:'하윤', v:'hayun' }];
+/* the two daughters who came along */
+function makeTeen(d){
+  const V = FEM_V[d.v];
+  if (!avatarSrc){ const h = new Hiker({ jacket:V.top, pants:V.shorts, cap:V.hair }); h.root.scale.setScalar(.92); shadowAll(h.root, true, false); return h; }
+  if (femSrc) return femAvatar(.94, d.v);
+  const av = styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:V.top, plainTop:true, trim:.95, bottom:V.shorts, shoes:0xf4f4f2, hair:V.hair });
+  av.model.scale.multiplyScalar(.9); av.k = .9; return av;
+}
 function xpFriends(on){
   const c = EXP.camp; if (!c) return;
   for (const f of c.friends){ scene.remove(f.root); const k = colliders.indexOf(f.col); if (k >= 0) colliders.splice(k, 1); }
   c.friends = [];
   if (!on) return;
   FRIEND_DEF.forEach((d, i) => {
-    const seat = c.seats[i + 1], sx = Math.sin(seat.ry), sz = Math.cos(seat.ry);
-    const x = seat.x - sx*.75, z = seat.z - sz*.75;
-    let av; if (avatarSrc){ av = new Avatar(avatarSrc, avatarClips, d.tint); av.mixer.update(Math.random()*3); } else { av = new Hiker({ jacket:d.tint.Wolf3D_Outfit_Top, pants:d.tint.Wolf3D_Outfit_Bottom, cap:0x333333 }); shadowAll(av.root, true, false); }
-    const root = new THREE.Group(); root.add(av.root); const lb = labelSprite(d.name); lb.position.y = 2.0; lb.scale.multiplyScalar(.8); root.add(lb);
+    const seat = c.seats[i + 1], x = seat.x, z = seat.z;
+    const av = makeTeen(d); if (av.mixer) av.mixer.update(Math.random()*3);
+    const root = new THREE.Group(); root.add(av.root); const lb = labelSprite(d.name); lb.position.y = 1.55; lb.scale.multiplyScalar(.8); root.add(lb);
     place(root, x, groundAt(x, z), z, seat.ry);
-    const f = { name:d.name, av, root, seat, stand:{ x, z }, sit:0, reach:0, label:lb, col:{ x, z, r:.3 } };
+    const f = { name:d.name, av, root, seat, stand:{ x, z }, sit:1, sitting:true, k:av.k || 1, reach:0, label:lb, col:{ x, z, r:.3 } };
     colliders.push(f.col); c.friends.push(f); xpGrow([root], i*.3, .5, 1);
   });
 }
 /* world-space bone rotation on top of the animation clip (used for sitting and reaching for the bell) */
 const _bq = new THREE.Quaternion(), _bq2 = new THREE.Quaternion(), _bax = new THREE.Vector3();
-function boneMap(model){ const m = {}; model.traverse(o => { if (o.isBone) m[o.name] = o; }); return m; }
+function boneMap(model){ const m = {}; model.traverse(o => { if (o.isBone) m[o.name.replace(/^mixamorig:?/, '')] = o; }); return m; }
 function boneRot(bone, axis, ang){
   bone.parent.getWorldQuaternion(_bq2); _bq.setFromAxisAngle(axis, ang);
   bone.quaternion.premultiply(_bq2.clone().invert().multiply(_bq).multiply(_bq2));
@@ -5439,7 +5642,7 @@ function poseSit(f, sit, reach, side, keepRoot){
   av.root.updateMatrixWorld(true);
   const ry = f.root.rotation.y, right = _bax.set(Math.cos(ry), 0, -Math.sin(ry)).clone(), up = new THREE.Vector3(0, 1, 0);
   if (sit > 0){
-    if (!keepRoot) av.root.position.set(0, -.42*sit, -.12*sit);
+    const k = f.k || av.k || 1; if (!keepRoot) av.root.position.set(0, -.42*sit*k, -.1*sit*k);
     for (const s of ['Left', 'Right']){ if (B[s + 'UpLeg']) boneRot(B[s + 'UpLeg'], right, -1.45*sit); if (B[s + 'Leg']) boneRot(B[s + 'Leg'], right, 1.5*sit); }
     if (B.Spine) boneRot(B.Spine, right, .08*sit);
     for (const s of ['Left', 'Right']){ if (B[s + 'Arm']) boneRot(B[s + 'Arm'], right, -.55*sit); if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -.7*sit); }
@@ -5449,14 +5652,15 @@ function poseSit(f, sit, reach, side, keepRoot){
 function xpFriendsUpdate(dt){
   const c = EXP.camp; if (!c) return;
   for (const f of c.friends){
-    const want = f.sitting ? 1 : 0; f.sit = lerp(f.sit, want, 1 - Math.exp(-dt*5)); f.reach = Math.max(0, f.reach - dt*2.2);
+    f.sitting = true; f.sit = 1; f.reach = Math.max(0, f.reach - dt*2.2);
     const at = f.sit > .5 ? f.seat : f.stand;
     f.root.position.x = lerp(f.root.position.x, at.x, 1 - Math.exp(-dt*5)); f.root.position.z = lerp(f.root.position.z, at.z, 1 - Math.exp(-dt*5));
     f.root.position.y = groundAt(f.root.position.x, f.root.position.z);
     f.col.x = f.root.position.x; f.col.z = f.root.position.z;
     f.av.update(dt, 0);
     if (f.av.model) poseSit(f, f.sit, f.reach, f === c.friends[0] ? 1 : -1);
-    f.label.visible = !f.sitting;
+    f.label.visible = !HG.on;
+    if (!f.av.model){ f.av.update(dt, 0); f.av.pelvis.position.y = .5; f.av.hip.forEach(h => h.rotation.x = -1.45); f.av.kn.forEach(k => k.rotation.x = 1.5); }
   }
 }
 
@@ -5693,7 +5897,7 @@ function fishBuildGear(){
   shadowAll(net); FISH.net = net;
 }
 function heroHand(){
-  if (hero.model){ let h = null; hero.model.traverse(o => { if (o.isBone && o.name === 'RightHand') h = o; }); return h; }
+  if (hero.model){ let h = null; hero.model.traverse(o => { if (o.isBone && /RightHand$/.test(o.name)) h = o; }); return h; }
   return null;
 }
 function fishStart(mode, w){
@@ -5951,7 +6155,7 @@ function hgEnd(silent){
   for (const p of HG.P){ scene.remove(p.deckStack); scene.remove(p.upStack); if (p.top) scene.remove(p.top); }
   for (const a of HG.anims) scene.remove(a.m); HG.anims = [];
   scene.remove(HG.bell);
-  const c = EXP.camp; if (c){ c.friends.forEach(f => f.sitting = false); if (c.tableObj) c.tableObj.children.forEach(o => { if (o.isGroup) o.visible = true; }); }
+  const c = EXP.camp; if (c){ if (c.tableObj) c.tableObj.children.forEach(o => { if (o.isGroup) o.visible = true; }); }
   $('#xp-hg').hidden = true; hero.root.visible = true;
   const s = c ? c.seats[0] : null; if (s){ const px = s.x - Math.sin(s.ry)*.7, pz = s.z - Math.cos(s.ry)*.7; player.pos.set(px, groundAt(px, pz), pz); camYaw = s.ry + Math.PI; }
   view = 'tp'; setView('tp'); xpCtx(true);
@@ -6623,6 +6827,7 @@ function tick(dt, t){
   npcs.forEach(n => n.update(dt, 0));
   scopeUpdate(dt);
   xpUpdate(dt, t);
+  styledUpdate();
   updateCamera(dt);
   const focus = view === 'air' ? orbit.target : view === 'cat' ? CAT.root.position : player.pos;
   const dir = sun.userData.dir || sunDir;
@@ -6656,7 +6861,7 @@ async function boot(){
   setMsg('배치도대로 사이트와 시설 짓는 중'); await buildCamp(); await frame();
   setMsg('하늘과 별 띄우는 중'); buildStars(); buildGlows(); occGlow();   // clouds are now drawn procedurally in the sky shader buildWeather(); await frame();
   setMsg('캐릭터 불러오는 중');
-  if (await loadAvatar()){ hero = new Avatar(avatarSrc, avatarClips, { Wolf3D_Outfit_Top:0xa7b98a, Wolf3D_Outfit_Bottom:0x7b88a4 }); }
+  if (await loadAvatar()){ hero = makeHero(HERO_G); }
   { const m = occBegin(); addCampers(); occEnd(m); }
   buildRafting();
   catBuild(); npcs.push({ update: dt => catUpdate(dt, U.uTime.value) });
@@ -6677,6 +6882,7 @@ async function boot(){
     teleport(8, -126, Math.PI); setView('tp'); canvas.focus();
     toast('<b>담터 별빛캠핑장</b>에 오신 것을 환영합니다');
   });
+  document.querySelectorAll('#seg-hero button').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.g === HERO_G)); b.addEventListener('click', () => { setHero(b.dataset.g); document.querySelectorAll('#seg-hero button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }); });
   const bx = $('#btn-exp'); bx.disabled = false;
   bx.addEventListener('click', () => {
     $('#intro').hidden = true; started = true;
@@ -6685,13 +6891,13 @@ async function boot(){
   window.__camp = {
     freeze:()=>renderer.setAnimationLoop(null), resume:()=>{ clock.getDelta(); renderer.setAnimationLoop(loop); },
     step:(n=1,dt=1/30)=>{ for(let i=0;i<n;i++){ simT+=dt; tick(dt, simT); } return renderer.info.render.triangles; },
-    setView, setHour, teleport, applySeason, look:(y,p)=>{ camYaw=y; camPitch=p; }, start:()=>btn.click(),
+    setView, setHour, teleport, setHero, player, getHero:()=>hero, femAvatar, sceneAdd:o=>scene.add(o), groundAt, applySeason, look:(y,p)=>{ camYaw=y; camPitch=p; }, start:()=>btn.click(),
     evac:(v)=>{ evacGroup.visible = v; },
     topView:(cx=-2, cz=-5, h=330, fov=48)=>{ view='air'; orbit.enabled=false; camera.fov=fov; camera.updateProjectionMatrix(); camera.up.set(-1,0,0); camera.position.set(cx, h, cz); camera.lookAt(cx, 0, cz); },
     resetFov:()=>{ camera.fov=62; camera.updateProjectionMatrix(); camera.up.set(0,1,0); },
     stats:()=>({ fps:Math.round(fps), tris:renderer.info.render.triangles, calls:renderer.info.render.calls, pos:player.pos.toArray().map(v=>+v.toFixed(2)), view, hour, season }),
     setDist:d=>camDist=d, orbit:()=>orbit, camera, keys, zoneAt, H,
-    wake: WAKE, cat: CAT, catSet, catView, catCam, catMeow, BF, bfSpawn, catT:(sec)=>{ for (let i=0;i<sec*30;i++){ simT += 1/30; U.uTime.value = simT; catUpdate(1/30, simT); } return CAT.state; }, post: POST, postReset:()=>{ post.w = 0; }, rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ view='air'; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
+    wake: WAKE, cat: CAT, catSet, catView, catCam, catMeow, BF, bfSpawn, catT:(sec)=>{ for (let i=0;i<sec*30;i++){ simT += 1/30; U.uTime.value = simT; catUpdate(1/30, simT); } return CAT.state; }, post: POST, postReset:()=>{ post.w = 0; }, rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ window.__camHold = true; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
     exp: EXP, car: CAR, chief: CHIEF, hg: HG, fishS: FISH, gr: GR, expStart, xpChief, xpCheckIn, xpPitch, xpStrike, xpFireOn, xpFireOff, xpGrillOpen, grillAdd, grillFlip, grillTake, grillClose, fishStart, fishDown, fishUp, fishLift, fishStop, hgStart, hgFlip, hgRing, hgEnd, recOpen, recPick, xpEnd, carEnter, carExit, xpSites:()=>XP_SITES, xpNearWater, xpCtx,
     scope: SCOPE, scopeHit, scopeOpen, scopeClose, scopeSetTarget, scopeSetEyepiece, scopeFocus, scopeLayout,
     raftT:(sec)=>{ for (let i=0;i<sec*30;i++) raftUpdate(1/30); return raft.state; },
