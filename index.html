@@ -6412,9 +6412,9 @@ function tubeStart(w){
   if (!TUBE.g){
     const tex = canvasTex(256, 32, (g, W, Hh) => { const c = ['#ff5a4a', '#ffffff', '#ffc93a', '#ffffff', '#3aa8ff', '#ffffff']; for (let i = 0; i < 12; i++){ g.fillStyle = c[i % 6]; g.fillRect(i*W/12, 0, W/12 + 1, Hh); } });
     tex.wrapS = THREE.RepeatWrapping;
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(.5, .21, 18, 40), new THREE.MeshPhysicalMaterial({ map:tex, roughness:.25, clearcoat:1, clearcoatRoughness:.1 }));
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.43, .18, 18, 40), new THREE.MeshPhysicalMaterial({ map:tex, roughness:.25, clearcoat:1, clearcoatRoughness:.1 }));
     ring.rotation.x = -Math.PI/2; ring.castShadow = true; TUBE.g = new THREE.Group(); TUBE.g.add(ring);
-    const valve = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .05, 8), M(0xffffff)); valve.position.set(.5, .2, 0); TUBE.g.add(valve);
+    const valve = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .05, 8), M(0xffffff)); valve.position.set(.43, .17, 0); TUBE.g.add(valve);
   }
   scene.add(TUBE.g);
   player.pos.set(w.x, WATER_Y, w.z); player.vel.set(0, 0, 0); EXP.mode = 'tube'; TUBE.t = 0;
@@ -6435,18 +6435,20 @@ function poseTube(f, paddle, bob){
   const av = f.av, B = f.bones || (f.bones = boneMap(av.model));
   av.root.updateMatrixWorld(true);
   const ry = f.root.rotation.y, right = new THREE.Vector3(Math.cos(ry), 0, -Math.sin(ry)), fwd = new THREE.Vector3(Math.sin(ry), 0, Math.cos(ry));
-  if (B.Hips) boneRot(B.Hips, right, -.85);
-  if (B.Spine) boneRot(B.Spine, right, .05);
-  if (B.Neck) boneRot(B.Neck, right, .3); if (B.Head) boneRot(B.Head, right, .22);
+  // like lounging in a pool ring: seat in the hole, back resting on the rear rim, legs stretched out over the front rim, elbows on the sides
+  if (B.Hips) boneRot(B.Hips, right, -.68);
+  if (B.Spine) boneRot(B.Spine, right, -.05);
+  if (B.Neck) boneRot(B.Neck, right, .18); if (B.Head) boneRot(B.Head, right, .1);
   for (const s of ['Left', 'Right']){
-    if (B[s + 'UpLeg']) boneRot(B[s + "UpLeg"], right, -1.25);
-    if (B[s + 'Leg']) boneRot(B[s + "Leg"], right, 2.05 + .15*paddle*(s === 'Left' ? 1 : -1));
     const sg = s === 'Left' ? 1 : -1;
-    if (B[s + 'Arm']){ boneRot(B[s + 'Arm'], fwd, -sg*1.05); boneRot(B[s + 'Arm'], right, .35 + .25*paddle*sg); }
-    if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -.35);
+    if (B[s + 'UpLeg']){ boneRot(B[s + 'UpLeg'], right, -1.42 - .1*paddle*sg); boneRot(B[s + 'UpLeg'], UP, sg*.08); }
+    if (B[s + 'Leg']) boneRot(B[s + 'Leg'], right, .5 + .25*Math.max(0, paddle*sg));
+    if (B[s + 'Foot']) boneRot(B[s + 'Foot'], right, -.5);
+    if (B[s + 'Arm']){ boneRot(B[s + 'Arm'], fwd, -sg*.75); boneRot(B[s + 'Arm'], right, .55); }
+    if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -1.25);
   }
   // put the seat in the middle of the ring, just below the surface
-  if (B.Hips){ const hp = B.Hips.getWorldPosition(new THREE.Vector3()); f.root.position.x += TUBE.g.position.x - hp.x; f.root.position.z += TUBE.g.position.z - hp.z; f.root.position.y += WATER_Y + .08 + bob - hp.y; f.root.updateMatrixWorld(true); }
+  if (B.Hips){ const hp = B.Hips.getWorldPosition(new THREE.Vector3()); f.root.position.x += TUBE.g.position.x - hp.x; f.root.position.z += TUBE.g.position.z - hp.z; f.root.position.y += WATER_Y + .15 + bob - hp.y; f.root.updateMatrixWorld(true); }
 }
 function tubeUpdate(dt){
   let ix = 0, iz = 0;
