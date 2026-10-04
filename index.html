@@ -1843,12 +1843,8 @@ function styleCasual(av, o){
         if (vRest.y < 0.025) diffuseColor.rgb = vec3(0.12);`); });
     }
   });
-  // short hair on the head bone
-  const hm = hairPatch(new THREE.MeshStandardMaterial({ color:o.hair, roughness:.6 })), hair = new THREE.Group();
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(.108, 28, 16, 0, Math.PI*2, 0, Math.PI*.56), hm); cap.scale.set(1.0, 1.0, 1.08); cap.rotation.x = -.45; hair.add(cap);
-  const fr = new THREE.Mesh(new THREE.SphereGeometry(.109, 20, 6, Math.PI*.22, Math.PI*.56, Math.PI*.36, Math.PI*.1), hm); fr.scale.set(1.0, 1.0, 1.1); hair.add(fr);
-  hair.traverse(m => { if (m.isMesh) m.castShadow = true; });
-  boneAttach(av.model, 'Head', hair, new THREE.Vector3(0, o.hairY || .095, -.01));
+  // layered men's hair (same lock builder as the hero, a calmer preset)
+  attachAtBind(av.model, /Head$/, maleHair({ style:o.hairStyle || 'short', base:o.hairBase }), new THREE.Vector3(0, 1.735, .018));
   if (o.hood){  // a folded hood behind the neck
     const hd = new THREE.Mesh(new THREE.TorusGeometry(.085, .035, 10, 20, Math.PI*1.25), clothPatch(new THREE.MeshStandardMaterial({ color:C(o.top).multiplyScalar(.85), roughness:.9 }), .6));
     hd.rotation.set(Math.PI/2 + .35, 0, Math.PI*.62 + Math.PI); hd.castShadow = true;
@@ -2032,18 +2028,25 @@ function styleMale(av){
   attachAtBind(av.model, /Head$/, maleHair(), new THREE.Vector3(0, 1.735, .018));
   return av;
 }
-let hairTexC = null;
-function hairTex(){   // dark strands with soft highlights running crown → tips (sphere u = around, v = down)
-  return hairTexC || (hairTexC = canvasTex(256, 128, g => { g.fillStyle = '#1a1512'; g.fillRect(0, 0, 256, 128);
+const hairTexC = {};
+function hairTex(base = '#1a1512'){   // dark strands with soft highlights running crown → tips (sphere u = around, v = down)
+  return hairTexC[base] || (hairTexC[base] = canvasTex(256, 128, g => { g.fillStyle = base; g.fillRect(0, 0, 256, 128);
     for (let i = 0; i < 900; i++){ const x = Math.random()*256, w = .6 + Math.random()*1.4, l = .35 + Math.random()*.6; g.strokeStyle = `rgba(${90 + Math.random()*50},${75 + Math.random()*40},${62 + Math.random()*30},${.08 + Math.random()*.22})`; g.lineWidth = w; g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + (Math.random() - .5)*8, 64, x + (Math.random() - .5)*10, 128*l); g.stroke(); }
     for (let i = 0; i < 300; i++){ const x = Math.random()*256; g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, Math.random()*30); g.lineTo(x + (Math.random() - .5)*6, 128); g.stroke(); } }));
 }
-function maleHair(){
-  const t = hairTex(); t.wrapS = THREE.RepeatWrapping;
+/* men's hair from tapered locks. presets: shag (hero: bangs to the brows, over the ears), short (neat crop, short fringe swept a little to one side),
+   twoblock (fuller top falling forward, trimmed sides and nape) */
+const HAIR_STYLES = {
+  shag:     { front:[.4, .065], side:.1, back:.2, base:.5, lift:.005, sweep:0 },
+  short:    { front:[.34, .04], side:.02, back:.15, base:.54, lift:.001, sweep:.15, crown:.4 },
+  twoblock: { front:[.39, .05], side:.0, back:.12, base:.53, lift:.001, sweep:-.1, crown:.4, top:.01 },
+};
+function maleHair(o = {}){
+  const P = HAIR_STYLES[o.style || 'shag'], t = hairTex(o.base || '#1a1512'); t.wrapS = THREE.RepeatWrapping;
   const hm = new THREE.MeshStandardMaterial({ color:0xffffff, map:t, roughness:.45, metalness:0, side:THREE.DoubleSide }), g = new THREE.Group();
   const add = (geo, f) => { const m = new THREE.Mesh(geo, hm); f && f(m); m.castShadow = true; g.add(m); return m; };
   const R = .108, rnd = (i, k) => { const v = Math.sin(i*12.9898 + k*78.233)*43758.5453; return v - Math.floor(v); };
-  add(new THREE.SphereGeometry(R, 36, 14, 0, Math.PI*2, 0, Math.PI*.4), m => { m.scale.set(.97, 1.06, 1.07); m.position.y = .004; });   // crown with a little lift
+  add(new THREE.SphereGeometry(R + (P.top || 0)*.5, 36, 14, 0, Math.PI*2, 0, Math.PI*(P.crown || .4)), m => { m.scale.set(.97, 1.06 + (P.top || 0)*3, 1.07); m.position.y = .004 + (P.top || 0); });   // crown with a little lift
   /* tapered locks on the head sphere: from near the crown down to a pointed tip, slightly lifted off the scalp toward the tip */
   const lock = (r, ph, w, t0, t1, lift) => {
     const S = 7, pos = [], idx = [];
@@ -2059,11 +2062,12 @@ function maleHair(){
   const N = 64;
   for (let i = 0; i < N; i++){
     const ph = (i + .6*rnd(i, 1))/N*Math.PI*2, front = Math.max(0, Math.sin(ph)), side = Math.abs(Math.cos(ph)), back = Math.max(0, -Math.sin(ph));
-    const end = front > .62 ? .4 + .065*rnd(i, 2) : .5 + .1*side + .2*back + .07*rnd(i, 3) - .06*front;
-    const g2 = lock(R + .003 + .004*rnd(i, 4), ph, Math.PI*2/N*2.4*(1.05 - .25*front), Math.PI*(.06 + .1*rnd(i, 5)), Math.PI*end, .004 + .005*side*(1 - front));
+    const end = front > .62 ? P.front[0] + P.front[1]*rnd(i, 2) : P.base + P.side*side + P.back*back + .05*rnd(i, 3) - .06*front;
+    const g2 = lock(R + .003 + .004*rnd(i, 4) + (P.top || 0)*front*.5, ph, Math.PI*2/N*2.4*(1.05 - .25*front), Math.PI*(.06 + .1*rnd(i, 5)), Math.PI*end, P.lift*(1 - front) + .004*side*(1 - front));
     add(g2, m => m.scale.set(.99, 1, 1.07));
   }
-  return g;
+  g.rotation.y = P.sweep;   // parting / sweep to one side
+  const w = new THREE.Group(); w.add(g); return w;
 }
 let HERO_G = 'f'; try { HERO_G = localStorage.getItem('damteoHero') === 'm' ? 'm' : 'f'; } catch (e){}
 function makeHero(g){
@@ -4645,7 +4649,7 @@ function addCampers(){
   const spots = [[10.5, -6.6, { Wolf3D_Outfit_Top:0xc9937a, Wolf3D_Outfit_Bottom:0x5d6470 }], [7.9, -6.8, { Wolf3D_Outfit_Top:0x8fa6c9, Wolf3D_Outfit_Bottom:0x6b5f52, Wolf3D_Headwear:0x8a6a45 }]];
   for (const [x,z,tint] of spots){
     let n;
-    if (avatarSrc){ n = styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:tint.Wolf3D_Outfit_Top, trim:.93, bottom:tint.Wolf3D_Outfit_Bottom, shoes:0xdedcd6, hair:tint.Wolf3D_Headwear ? 0x3a2a1c : 0x1a1410 }); n.mixer.update(rng()*3); }
+    if (avatarSrc){ n = styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:tint.Wolf3D_Outfit_Top, trim:.93, bottom:tint.Wolf3D_Outfit_Bottom, shoes:0xdedcd6, hairStyle:tint.Wolf3D_Headwear ? 'twoblock' : 'short', hairBase:tint.Wolf3D_Headwear ? '#2e2119' : '#16120f' }); n.mixer.update(rng()*3); }
     else { n = new Hiker({ jacket:0x6a2f2a, pants:0x2b2e33, cap:0x2d2d2d }); shadowAll(n.root,true,false); }
     place(n.root, x, H(x,z), z, faceFire(x,z)); npcs.push(n); colliders.push({ x, z, r:.3 });
   }
