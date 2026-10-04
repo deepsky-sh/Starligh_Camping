@@ -6408,6 +6408,18 @@ function hgUpdate(dt){
 
 /* ---------- tube floating: sit in a striped inflatable ring, paddle around the creek and drift with the current ---------- */
 const TUBE = { g:null, t:0, f:null, rip:0 };
+/* where the ring goes in: right where you stand if the water is deep enough to float, otherwise the nearest spot that floats */
+const tubeDepth = (x, z) => WATER_Y - H(x, z);
+function tubeSpot(){
+  const p = player.pos;
+  if (tubeDepth(p.x, p.z) > .2) return { x:p.x, z:p.z };
+  for (let r = .5; r <= 9; r += .5) {
+    let best = null;
+    for (let k = 0; k < 32; k++){ const a = k/32*Math.PI*2, x = p.x + Math.sin(a)*r, z = p.z + Math.cos(a)*r, d = tubeDepth(x, z); if (d > .22 && (!best || d > best.d)) best = { x, z, d }; }
+    if (best) return best;
+  }
+  return { x:creekC(p.z), z:p.z };
+}
 function tubeStart(w){
   if (!TUBE.g){
     const tex = canvasTex(256, 32, (g, W, Hh) => { const c = ['#ff5a4a', '#ffffff', '#ffc93a', '#ffffff', '#3aa8ff', '#ffffff']; for (let i = 0; i < 12; i++){ g.fillStyle = c[i % 6]; g.fillRect(i*W/12, 0, W/12 + 1, Hh); } });
@@ -6417,7 +6429,7 @@ function tubeStart(w){
     const valve = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .05, 8), M(0xffffff)); valve.position.set(.43, .17, 0); TUBE.g.add(valve);
   }
   scene.add(TUBE.g);
-  player.pos.set(w.x, WATER_Y, w.z); player.vel.set(0, 0, 0); EXP.mode = 'tube'; TUBE.t = 0;
+  const at = tubeSpot(); player.pos.set(at.x, WATER_Y, at.z); player.vel.set(0, 0, 0); EXP.mode = 'tube'; TUBE.t = 0;
   TUBE.f = { av:hero, root:hero.root, bones:null };
   sfx('splash'); fishRipple(w.x, w.z, 1); EXP.done.tube = true; xpHud();
   toast(SEASONS[season].water === 'ice' ? '' : season === 'summer' ? '<b>튜브 물놀이</b> · 이동키로 저어 다니고, 물살 따라 천천히 떠내려가요' : '<b>튜브 물놀이</b> · 물이 꽤 차가워요! 이동키로 저어 다녀요');
@@ -6460,8 +6472,15 @@ function tubeUpdate(dt){
   const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw);
   const k = 1 - Math.exp(-dt*2.2);
   player.vel.x = lerp(player.vel.x, (fx*iz + rx*ix)*1.35, k); player.vel.z = lerp(player.vel.z, (fz*iz + rz*ix)*1.35 + .3, k);   // the creek flows toward +z
-  const p = player.pos, nx = p.x + player.vel.x*dt, nz = p.z + player.vel.z*dt;
-  if (H(nx, nz) < WATER_Y - .2){ p.x = nx; p.z = nz; } else { player.vel.multiplyScalar(-.3); }
+  const p = player.pos, d0 = tubeDepth(p.x, p.z);
+  // keep off the shallows: a gentle pull toward the channel when it gets shallow
+  if (d0 < .35){ const dc = creekC(p.z) - p.x; player.vel.x += Math.sign(dc)*Math.min(1, (.35 - d0)*4)*dt*1.6; }
+  const ok = (x, z) => { const d = tubeDepth(x, z); return d > .18 || d >= d0 - .005; };   // never trapped: moving deeper is always allowed
+  const nx = p.x + player.vel.x*dt, nz = p.z + player.vel.z*dt;
+  if (ok(nx, nz)){ p.x = nx; p.z = nz; }
+  else if (ok(nx, p.z)){ p.x = nx; player.vel.z *= .5; }    // slide along the bank instead of sticking
+  else if (ok(p.x, nz)){ p.z = nz; player.vel.x *= .5; }
+  else player.vel.multiplyScalar(.5);
   if (nz > RAFT_END + 20 || nz < -140){ player.vel.z = 0; }
   TUBE.t += dt; const t = U.uTime.value, wv = typeof waveAt === 'function' ? waveAt(p.x, p.z, t) : 0;
   p.y = WATER_Y;
