@@ -245,7 +245,8 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 #xp-rec .note{min-height:20px;margin-top:10px}
 .shake{animation:shake .35s}
 @keyframes shake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-body.xp .help{display:none}
+body.xp-busy .help,body.scoping .help{display:none}
+@media (pointer:coarse){.help{display:none}}
 body.scoping #xp-hud,body.scoping .xp-quest{display:none!important}
 body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .tbtns,body.xp-drive .tbtns{display:none!important}
 @media (max-width:760px){
@@ -1961,21 +1962,28 @@ function femAvatar(k, v){
           if (paint) diffuseColor.rgb = col; }`); });
   });
   attachAtBind(av.model, /Head$/, femHair(v, V.hair), new THREE.Vector3(0, 1.468, -.01));
-  return av;
+  av.fem = true; return av;
 }
 let HERO_G = 'f'; try { HERO_G = localStorage.getItem('damteoHero') === 'm' ? 'm' : 'f'; } catch (e){}
 function makeHero(g){
   if (g === 'f' && femSrc) return femAvatar(.97, 'mom');
   return styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:0x5b6650, plainTop:true, trim:.93, bottom:0x3a4d6d, shoes:0xe6e6e2, hair:0x1a1410 });
 }
+/* the hero picker works from the first moment the intro is shown, also while the scene is still loading */
+function bindHeroPick(){
+  const bs = document.querySelectorAll('#seg-hero button'), mark = () => bs.forEach(x => x.setAttribute('aria-pressed', String(x.dataset.g === HERO_G)));
+  mark(); bs.forEach(b => b.addEventListener('click', () => { setHero(b.dataset.g); mark(); }));
+}
 function setHero(g){
   HERO_G = g === 'm' ? 'm' : 'f'; try { localStorage.setItem('damteoHero', HERO_G); } catch (e){}
-  if (!avatarSrc) return;
+  if (!avatarSrc || !hero.root.parent) return;   // still loading: boot builds the chosen hero
+  if ((HERO_G === 'f') === !!hero.fem) return;
   const old = hero, nh = makeHero(HERO_G);
   nh.root.position.copy(old.root.position); nh.root.rotation.copy(old.root.rotation); nh.root.visible = old.root.visible;
   if (old.root.parent){ old.root.parent.add(nh.root); old.root.parent.remove(old.root); }
   hero = nh;
 }
+bindHeroPick();
 
 /* ---------------- props ---------------- */
 /* ---------------- vehicles: lofted bodies, side-elevation window masks, fascia overlays, wrap-around lamps, detailed wheels (original designs, no badges) ---------------- */
@@ -4529,6 +4537,12 @@ let view = 'tp', camYaw = Math.PI, camPitch = -0.18, camDist = 5.2;
 let orbit;
 const keys = new Set();
 let joy = { x:0, y:0, active:false }, runToggle = false;
+/* a held key repeats its keydown; if a movement key has gone quiet for a while its keyup was lost (IME, focus change), so let it go */
+const keyT = {};
+function keysSanity(){
+  const now = performance.now();
+  for (const k of keys) if (/^(Key[WASD]|Arrow)/.test(k) && now - (keyT[k] || 0) > 2000) keys.delete(k);
+}
 
 function resolveCollisions(p){
   for (const c of colliders){
@@ -4547,6 +4561,7 @@ function resolveCollisions(p){
   p.x = clamp(p.x, -40, 128); p.z = clamp(p.z, -185, 200);
 }
 function updatePlayer(dt){
+  keysSanity();
   if (view === 'drive'){ carDrive(dt); return; }
   if (EXP.mode === 'tube'){ tubeUpdate(dt); return; }
   let ix = 0, iz = 0;
@@ -5302,6 +5317,7 @@ function carExit(quiet){
   xpEngine(false); if (!quiet) toast('<b>주차 완료</b> · 차 옆에서 E(또는 ‘차 타기’)로 다시 탈 수 있어요'); xpCtx(true);
 }
 function carDrive(dt){
+  keysSanity();
   let thr = 0, st = 0;
   if (keys.has('KeyW') || keys.has('ArrowUp')) thr += 1;
   if (keys.has('KeyS') || keys.has('ArrowDown')) thr -= 1;
@@ -5315,7 +5331,7 @@ function carDrive(dt){
   if (brake) v -= Math.sign(v)*Math.min(Math.abs(v), 11*dt);
   else if (thr > 0) v += (v < -.1 ? 10 : 3.6)*thr*dt;
   else if (thr < 0) v += (v > .1 ? 10 : 2.6)*thr*dt;
-  else v -= Math.sign(v)*Math.min(Math.abs(v), 1.6*dt);
+  else v -= Math.sign(v)*Math.min(Math.abs(v), (2.2 + .25*Math.abs(v))*dt);   // engine braking: lifting off the throttle stops the car in a couple of seconds
   v = clamp(v, -3.6, 9.2);
   CAR.steer = lerp(CAR.steer, st*.55*(1 - .45*smooth(3, 9, Math.abs(v))), 1 - Math.exp(-dt*6));
   const nh = CAR.h + v/2.8*Math.tan(CAR.steer)*dt;
@@ -6383,7 +6399,8 @@ function xpUpdate(dt, t){
   if (!EXP.on) return;
   chiefUpdate(dt, t); xpAnimUpdate(dt); xpProgUpdate(); xpFireUpdate(dt, t); grillUpdate(dt, t); fishUpdate(dt, t); hgUpdate(dt); xpFriendsUpdate(dt);
   if (CAR.light) CAR.light.intensity = nightF*38*(view === 'drive' ? 1 : .0);
-  if (EXP.camp && EXP.camp.tableObj) EXP.camp.tableObj.userData.lamp.intensity = nightF*2.2;
+  if (EXP.camp && EXP.camp.tableObj){ const L = EXP.camp.tableObj.userData.lamp;   // during Halli Galli the lantern is put away: a soft light from high above the table instead of a bright one beside a seat
+    if (HG.on){ L.position.set(0, 2.3, 0); L.distance = 7; L.decay = 1.2; L.intensity = nightF*1.5; } else { L.position.set(.2, .8, .4); L.distance = 6; L.decay = 2; L.intensity = nightF*2.2; } }
   EXP.ctxT -= dt; if (EXP.ctxT <= 0){ EXP.ctxT = .15; xpCtx(); document.body.classList.toggle('xp-busy', ['grill', 'fish', 'hg'].includes(EXP.mode)); document.body.classList.toggle('xp-drive', view === 'drive' || EXP.mode === 'tube'); }
 }
 function xpHit(cx, cy){
@@ -6423,6 +6440,18 @@ function xpKey(e, down){
   if (c === 'KeyE'){ if (view === 'drive'){ if (Math.abs(CAR.v) < 1.5) carExit(); else toast('속도를 줄인 뒤 내릴 수 있어요'); return true; } if (!EXP.lock && xpPrimary()) return true; return false; }
   if (view === 'drive' || EXP.lock){ if (['KeyV', 'KeyC', 'Space'].includes(c)) return c !== 'Space' || EXP.lock; }
   return false;
+}
+/* bottom help line (desktop / web): what the keys do right now */
+let helpMode = '';
+function helpUpdate(){
+  const k = (...a) => a.map(x => `<kbd>${x}</kbd>`).join('');
+  const m = !EXP.on ? (view === 'cat' ? 'cat' : 'tour') : view === 'drive' ? 'drive' : EXP.mode === 'tube' ? 'tube' : 'xp';
+  if (m === helpMode) return; helpMode = m;
+  $('#help').innerHTML = m === 'drive' ? `${k('W')} 가속 · ${k('S')} 후진 · ${k('A', 'D')} 방향 · ${k('Space')} 브레이크 · ${k('E')} 내리기 · 드래그 둘러보기 · ${k('T')} 시간`
+    : m === 'tube' ? `${k('W', 'A', 'S', 'D')} 튜브 젓기 · ${k('E')} 튜브에서 내리기 · 드래그 둘러보기`
+    : m === 'xp' ? `${k('W', 'A', 'S', 'D')} 이동 · ${k('Shift')} 달리기 · ${k('E')} 상호작용(차·캠장님·텐트·불·굽기·낚시·할리갈리·분리수거) · ${k('Esc')} 닫기 · 드래그 둘러보기 · 휠 줌 · ${k('V')} 시점 · ${k('T')} 시간`
+    : m === 'cat' ? `드래그 둘러보기 · 휠 줌 · ${k('C')} 봄이 시점 끝내기`
+    : `${k('W', 'A', 'S', 'D')} 이동 · ${k('Shift')} 달리기 · ${k('Space')} 점프 · 드래그 둘러보기 · 휠 줌 · ${k('C')} 봄이 · ${k('E')} 망원경(밤) · ${k('V')} 시점 · ${k('T')} 시간 · ${k('Y')} 계절`;
 }
 function xpMinimap(ctx){
   if (!EXP.on) return;
@@ -6564,7 +6593,7 @@ function bindInput(){
   addEventListener('keydown', e => {
     if (view === 'scope'){ if (e.target && e.target.tagName === 'INPUT' && e.code !== 'Escape') return; scopeKey(e); if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault(); return; }
     if (e.target && e.target.tagName === 'INPUT') return;
-    keys.add(e.code);
+    keys.add(e.code); keyT[e.code] = performance.now();
     if (xpKey(e, true)) return;
     if (e.code === 'KeyE' && SCOPE.near) scopeOpen();
     if (e.code === 'KeyV') setView(view === 'tp' ? 'fp' : view === 'fp' ? 'air' : 'tp');
@@ -6576,6 +6605,9 @@ function bindInput(){
   });
   addEventListener('keyup', e => { keys.delete(e.code); if (EXP.on) xpKey(e, false); });
   addEventListener('blur', () => keys.clear());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) keys.clear(); });
+  addEventListener('keyup', e => { if (/^(Meta|OS|Alt)/.test(e.code)) keys.clear(); }, true);   // keys pressed with Cmd/Alt never get their own keyup
+  addEventListener('pointerdown', e => { if (e.target !== canvas && keys.size) keys.clear(); }, true);
   let drag = null;
   canvas.addEventListener('pointerdown', e => {
     if (view === 'air') return;
@@ -6845,6 +6877,7 @@ function tick(dt, t){
   scopeUpdate(dt);
   xpUpdate(dt, t);
   styledUpdate();
+  helpUpdate();
   updateCamera(dt);
   const focus = view === 'air' ? orbit.target : view === 'cat' ? CAT.root.position : player.pos;
   const dir = sun.userData.dir || sunDir;
@@ -6899,7 +6932,6 @@ async function boot(){
     teleport(8, -126, Math.PI); setView('tp'); canvas.focus();
     toast('<b>담터 별빛캠핑장</b>에 오신 것을 환영합니다');
   });
-  document.querySelectorAll('#seg-hero button').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.g === HERO_G)); b.addEventListener('click', () => { setHero(b.dataset.g); document.querySelectorAll('#seg-hero button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }); });
   const bx = $('#btn-exp'); bx.disabled = false;
   bx.addEventListener('click', () => {
     $('#intro').hidden = true; started = true;
