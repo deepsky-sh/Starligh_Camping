@@ -6328,6 +6328,7 @@ function hgUI(){
 function hgFlip(i){
   const p = HG.P[i]; if (HG.busy || HG.over || HG.ringLock || HG.turn !== i || !p.deck.length) return;
   HG.busy = true; HG.plans = [];
+  if (i === 0 && !EXP.done.hg){ EXP.done.hg = true; xpHud(); toast('<b>할리갈리</b> 체험 완료 ✓ · 계속 즐기다 언제든 끝내도 돼요'); }   // one flip counts as having played
   const card = p.deck.shift(), m = hgCardMesh(card, false);
   m.position.copy(p.deckPos).setY(p.deckPos.y + (p.deck.length + 1)*CT); m.rotation.set(0, p.yaw, Math.PI);
   scene.add(m); hgStackUpdate(); sfx('card');
