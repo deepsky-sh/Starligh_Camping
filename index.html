@@ -139,6 +139,111 @@ body.scoping #c{cursor:grab}
   .scope-foot button{align-self:flex-start}
   .scope-hint{text-align:left;line-height:1.5}
 }
+/* 체험하기 HUD */
+.btn-alt{background:var(--pine);color:#0f2416}
+.xp-quest{position:fixed;left:16px;top:calc(124px + env(safe-area-inset-top,0px));width:276px;padding:12px 14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:3}
+.xp-quest h3{margin:0 0 8px;font-size:12px;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;justify-content:space-between;font-weight:600}
+.xp-quest h3 button{border:0;background:transparent;color:var(--muted);font-size:11px;padding:2px 4px}
+.xp-quest ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:12.5px;line-height:1.4}
+.xp-quest li{display:flex;gap:7px;align-items:flex-start;color:var(--ink)}
+.xp-quest li .ck{flex:none;width:15px;height:15px;border-radius:4px;border:1px solid var(--line);display:grid;place-items:center;font-size:11px;margin-top:1px}
+.xp-quest li.ok{color:var(--muted)}
+.xp-quest li.ok .ck{background:var(--pine);color:#0f2416;border-color:var(--pine)}
+.xp-quest li em{font-style:normal;font-size:10px;color:var(--amber);border:1px solid rgba(242,179,91,.5);border-radius:4px;padding:0 4px;margin-left:2px}
+.xp-inv{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.chip{font-size:11.5px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line)}
+.chip.dim{color:var(--muted)}
+.xp-quest.min ul,.xp-quest.min .xp-inv{display:none}
+.xp-quest.min h3{margin:0}
+.xp-actions{position:fixed;left:50%;bottom:calc(60px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:4;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:min(760px,calc(100vw - 32px))}
+.xp-actions button{border:1px solid var(--line);background:var(--glass-strong);border-radius:999px;padding:10px 16px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.3);white-space:nowrap}
+.xp-actions button.pri{border-color:rgba(242,179,91,.75);color:var(--ink)}
+.xp-actions button.pri kbd{font-family:var(--f-ui);font-size:11px;background:rgba(255,255,255,.1);border-radius:4px;padding:1px 6px;color:var(--muted);margin-left:4px}
+.xp-actions button.dim{color:var(--muted);cursor:default}
+body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
+.xp-dlg{position:fixed;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));z-index:7;background:var(--glass-strong);border:1px solid rgba(143,191,152,.5);border-radius:16px;padding:14px 18px 14px;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.xp-dlg .who{font-family:var(--f-display);font-size:16px;font-weight:700;color:var(--pine);margin-bottom:4px}
+.xp-dlg p{margin:0 0 12px;font-size:14.5px;line-height:1.65}
+.xp-dlg .btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.xp-dlg button,.xp-panel button,.xp-hg button{border:1px solid var(--line);background:rgba(255,255,255,.06);border-radius:10px;padding:9px 14px;font-size:13.5px}
+.xp-dlg button.pri,.xp-panel button.pri,.xp-hg button.pri{background:var(--amber);color:#24170a;border-color:var(--amber);font-weight:600}
+.xp-modal{position:fixed;inset:0;display:grid;place-items:center;padding:16px;background:rgba(6,10,16,.5);z-index:7}
+.xp-modal .card{width:min(560px,100%);max-height:calc(100% - 32px);overflow:auto;background:var(--glass-strong);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.xp-modal h3{margin:0 0 4px;font-family:var(--f-display);font-size:22px}
+.xp-modal .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+.tents{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.tents button{text-align:left;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.tents button b{font-size:14.5px}
+.tents button span{font-size:12px;color:var(--muted);line-height:1.45}
+.tents button:hover{border-color:var(--amber)}
+.xp-prog{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:6;width:min(460px,calc(100vw - 32px));background:var(--glass-strong);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:13px}
+.xp-prog .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:8px;overflow:hidden}
+.xp-prog .bar i{display:block;height:100%;width:0;background:var(--amber)}
+.xp-panel{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:5;width:min(330px,calc(100vw - 32px));background:var(--glass-strong);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.xp-panel h3{margin:0;font-family:var(--f-display);font-size:19px}
+.xp-panel p{margin:0;font-size:13px;line-height:1.55;color:var(--muted)}
+.xp-panel .add{display:flex;flex-wrap:wrap;gap:6px}
+.xp-panel .add button{font-size:12.5px;padding:7px 10px}
+.xp-panel .close,.xp-panel .foot button{align-self:flex-end}
+.gi{display:grid;grid-template-columns:1fr auto auto;grid-template-rows:auto auto;gap:4px 6px;align-items:center;padding:8px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.gi b{font-size:13px}
+.gi .gbars{grid-column:1;display:flex;flex-direction:column;gap:3px}
+.gi .gbars span{display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden;position:relative}
+.gi .gbars span::after{content:"";position:absolute;left:44.6%;width:30.8%;top:0;bottom:0;border-left:1px dashed rgba(124,196,127,.7);border-right:1px dashed rgba(124,196,127,.7)}
+.gi .gbars i{display:block;height:100%;width:0}
+.gi em{font-style:normal;font-size:11.5px;color:var(--amber);grid-column:1}
+.gi b{grid-column:1;grid-row:1}.gi .gbars{grid-row:2}.gi em{grid-row:3}
+.gi button{grid-row:1 / span 3;font-size:12px;padding:7px 9px}.gi button[data-flip]{grid-column:2}.gi button[data-take]{grid-column:3}
+#xp-grill-items{display:flex;flex-direction:column;gap:6px;max-height:42vh;overflow:auto}
+.xp-panel .meter{display:flex;flex-direction:column;gap:5px}
+.xp-panel .meter .m{display:block;height:10px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden}
+.xp-panel .meter .m i{display:block;height:100%;width:0;background:var(--amber);transition:background .2s}
+.xp-panel .meter .prog i{background:#6fb3ff}
+.xp-panel .row2{display:flex;gap:8px}
+.xp-panel .row2 button{flex:1;padding:12px;font-size:15px;touch-action:none}
+.xp-panel .row2 button.hot{animation:pulse .5s infinite alternate}
+@keyframes pulse{from{box-shadow:0 0 0 0 rgba(242,179,91,.7)}to{box-shadow:0 0 0 10px rgba(242,179,91,0)}}
+.xp-panel .foot{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted)}
+.xp-catch{position:fixed;left:min(38%,calc(100% - 520px));top:18%;transform:translateX(-50%);z-index:6;background:var(--glass-strong);border:1px solid rgba(242,179,91,.6);border-radius:16px;padding:12px 18px;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
+.xp-catch img{width:220px;height:110px}
+.xp-catch b{font-family:var(--f-display);font-size:20px;color:var(--amber)}
+.xp-catch span{font-size:12.5px;color:var(--muted);text-align:center;max-width:300px}
+.xp-hg{position:fixed;inset:auto 0 calc(14px + env(safe-area-inset-bottom,0px)) 0;margin:0 auto;width:min(640px,calc(100vw - 24px));z-index:5;background:var(--glass-strong);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.xp-hg .top{display:flex;gap:8px;align-items:center}
+.xp-hg .players{display:flex;gap:6px;flex:1}
+.xp-hg .hp{flex:1;border:1px solid var(--line);border-radius:10px;padding:6px 8px;display:flex;flex-direction:column;font-size:12px}
+.xp-hg .hp b{font-size:13px}
+.xp-hg .hp span{color:var(--muted);font-variant-numeric:tabular-nums}
+.xp-hg .hp.turn{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+.xp-hg .hp.out{opacity:.45}
+.xp-hg .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.xp-hg .msg{font-size:14px;line-height:1.5;min-height:21px}
+.xp-hg .sum{font-size:12px;color:var(--muted)}
+.xp-hg .btns{display:flex;gap:8px}
+.xp-hg .btns button{flex:1}
+.xp-hg .btns button.ring{flex:1.4;background:#c0392b;border-color:#c0392b;color:#fff;font-weight:700;font-size:15px}
+.xp-hg .btns button:disabled{opacity:.45;cursor:default}
+.xp-hg kbd{font-family:var(--f-ui);font-size:10.5px;opacity:.7;margin-left:3px}
+#xp-rec .item{display:flex;align-items:center;gap:14px;padding:14px;border-radius:12px;background:rgba(255,255,255,.05);margin-bottom:12px}
+#xp-rec .item .em{font-size:40px}
+#xp-rec .item b{font-size:18px}
+#xp-rec .bins{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+#xp-rec .bins button{border:1px solid var(--line);background:rgba(255,255,255,.04);border-radius:12px;padding:12px 6px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:6px}
+#xp-rec .bins button i{width:36px;height:44px;border-radius:5px;background:var(--bc);box-shadow:inset 0 6px 0 rgba(0,0,0,.18)}
+#xp-rec .bins button.done{grid-column:1 / -1;background:var(--amber);color:#24170a;font-weight:600;font-size:15px}
+#xp-rec .note{min-height:20px;margin-top:10px}
+.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+body.xp .help{display:none}
+body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .tbtns,body.xp-drive .tbtns{display:none!important}
+@media (max-width:760px){
+  .xp-quest{top:calc(104px + env(safe-area-inset-top,0px));width:calc(100vw - 228px);padding:9px 11px}
+  .xp-quest:not(.min){width:auto;right:16px;z-index:4}
+  .xp-actions{bottom:calc(214px + env(safe-area-inset-bottom,0px))}
+  .xp-panel{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:none;right:12px;left:12px;width:auto}
+  #xp-rec .bins{grid-template-columns:repeat(2,1fr)}
+  body.xp .act{bottom:calc(268px + env(safe-area-inset-bottom,0px))}
+}
 @media (max-width:760px){
   .brand{padding:9px 12px;max-width:calc(100vw - 120px)}
   .brand h1{font-size:18px;margin:1px 0 4px}
@@ -154,6 +259,7 @@ body.scoping #c{cursor:grab}
   .scope-bar{padding:10px 12px;gap:7px 10px}
   .scope-note{font-size:11px}
   .act{bottom:calc(222px + env(safe-area-inset-bottom,0px))}
+  .toast{white-space:normal;width:max-content;max-width:calc(100vw - 32px);text-align:center;border-radius:14px}
 }
 @media (pointer:coarse){ .act kbd{display:none} }
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
@@ -246,11 +352,24 @@ body.scoping #c{cursor:grab}
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
 <div class="tbtns" id="tbtns" hidden><button id="tb-run" aria-pressed="false">달리기</button><button id="tb-jump">점프</button></div>
 
+<div id="xp-hud" hidden>
+  <section class="xp-quest" id="xp-quest"><h3>캠핑 체험 <button id="xp-quest-tg">접기</button></h3><ul id="xp-quest-list"></ul><div class="xp-inv" id="xp-inv"></div></section>
+  <div class="xp-actions" id="xp-actions" hidden></div>
+</div>
+<div class="xp-dlg" id="xp-dlg" hidden role="dialog"><div class="who" id="xp-dlg-name"></div><p id="xp-dlg-text"></p><div class="btns" id="xp-dlg-btns"></div></div>
+<div class="xp-modal" id="xp-tent" hidden><div class="card" role="dialog" aria-labelledby="xp-tent-h"><h3 id="xp-tent-h">텐트 고르기</h3><div class="sub" id="xp-tent-site"></div><div class="tents" id="xp-tent-list"></div><p class="note" style="margin-top:12px">텐트와 함께 타프·테이블·의자 3개를 설치하고, 사이트의 빨간 벽돌은 화로 자리로 비워 둬요.</p><button class="modal-close" id="xp-tent-x">취소</button></div></div>
+<div class="xp-prog" id="xp-prog" hidden><span id="xp-prog-text"></span><div class="bar"><i id="xp-prog-bar"></i></div></div>
+<div class="xp-panel" id="xp-grill" hidden><h3 id="xp-grill-title">구이</h3><div id="xp-grill-items"></div><div class="add"><button data-food="pork">삼겹살</button><button data-food="neck">목살</button><button data-food="saus">소시지</button><button data-food="mush">새송이버섯</button><button data-food="fish">물고기 <span id="xp-grill-fishn"></span></button></div><button class="close" id="xp-grill-x">그만 굽기</button></div>
+<div class="xp-panel" id="xp-fish" hidden><h3 id="xp-fish-title"></h3><p id="xp-fish-text"></p><div class="meter" id="xp-fish-meter" hidden><span class="m"><i id="xp-fish-bar"></i></span><span class="m prog"><i id="xp-fish-prog"></i></span></div><div class="row2"><button id="xp-fish-main" class="pri"></button><button id="xp-fish-alt" hidden>어망 들기</button></div><div class="foot"><span id="xp-fish-count"></span><button id="xp-fish-x">그만하기</button></div></div>
+<div class="xp-catch" id="xp-catch" hidden><img id="xp-catch-img" alt=""><b id="xp-catch-name"></b><span id="xp-catch-size"></span></div>
+<div class="xp-hg" id="xp-hg" hidden><div class="top"><div class="players" id="xp-hg-players"></div><span class="time" id="xp-hg-time"></span></div><div class="msg" id="xp-hg-msg"></div><div class="sum" id="xp-hg-sum"></div><div class="btns"><button id="xp-hg-flip">카드 뒤집기<kbd>F</kbd></button><button id="xp-hg-ring" class="ring">🔔 종 치기<kbd>Space</kbd></button><button id="xp-hg-x">끝내기</button></div></div>
+<div class="xp-modal" id="xp-rec" hidden><div class="card" role="dialog" aria-labelledby="xp-rec-h"><h3 id="xp-rec-h">분리수거</h3><div class="sub" id="xp-rec-sub"></div><div class="item" id="xp-rec-item"></div><div class="bins" id="xp-rec-bins"></div><p class="note" id="xp-rec-hint"></p><button class="modal-close" id="xp-rec-x">나중에 하기</button></div></div>
+<div class="xp-modal" id="xp-end" hidden><div class="card" role="dialog" aria-labelledby="xp-end-h"><h3 id="xp-end-h">체크아웃 완료 ★</h3><div class="sub">담터 별빛캠핑장 캠핑 체험을 마쳤어요. 감사합니다!</div><dl class="facts" id="xp-end-facts"></dl><div class="intro-actions" style="margin-top:16px"><button class="btn-main" id="xp-end-again">다시 체험하기</button><button class="modal-close" id="xp-end-tour" style="margin-top:0">둘러보기 모드로</button></div></div></div>
 <div class="intro" id="intro">
   <div class="intro-card">
     <div class="eyebrow">포천 관인면 · 담터계곡 · A·B·C·별빛존·멀티존</div>
     <h2>담터 별빛캠핑장 <span class="star">★</span> 3D 둘러보기</h2>
-    <p>캠핑장 배치도와 위성사진, 직접 찍은 사진·영상을 맞춰 계곡을 따라 길게 뻗은 캠핑장을 3차원으로 다시 지었습니다. 진입로에서 걸어 들어가 A·B 계곡 사이트, 별빛존 소나무 길, 관리동과 C존을 둘러보고 봄·여름·가을·겨울과 노을, 별밤으로 바꿔 보세요.</p>
+    <p>캠핑장 배치도와 위성사진, 직접 찍은 사진·영상을 맞춰 계곡을 따라 길게 뻗은 캠핑장을 3차원으로 다시 지었습니다. 진입로에서 걸어 들어가 A·B 계곡 사이트, 별빛존 소나무 길, 관리동과 C존을 둘러보고 봄·여름·가을·겨울과 노을, 별밤으로 바꿔 보세요. <b>체험하기</b>를 누르면 빈 캠핑장에 차를 몰고 들어가 체크인부터 텐트 피칭, 불멍, 고기 굽기, 계곡 낚시, 할리갈리, 분리수거까지 직접 해 볼 수 있어요.</p>
     <div class="strip">
       <img src="tex/photo0.jpg" alt="관리동 방향 중앙 통로">
       <img src="tex/photo1.jpg" alt="텐트와 차량이 있는 파쇄석 사이트">
@@ -259,6 +378,7 @@ body.scoping #c{cursor:grab}
     </div>
     <div class="intro-actions">
       <button class="btn-main" id="btn-start" disabled>불러오는 중…</button>
+      <button class="btn-main btn-alt" id="btn-exp" disabled>체험하기</button>
       <span class="load-msg" id="load-msg">지형을 만드는 중</span>
     </div>
     <div class="note">배치는 배치도·위성사진·현장 사진을 바탕으로 재구성한 것으로 실제 치수와 다를 수 있습니다.</div>
@@ -277,6 +397,7 @@ body.scoping #c{cursor:grab}
       <dt>대피로</dt><dd>중앙 통로를 따라 진입로(북서쪽 다리) 방향으로 이동합니다. 메뉴의 ‘대피로 표시’로 바닥 화살표를 볼 수 있습니다.</dd>
       <dt>입·퇴실</dt><dd>입실 14:00 · 퇴실 11:00 (연중 운영)</dd>
       <dt>마스코트</dt><dd>은빛 스코티시폴드 고양이 ‘봄이’ — 관리동 앞을 돌아다니다 나비를 보면 살금살금 따라가 덮치고, 밤과 겨울엔 매점 문 앞에서 낮잠을 잡니다. <b>C</b> 키나 봄이를 클릭(탭)하면 얼굴을 가까이 볼 수 있고, 다가가면 ‘냥~’ 하고 인사하며 눈을 깜빡여요 (바로가기 ‘고양이 봄이’)</dd>
+      <dt>체험하기</dt><dd>시작 화면의 <b>체험하기</b>로 다른 손님이 없는 빈 캠핑장에 차를 몰고 들어갑니다(W/S 가속·후진, A/D 방향, E 내리기·타기). 매점 앞 캠장님께 체크인하고 쓰레기 봉지를 받으면 캠핑 기능이 열려요: 사이트에 텐트 6종 중 하나와 타프·테이블·의자 설치(계곡 쪽 사이트는 계곡을 향해)와 철수, 빨간 벽돌 위 화로에 모닥불 피우기·끄기, 화로나 버너로 고기 굽기, 계곡에서 찌낚시와 족대질, 친구 둘과 할리갈리. 퇴실은 분리수거장에서 분리수거를 마쳐야 할 수 있어요</dd>
       <dt>별 관측</dt><dd>밤이 되면 관리동과 C사이트 사이 인조잔디 옆에 셀레스트론 넥스타 90GT(구경 90mm·초점거리 910mm) 굴절망원경이 설치됩니다. 가까이 가서 망원경을 클릭(탭)하거나 <b>E</b> 키를 누르면 달과 토성을 볼 수 있고, 아이피스 20mm(46배)·14mm(65배)·9mm(101배)로 배율을 바꿀 수 있어요 (바로가기 ‘별빛 망원경’)</dd>
       <dt>렌더링</dt><dd>직접 작성한 GLSL 셰이더: 화면공간 앰비언트 오클루전·대기 원근·블룸·필름 톤, 숲 잎 뭉치 노이즈·투과광, 피부 피하산란·머리카락 이방성 하이라이트·옷 주름, 절차적 구름, 지면 범프, 망원경 시야(시야 조리개·대기 흔들림·초점·색수차, 달은 이 망원경으로 찍은 사진, 토성은 띠·고리·그림자·위성을 계산하는 절차적 셰이더). 메뉴의 ‘그래픽’에서 단계 조절</dd>
     </dl>
@@ -2151,7 +2272,7 @@ function batchCars(){
 function wheelStop(x, z, ry){
   const g = new THREE.Group();
   for (const s of [-1,1]){ const b = box(.16,.1,.55,M(0x2a2b2d,{roughness:.9})); b.position.set(0,.05,s*.55); g.add(b); const y = box(.165,.03,.12,M(0xd8b31c)); y.position.set(0,.085,s*.55); g.add(y); }
-  shadowAll(g); place(g, x, H(x,z), z, ry);
+  g.userData.keep = true; shadowAll(g); place(g, x, H(x,z), z, ry);
 }
 
 /* ---------------- premium tents: lofted fabric with poles, sleeves, mesh windows, skirts and guy lines ---------------- */
@@ -4080,6 +4201,7 @@ async function buildCamp(){
   zoneBoard('P 주차장', -9.4, 57.5, Math.PI/2, { w:1.3, h:.5, post:1.4, bg:'#1d4f9a' });
   await frame();
 
+  const occM = occBegin();
   // occupied creek-side sites: premium tents with a site kit (table, lantern, chairs, cooler)
   pitch('bell', 13.5, -88, -Math.PI/2);                                   // A1 cotton bell tent
   addCar('luxSUV', 0x0e0f11, 9.4, -82.2, Math.PI/2);
@@ -4126,6 +4248,7 @@ async function buildCamp(){
   reverseRow(60.5, 80, -17.6, [0,2,3,5,6]);                                // SE lot by the B end
   addCar('midSUV', 0x0e0f11, -11.8, 22.6, Math.PI/2); addCar('fullSedan', 0xe9e9e6, -11.8, 56.4, -Math.PI/2);
   batchCars();
+  occEnd(occM);
   await frame();
 
   // entrance: bridge from 담터길 over the creek, then the access road into the NW end
@@ -4217,6 +4340,7 @@ function resolveCollisions(p){
   p.x = clamp(p.x, -40, 128); p.z = clamp(p.z, -185, 200);
 }
 function updatePlayer(dt){
+  if (view === 'drive'){ carDrive(dt); return; }
   let ix = 0, iz = 0;
   if (keys.has('KeyW') || keys.has('ArrowUp')) iz += 1;
   if (keys.has('KeyS') || keys.has('ArrowDown')) iz -= 1;
@@ -4225,7 +4349,7 @@ function updatePlayer(dt){
   if (joy.active){ ix += joy.x; iz += -joy.y; }
   if (view === 'air') { ix = 0; iz = 0; }
   if (view === 'cat'){ if (Math.hypot(ix, iz) > .2) setView('tp'); ix = 0; iz = 0; }
-  if (view === 'scope'){ ix = 0; iz = 0; }
+  if (view === 'scope' || view === 'xpcam' || EXP.lock){ ix = 0; iz = 0; }
   const il = Math.hypot(ix,iz); if (il > 1){ ix/=il; iz/=il; }
   const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || (joy.active && Math.hypot(joy.x,joy.y) > .92);
   const maxS = (running ? 5.4 : 2.1) * (season === 'winter' ? .9 : 1);
@@ -4251,6 +4375,8 @@ const AIR = { minAz:.35, maxAz:2.1 };
 function updateCamera(dt){
   if (view === 'cat'){ catCamUpdate(dt); return; }
   if (view === 'scope') return;
+  if (view === 'drive'){ carCam(dt); return; }
+  if (view === 'xpcam'){ xpCamUpdate(dt); return; }
   if (view === 'air'){ if (!orbit.enabled) return; const az = orbit.getAzimuthalAngle(); if (az > AIR.maxAz - .05) orbit.autoRotateSpeed = -Math.abs(orbit.autoRotateSpeed); if (az < AIR.minAz + .05) orbit.autoRotateSpeed = Math.abs(orbit.autoRotateSpeed); orbit.update(); return; }
   const p = player.pos;
   if (view === 'fp'){
@@ -4274,6 +4400,7 @@ function catView(){
   toast('<b>봄이</b> 가까이 보기 · 드래그로 돌려 보고 휠로 거리 조절, 이동키를 누르면 돌아가요' + (season === 'winter' ? ' — 겨울엔 관리동 문 앞에서 낮잠을 자요' : ''));
 }
 function setView(v){
+  if (EXP.on && (view === 'drive' || view === 'xpcam') && v !== view){ toast(view === 'drive' ? '운전 중에는 시점을 바꿀 수 없어요 · E로 내리기' : '지금 하는 활동을 먼저 마쳐 주세요'); return; }
   const wasCat = view === 'cat';
   view = v;
   if (v === 'cat'){ catCam.on = false; catCam.yaw = .22; catCam.pitch = .05; catCam.dist = .62; catCam.adj = 0; camera.fov = 40; camera.updateProjectionMatrix(); orbit.enabled = false; hero.root.visible = true; camera.up.set(0,1,0); document.querySelectorAll('#seg-view button').forEach(b => b.setAttribute('aria-pressed', 'false')); return; }
@@ -4287,6 +4414,7 @@ function setView(v){
   if (v !== 'fp' && document.pointerLockElement) document.exitPointerLock?.();
 }
 function teleport(x, z, yaw){
+  if (EXP.on){ if (EXP.lock || EXP.mode !== 'free' || view === 'xpcam') return; if (view === 'drive') carExit(true); }
   player.pos.set(x, groundAt(x,z), z); player.vel.set(0,0,0);
   resolveCollisions(player.pos); player.pos.y = groundAt(player.pos.x, player.pos.z);
   if (yaw !== undefined){ camYaw = yaw; player.heading = yaw + Math.PI; }
@@ -4884,6 +5012,1134 @@ function scopeBindUI(){
   addEventListener('resize', () => { if (S.on) scopeLayout(); });
 }
 
+/* ================= 체험하기: camping experience mode =================
+   Starts with an empty campground (other campers' tents, cars and people hidden), the player arrives by car, checks in with the
+   camp chief in front of the shop (and receives a trash bag), then can pitch a tent with tarp/table/chairs, light a campfire on the
+   site's red-brick pad, grill, fish in the creek with a rod or a scoop net, play Halli Galli with two friends, and check out by
+   sorting the trash at the recycling station. */
+const OCC = { objs:[], cols:[], glowL:[], glowP:[], extra:[] };
+function occBegin(){ return { n:scene.children.length, c:colliders.length, b:bollardPts.length, p:poolPts.length }; }
+function occEnd(m){
+  for (let i = m.n; i < scene.children.length; i++){ const o = scene.children[i]; if (!o.userData.keep) OCC.objs.push(o); }
+  OCC.cols.push(...colliders.slice(m.c));
+  OCC.glowL.push(...bollardPts.splice(m.b)); OCC.glowP.push(...poolPts.splice(m.p));
+}
+function occGlow(){
+  if (OCC.glowL.length && glowLamps){ const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(OCC.glowL, 3)); const p = new THREE.Points(g, glowLamps.material); p.frustumCulled = false; scene.add(p); OCC.extra.push(p); }
+  if (OCC.glowP.length && pools){ const pg = new THREE.PlaneGeometry(1, 1); pg.rotateX(-Math.PI/2); const im = new THREE.InstancedMesh(pg, pools.material, OCC.glowP.length); OCC.glowP.forEach((q, i) => { tmpM.compose(tmpV.set(q[0], q[1] + .05, q[2]), tmpQ.identity(), tmpS.set(q[3], 1, q[3])); im.setMatrixAt(i, tmpM); }); im.frustumCulled = false; scene.add(im); OCC.extra.push(im); }
+}
+const EXP = { on:false, lock:false, checked:false, bag:false, trash:[], fish:[], stats:{ grilled:0, perfect:0, burnt:0, caught:0, hg:null, fires:0, tents:0 }, camp:null, fire:null, recycled:false, ended:false,
+  t0:0, ctxT:0, acts:[], actKey:'', act:null, mode:'free', done:{} };
+const TENTS = [
+  { id:'tunnel', name:'터널형 텐트', desc:'거실 공간이 넓은 4인용 리빙쉘' },
+  { id:'air', name:'에어 텐트', desc:'펌프로 빔을 부풀리는 에어빔 터널' },
+  { id:'bell', name:'벨텐트', desc:'면 캔버스 원형 텐트, 감성 캠핑' },
+  { id:'teepee', name:'티피 텐트', desc:'가운데 폴 하나로 세우는 원뿔형' },
+  { id:'dome', name:'돔 텐트', desc:'가볍고 빠른 2~3인용 돔' },
+  { id:'cabin', name:'캐빈 텐트', desc:'굴뚝이 달린 캔버스 오두막형' }];
+const xpRand = (a, b) => a + (b - a)*Math.random();
+function xpSiteList(){
+  return sites.filter(s => /^A\d|^B\d|별빛존/.test(s.id)).map(s => {
+    const creek = s.x > 0;
+    return { id:s.id, creek, x:s.x, z:s.z, pad: creek ? { x:14.6, z:s.z + 1.5 } : { x:-21.2, z:s.z - 2.4 } };
+  });
+}
+let XP_SITES = null;
+
+/* ---------- player car ---------- */
+const CAR = { g:null, x:11.6, z:-147, h:-.2, v:0, steer:0, cols:[], kind:'midSUV', L:4.75, auto:0, light:null, eng:null, camOff:0 };
+function carBuild(){
+  CAR.L = CAR_SPECS[CAR.kind].L;
+  CAR.g = carGroup(CAR.kind, 0x6d7f8f); CAR.g.rotation.order = 'YZX'; scene.add(CAR.g);
+  const sp = new THREE.SpotLight(0xfff2dc, 0, 34, .52, .55, 1.4); sp.position.set(-CAR.L/2 + .2, .75, 0); const tg = new THREE.Object3D(); tg.position.set(-CAR.L/2 - 10, -.6, 0); CAR.g.add(sp, tg); sp.target = tg; CAR.light = sp;
+  carPose();
+}
+function carFwd(){ return [Math.sin(CAR.h), Math.cos(CAR.h)]; }
+function carPose(){
+  const [fx, fz] = carFwd(), k = CAR.L*.36;
+  const hf = groundAt(CAR.x + fx*k, CAR.z + fz*k), hr = groundAt(CAR.x - fx*k, CAR.z - fz*k);
+  CAR.g.position.set(CAR.x, (hf + hr)/2, CAR.z); CAR.g.rotation.y = CAR.h + Math.PI/2; CAR.g.rotation.z = Math.atan2(hf - hr, 2*k);
+}
+function carBlocked(x, z, h){
+  const fx = Math.sin(h), fz = Math.cos(h);
+  for (const f of [-.36, 0, .36]){
+    const px = x + fx*CAR.L*f, pz = z + fz*CAR.L*f, r = .95;
+    for (const c of colliders){ if (CAR.cols.includes(c)) continue; const dx = px - c.x, dz = pz - c.z, rr = c.r + r; if (dx*dx + dz*dz < rr*rr) return true; }
+    for (const b of boxes) if (px > b.x0 - r && px < b.x1 + r && pz > b.z0 - r && pz < b.z1 + r) return true;
+    if (px < -40 || px > 128 || pz < -185 || pz > 200) return true;
+  }
+  return false;
+}
+function carSetCols(on){
+  for (const c of CAR.cols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); }
+  CAR.cols = [];
+  if (on){ const [fx, fz] = carFwd(); for (const f of [-.32, 0, .32]){ const c = { x:CAR.x + fx*CAR.L*f, z:CAR.z + fz*CAR.L*f, r:1.1 }; CAR.cols.push(c); colliders.push(c); } }
+}
+function carEnter(){
+  if (EXP.lock) return;
+  carSetCols(false); view = 'drive'; hero.root.visible = false; CAR.v = 0; CAR.camOff = 0;
+  document.querySelectorAll('#seg-view button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  toast('<b>운전</b> · W/S 가속·후진, A/D 방향, Space 브레이크, E 내리기');
+  xpEngine(true); xpCtx(true);
+}
+function carExit(quiet){
+  if (view !== 'drive') return;
+  CAR.v = 0; const [fx, fz] = carFwd(), lx = fz, lz = -fx;           // driver side (left)
+  let px = CAR.x + lx*1.75, pz = CAR.z + lz*1.75;
+  carSetCols(true);
+  view = 'tp'; setView('tp'); player.pos.set(px, groundAt(px, pz), pz); resolveCollisions(player.pos); player.pos.y = groundAt(player.pos.x, player.pos.z);
+  camYaw = CAR.h + Math.PI; player.heading = CAR.h; hero.root.visible = true;
+  xpEngine(false); if (!quiet) toast('<b>주차 완료</b> · 차 옆에서 E(또는 ‘차 타기’)로 다시 탈 수 있어요'); xpCtx(true);
+}
+function carDrive(dt){
+  let thr = 0, st = 0;
+  if (keys.has('KeyW') || keys.has('ArrowUp')) thr += 1;
+  if (keys.has('KeyS') || keys.has('ArrowDown')) thr -= 1;
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) st += 1;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) st -= 1;
+  if (joy.active){ thr += -joy.y; st += -joy.x; }
+  if (CAR.auto > 0){ CAR.auto -= dt; thr = Math.max(thr, .55); }
+  thr = clamp(thr, -1, 1); st = clamp(st, -1, 1);
+  const brake = keys.has('Space');
+  let v = CAR.v;
+  if (brake) v -= Math.sign(v)*Math.min(Math.abs(v), 11*dt);
+  else if (thr > 0) v += (v < -.1 ? 10 : 3.6)*thr*dt;
+  else if (thr < 0) v += (v > .1 ? 10 : 2.6)*thr*dt;
+  else v -= Math.sign(v)*Math.min(Math.abs(v), 1.6*dt);
+  v = clamp(v, -3.6, 9.2);
+  CAR.steer = lerp(CAR.steer, st*.55*(1 - .45*smooth(3, 9, Math.abs(v))), 1 - Math.exp(-dt*6));
+  const nh = CAR.h + v/2.8*Math.tan(CAR.steer)*dt;
+  const nx = CAR.x + Math.sin(nh)*v*dt, nz = CAR.z + Math.cos(nh)*v*dt;
+  if (!carBlocked(nx, nz, nh)){ CAR.x = nx; CAR.z = nz; CAR.h = nh; }
+  else if (!carBlocked(CAR.x, CAR.z, nh)){ CAR.h = nh; v *= .3; }
+  else { v = -v*.25; if (Math.abs(CAR.v) > 3) toast('<b>쿵!</b> 천천히 운전하세요'); }
+  CAR.v = v; carPose();
+  player.pos.set(CAR.x, CAR.g.position.y, CAR.z); player.heading = CAR.h; player.speed = Math.abs(v);
+  hero.root.position.copy(player.pos);
+  if (CAR.eng){ const t = actx.currentTime; CAR.eng.o.frequency.setTargetAtTime(48 + Math.abs(v)*9 + Math.max(0, thr)*14, t, .1); CAR.eng.g.gain.setTargetAtTime(.03 + Math.abs(thr)*.03, t, .2); }
+}
+function carCam(dt){
+  CAR.camOff *= Math.exp(-dt*.6);
+  const yaw = CAR.h + CAR.camOff, fx = Math.sin(yaw), fz = Math.cos(yaw);
+  const tx = CAR.x + Math.sin(CAR.h)*2, tz = CAR.z + Math.cos(CAR.h)*2, ty = CAR.g.position.y + 1.1;
+  camPos.set(CAR.x - fx*7.4, CAR.g.position.y + 2.9, CAR.z - fz*7.4);
+  const gmin = H(camPos.x, camPos.z) + .6; if (camPos.y < gmin) camPos.y = gmin;
+  camera.position.lerp(camPos, 1 - Math.exp(-dt*6)); camera.lookAt(tx, ty, tz);
+}
+function xpEngine(on){
+  if (on && !CAR.eng && actx && actx.state === 'running'){
+    const o = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain(); o.type = 'sawtooth'; o.frequency.value = 50; lp.type = 'lowpass'; lp.frequency.value = 260; g.gain.value = 0;
+    o.connect(lp).connect(g).connect(actx.destination); o.start(); CAR.eng = { o, g };
+  } else if (!on && CAR.eng){ const t = actx.currentTime; CAR.eng.g.gain.setTargetAtTime(0, t, .1); CAR.eng.o.stop(t + .5); CAR.eng = null; }
+}
+
+/* ---------- the camp chief (from the photo: navy cap, teal T-shirt, white arm sleeves, black running vest, black shorts, white socks, teal running shoes) ---------- */
+const CHIEF = { x:-11.75, z:.5, h:Math.PI/2, root:null, av:null, mark:null, label:null, inv:{ value:new THREE.Matrix4() } };
+function boneAttach(model, name, mesh, off){
+  let bone = null; model.traverse(o => { if (o.isBone && o.name === name) bone = o; });
+  if (!bone) return null;
+  model.updateMatrixWorld(true); const ws = new THREE.Vector3(); bone.getWorldScale(ws);
+  mesh.scale.multiplyScalar(1/ws.x); if (off) mesh.position.copy(off).multiplyScalar(1/ws.x);
+  bone.add(mesh); return bone;
+}
+function labelSprite(text, bg = 'rgba(13,20,32,.82)', fg = '#fff', w = 256){
+  const t = canvasTex(w, 64, (g) => { g.fillStyle = bg; const r = 28; g.beginPath(); g.moveTo(r, 4); g.lineTo(w - r, 4); g.arc(w - r, 32, 28, -Math.PI/2, Math.PI/2); g.lineTo(r, 60); g.arc(r, 32, 28, Math.PI/2, Math.PI*1.5); g.fill(); g.fillStyle = fg; g.font = '600 30px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w/2, 34); });
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, depthTest:false, transparent:true })); s.scale.set(w/256*.95, .24, 1); s.renderOrder = 10; return s;
+}
+/* restyle the stock avatar from the rest-pose position: T-shirt (trimmed coat, short sleeves) with a black running vest painted on,
+   white arm sleeves and socks on the skin, shorts, a navy baseball cap instead of the hat */
+function chiefStyle(av){
+  // vRest = this vertex in the chief's own frame (metres, current pose): the stock mesh is quantized, so rest positions are not usable
+  const restV = sh => { sh.uniforms.uChiefInv = CHIEF.inv; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vRest; uniform mat4 uChiefInv;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\nvRest = (uChiefInv*modelMatrix*vec4(transformed, 1.0)).xyz;'); sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vRest;'); };
+  av.model.traverse(o => {
+    if (!o.isMesh) return; const nm = o.material.name;
+    if (nm === 'Wolf3D_Headwear' || nm === 'Wolf3D_Beard'){ o.visible = false; return; }
+    if (nm === 'Wolf3D_Body'){ o.material = o.material.clone(); o.material.userData = {}; skinPatch(o.material); }
+    const m = o.material;
+    if (nm === 'Wolf3D_Outfit_Top'){ m.map = null; m.color.set(0x2f6f95);
+      patchMat(m, 'chiefTop', sh => { restV(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        if (vRest.y < 0.93) discard;
+        float ax = abs(vRest.x);
+        if (ax > 0.215 && vRest.y < 1.36) diffuseColor.rgb = vec3(0.93, 0.93, 0.91);
+        if (vRest.y > 1.08 && vRest.y < 1.5 && ax < 0.19 && (ax > 0.045 || vRest.z < 0.0)) diffuseColor.rgb = vec3(0.035);
+        if (vRest.y > 1.27 && vRest.y < 1.29 && ax > 0.06 && ax < 0.18 && vRest.z > 0.0) diffuseColor.rgb = vec3(0.6, 0.63, 0.66);`); }); }
+    if (nm === 'Wolf3D_Outfit_Bottom'){ m.map = null; m.color.set(0x161618);
+      patchMat(m, 'chiefBottom', sh => { restV(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n if (vRest.y < 0.2) diffuseColor.rgb = vec3(0.93, 0.93, 0.91); else if (vRest.y < 0.56) diffuseColor.rgb = vec3(0.74, 0.55, 0.43);'); }); }
+    if (nm === 'Wolf3D_Outfit_Footwear'){ m.map = null; m.color.set(0x24525a); }
+    if (nm === 'Wolf3D_Body') patchMat(m, 'chiefBody', sh => { restV(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        float ax = abs(vRest.x);
+        if ((vRest.y > 0.93 && vRest.y < 1.42 && ax > 0.2) || (vRest.y > 0.09 && vRest.y < 0.2)) diffuseColor.rgb = vec3(0.93, 0.93, 0.91);`); });
+  });
+  const navy = new THREE.MeshStandardMaterial({ color:0x1c2232, roughness:.7 }), cap = new THREE.Group();
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.104, 20, 10, 0, Math.PI*2, 0, Math.PI/2), navy); dome.scale.set(1, .78, 1.08); cap.add(dome);
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, .008, 20, 1, false, -Math.PI/2, Math.PI), navy); brim.scale.set(1.1, 1, 1.25); brim.position.set(0, .004, .09); brim.rotation.x = .12; cap.add(brim);
+  cap.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  boneAttach(av.model, 'Head', cap, new THREE.Vector3(0, .115, -.005));
+}
+function chiefBuild(){
+  const root = new THREE.Group();
+  if (avatarSrc){
+    const av = new Avatar(avatarSrc, avatarClips, { Wolf3D_Outfit_Top:0x2c6c90, Wolf3D_Outfit_Bottom:0x18191b, Wolf3D_Outfit_Footwear:0x23484e, Wolf3D_Headwear:0x1c2230 });
+    av.mixer.update(1.3); root.add(av.root); CHIEF.av = av;
+    chiefStyle(av);
+  } else {
+    const hk = new Hiker({ jacket:0x2c6c90, pants:0x18191b, cap:0x1c2230 }); shadowAll(hk.root, true, false); root.add(hk.root); CHIEF.av = hk;
+  }
+  CHIEF.label = labelSprite('캠장님', 'rgba(31,90,54,.9)'); CHIEF.label.position.y = 2.12; root.add(CHIEF.label);
+  CHIEF.mark = new THREE.Sprite(new THREE.SpriteMaterial({ map:canvasTex(64, 64, (g) => { g.fillStyle = '#f2b35b'; g.beginPath(); g.arc(32, 32, 30, 0, 7); g.fill(); g.fillStyle = '#24170a'; g.font = '900 44px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('!', 32, 35); }), depthTest:false, transparent:true }));
+  CHIEF.mark.scale.set(.32, .32, 1); CHIEF.mark.position.y = 2.5; CHIEF.mark.renderOrder = 11; root.add(CHIEF.mark);
+  place(root, CHIEF.x, groundAt(CHIEF.x, CHIEF.z), CHIEF.z, CHIEF.h); CHIEF.root = root;
+  CHIEF.col = { x:CHIEF.x, z:CHIEF.z, r:.35 }; colliders.push(CHIEF.col);
+}
+function chiefUpdate(dt, t){
+  if (!CHIEF.root) return;
+  CHIEF.av.update(dt, 0);
+  CHIEF.root.updateMatrixWorld(true); CHIEF.inv.value.copy(CHIEF.root.matrixWorld).invert();
+  const d = Math.hypot(player.pos.x - CHIEF.x, player.pos.z - CHIEF.z);
+  const want = d < 5 && view !== 'drive' ? Math.atan2(player.pos.x - CHIEF.x, player.pos.z - CHIEF.z) : CHIEF.h;
+  let dh = want - CHIEF.root.rotation.y; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); CHIEF.root.rotation.y += dh*(1 - Math.exp(-dt*4));
+  CHIEF.mark.visible = !EXP.checked || (EXP.recycled && !EXP.ended); CHIEF.mark.position.y = 2.5 + Math.sin(t*3)*.05;
+  CHIEF.label.visible = d < 18;
+}
+
+/* ---------- dialog / HUD ---------- */
+function xpSay(name, text, btns){
+  const d = $('#xp-dlg'); $('#xp-dlg-name').textContent = name; $('#xp-dlg-text').innerHTML = text;
+  const b = $('#xp-dlg-btns'); b.innerHTML = '';
+  for (const o of btns){ const e = document.createElement('button'); e.textContent = o.label; if (o.primary) e.className = 'pri'; e.addEventListener('click', () => { d.hidden = true; EXP.lock = false; o.fn && o.fn(); }); b.appendChild(e); }
+  d.hidden = false; EXP.lock = true;
+}
+function xpChief(){
+  const N = '캠장님';
+  if (!EXP.checked){
+    xpSay(N, '어서 오세요! 담터 별빛캠핑장 캠장입니다. 예약하신 분 맞으시죠? 체크인 도와드릴게요.', [
+      { label:'체크인하기', primary:true, fn:() => xpSay(N, '입실 확인됐습니다. 오늘은 비어 있는 사이트 아무 곳이나 쓰셔도 돼요.<br>화로는 꼭 사이트의 <b>빨간 벽돌 위</b>에서만 피워 주시고, 매너타임은 밤 10시부터예요.', [
+        { label:'네, 알겠습니다', primary:true, fn:() => xpSay(N, '그리고 이건 <b>쓰레기 봉지</b>예요. 퇴실하실 때 <b>분리수거장</b>에서 분리수거까지 마치셔야 체크아웃이 됩니다!', [
+          { label:'쓰레기 봉지 받기', primary:true, fn:xpCheckIn }]) }]) },
+      { label:'잠깐만요', fn:null }]);
+  } else if (EXP.recycled){
+    xpSay(N, '분리수거까지 깔끔하게 해 주셨네요. 감사합니다! 조심히 가시고 또 오세요 ★', [{ label:'체험 마치기', primary:true, fn:xpEnd }, { label:'조금 더 있을게요', fn:null }]);
+  } else {
+    const tips = ['계곡 쪽 사이트는 물소리가 좋아요. 밤엔 별도 잘 보이고요.', '계곡에선 낚시나 족대(어망)로 피라미를 잡을 수 있어요. 겨울엔 얼어서 안 돼요.', '고기는 빨간 벽돌 위 화로에 굽거나, 테이블의 버너로 구우면 돼요.', '퇴실 전에 분리수거장에서 분리수거 꼭 부탁드려요!', '밤에는 관리동 옆 망원경으로 달이랑 토성도 볼 수 있어요.'];
+    xpSay(N, tips[Math.floor(Math.random()*tips.length)], [{ label:'고맙습니다', primary:true, fn:null }]);
+  }
+}
+function xpCheckIn(){
+  EXP.checked = EXP.bag = true; EXP.done.checkin = true;
+  toast('<b>쓰레기 봉지</b>를 받았어요 · 캠핑 기능이 열렸습니다'); sfx('pick'); xpHud(); xpCtx(true);
+}
+function xpAddTrash(...items){ if (!EXP.bag) return; EXP.trash.push(...items); xpHud(); }
+function xpHud(){
+  if (!EXP.on) return;
+  const q = [
+    ['checkin', '캠장님께 체크인 · 쓰레기 봉지 받기', true],
+    ['tent', '사이트에 텐트·타프·테이블 설치'],
+    ['fire', '빨간 벽돌 위에 모닥불 피우기'],
+    ['grill', '고기 굽기'],
+    ['fish', '계곡에서 물고기 잡기'],
+    ['hg', '친구들과 할리갈리 한 판'],
+    ['recycle', '분리수거장에서 분리수거 → 체험 마치기', true]];
+  $('#xp-quest-list').innerHTML = q.map(([k, t, req]) => `<li class="${EXP.done[k] ? 'ok' : ''}"><span class="ck">${EXP.done[k] ? '✓' : ''}</span>${t}${req ? ' <em>필수</em>' : ''}</li>`).join('');
+  const inv = [];
+  if (EXP.bag) inv.push(`<span class="chip">쓰레기 봉지 ${EXP.trash.length}개</span>`);
+  if (EXP.fish.length) inv.push(`<span class="chip">아이스박스 물고기 ${EXP.fish.length}마리</span>`);
+  if (EXP.camp) inv.push(`<span class="chip">${EXP.camp.site.id} · ${TENTS.find(t => t.id === EXP.camp.kind).name}</span>`);
+  $('#xp-inv').innerHTML = inv.join('') || '<span class="chip dim">매점 앞 캠장님께 먼저 체크인하세요</span>';
+}
+function xpNearWater(){
+  if (SEASONS[season].water === 'ice') return null;
+  const p = player.pos, g = groundAt(p.x, p.z);
+  if (g < WATER_Y - .35) return null;
+  let best = null;
+  for (let k = 0; k < 16; k++){
+    const a = k/16*Math.PI*2, sx = Math.sin(a), sz = Math.cos(a);
+    for (const d of [1.6, 2.6, 3.6]){ const x = p.x + sx*d, z = p.z + sz*d; if (H(x, z) < WATER_Y - .18){ if (!best || d < best.d) best = { a, d, x, z }; break; } }
+  }
+  return best;
+}
+function xpNearestSite(maxD){
+  let best = null, bd = maxD;
+  for (const s of XP_SITES){ const d = Math.hypot(player.pos.x - s.pad.x + 1.6, player.pos.z - s.pad.z + 1.4); if (d < bd){ bd = d; best = s; } }
+  return best;
+}
+const RECYCLE = { x:-16.6, z:-17.5 };
+function xpCtx(force){
+  if (!EXP.on || EXP.ended) return;
+  const acts = [];
+  if (view === 'drive'){
+    if (Math.abs(CAR.v) < 1.2) acts.push({ id:'exit', label:'차에서 내리기 · 주차', fn:() => carExit() });
+  } else if (!EXP.lock && EXP.mode === 'free'){
+    const p = player.pos, dist = (x, z) => Math.hypot(p.x - x, p.z - z);
+    if (dist(CHIEF.x, CHIEF.z) < 2.8) acts.push({ id:'chief', label:EXP.checked ? '캠장님과 대화' : '캠장님께 체크인', fn:xpChief });
+    if (CAR.g && dist(CAR.x, CAR.z) < 3.2) acts.push({ id:'car', label:'차 타기', fn:carEnter });
+    if (EXP.checked){
+      const c = EXP.camp;
+      if (!c){ const s = xpNearestSite(6.5); if (s) acts.push({ id:'pitch', label:`${s.id}에 텐트 치기`, fn:() => xpTentPicker(s) }); }
+      else {
+        const dPad = dist(c.site.pad.x, c.site.pad.z), dSeat = dist(c.seats[0].x, c.seats[0].z), dTbl = dist(c.table.x, c.table.z);
+        if (dPad < 2.6) acts.push(EXP.fire && EXP.fire.on ? { id:'fireoff', label:'모닥불 끄기', fn:xpFireOff } : { id:'fire', label:'모닥불 피우기', fn:xpFireOn });
+        if ((EXP.fire && EXP.fire.on && dPad < 2.8) || dTbl < 2.2) acts.push({ id:'grill', label:EXP.fire && EXP.fire.on && dPad < 2.8 ? '화로에 고기 굽기' : '버너로 고기 굽기', fn:() => xpGrillOpen(EXP.fire && EXP.fire.on && dPad < 2.8 ? 'fire' : 'burner') });
+        if (dSeat < 1.9 && c.friends.length) acts.push({ id:'hg', label:'의자에 앉아 할리갈리 시작', fn:hgStart });
+        if (dist(c.anchor.x, c.anchor.z) < 7.5) acts.push({ id:'strike', label:'텐트 철수하기', fn:xpStrike });
+      }
+      const w = xpNearWater();
+      if (w){ acts.push({ id:'rod', label:'낚시하기', fn:() => fishStart('rod', w) }); acts.push({ id:'net', label:'어망(족대) 치기', fn:() => fishStart('net', w) }); }
+      if (dist(RECYCLE.x + .9, RECYCLE.z) < 3.4) acts.push(EXP.recycled ? { id:'end', label:'체험 마치기 (체크아웃)', fn:xpEnd } : { id:'rec', label:'분리수거하기', fn:recOpen });
+    } else if (dist(RECYCLE.x + .9, RECYCLE.z) < 3.4 || xpNearestSite(6.5)){
+      acts.push({ id:'need', label:'먼저 매점 앞 캠장님께 체크인하세요', fn:null, dim:true });
+    }
+  }
+  const key = acts.map(a => a.id + a.label).join('|');
+  if (key === EXP.actKey && !force) return;
+  EXP.actKey = key; EXP.acts = acts;
+  const bar = $('#xp-actions'); bar.innerHTML = '';
+  acts.forEach((a, i) => { const b = document.createElement('button'); b.innerHTML = a.label + (i === 0 && a.fn && !isTouch ? ' <kbd>E</kbd>' : ''); if (a.dim) b.className = 'dim'; else if (i === 0) b.className = 'pri'; b.addEventListener('click', () => { if (a.fn) a.fn(); xpCtx(true); }); bar.appendChild(b); });
+  bar.hidden = !acts.length;
+}
+function xpPrimary(){ const a = EXP.acts.find(a => a.fn); if (a){ a.fn(); xpCtx(true); return true; } return false; }
+
+/* ---------- small sound effects (only when sound is on) ---------- */
+function sfx(kind){
+  if (!actx || actx.state !== 'running') return;
+  const t = actx.currentTime, g = actx.createGain(); g.connect(actx.destination);
+  const tone = (f, d, type = 'sine', v = .12, at = 0) => { const o = actx.createOscillator(); o.type = type; o.frequency.value = f; const gg = actx.createGain(); gg.gain.setValueAtTime(0, t + at); gg.gain.linearRampToValueAtTime(v, t + at + .006); gg.gain.exponentialRampToValueAtTime(.0005, t + at + d); o.connect(gg).connect(g); o.start(t + at); o.stop(t + at + d + .05); };
+  const noise = (d, f, q, v = .2, at = 0) => { const n = actx.createBufferSource(), b = actx.createBuffer(1, Math.ceil(actx.sampleRate*d), actx.sampleRate), dd = b.getChannelData(0); for (let i=0;i<dd.length;i++) dd[i] = (Math.random()*2 - 1)*(1 - i/dd.length); n.buffer = b; const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q; const gg = actx.createGain(); gg.gain.value = v; n.connect(bp).connect(gg).connect(g); n.start(t + at); };
+  if (kind === 'bell'){ tone(2093, 1.4, 'sine', .22); tone(4186, .7, 'sine', .07); tone(2637, 1.0, 'triangle', .05); }
+  else if (kind === 'card') noise(.07, 2600, 1.2, .25);
+  else if (kind === 'pick'){ tone(880, .12, 'triangle', .1); tone(1320, .18, 'triangle', .08, .08); }
+  else if (kind === 'ok'){ tone(660, .12, 'triangle', .1); tone(990, .2, 'triangle', .09, .1); }
+  else if (kind === 'bad'){ tone(220, .25, 'square', .05); }
+  else if (kind === 'splash'){ noise(.35, 900, .6, .35); noise(.25, 2400, .8, .15, .05); }
+  else if (kind === 'sizzle'){ noise(.6, 5200, .5, .08); }
+  else if (kind === 'reel'){ for (let i=0;i<5;i++) tone(1800 + i*30, .02, 'square', .02, i*.03); }
+  else if (kind === 'tent'){ noise(.18, 600, .7, .25); tone(140, .12, 'sine', .1, .02); }
+  else if (kind === 'ignite'){ noise(.8, 700, .4, .25); }
+  else if (kind === 'steam'){ noise(1.2, 3500, .3, .2); }
+}
+
+/* ---------- camp setup: tent, tarp, table, chairs (creek sites face the creek; brick pad = fire spot) ---------- */
+function xpCapture(fn){ const n = scene.children.length, c = colliders.length; fn(); return { objs:scene.children.slice(n), cols:colliders.slice(c) }; }
+function xpTable(x, z){
+  const g = new THREE.Group(), top = new THREE.MeshStandardMaterial({ color:0xc9a77c, roughness:.6 });
+  for (let i = 0; i < 8; i++){ const sl = box(.074, .022, 1.0, top); sl.position.set(-.27 + i*.077, .64, 0); g.add(sl); }
+  for (const s of [-1, 1]){ const r = box(.62, .03, .03, furnM.frame); r.position.set(0, .615, s*.47); g.add(r); g.add(tubeAlong([V3(-.28, 0, s*.42), V3(.28, .6, s*.42)], .011, furnM.frame)); g.add(tubeAlong([V3(.28, 0, s*.42), V3(-.28, .6, s*.42)], .011, furnM.frame)); }
+  const lan = new THREE.Group(); const lb = new THREE.Mesh(new THREE.CylinderGeometry(.045, .05, .03, 14), furnM.frame); lan.add(lb); const gl = new THREE.Mesh(new THREE.CylinderGeometry(.038, .038, .1, 14), mat.lamp); gl.position.y = .065; lan.add(gl); const cap = new THREE.Mesh(new THREE.CylinderGeometry(.03, .046, .025, 14), furnM.frame); cap.position.y = .13; lan.add(cap); lan.position.set(.2, .667, .4); g.add(lan);
+  const cool = box(.5, .36, .34, M(0xe9e6df, { roughness:.6 })); cool.position.set(.62, .18, -.7); g.add(cool); const lid = box(.52, .05, .36, M(0x2e5d8a)); lid.position.set(.62, .38, -.7); g.add(lid);
+  const ll = new THREE.PointLight(0xffd29a, 0, 6, 2); ll.position.set(.2, .8, .4); g.add(ll); g.userData.lamp = ll;
+  shadowAll(g); place(g, x, groundAt(x, z), z, 0); colliders.push({ x, z, r:.5 }); return g;
+}
+function xpLayout(s, kind){
+  const P = s.pad, T = { x:P.x - 2.15, z:P.z + .1 };
+  const tent = { x:P.x - 2.4, z:P.z - 3.95 };
+  const doorRy = (kind === 'tunnel' || kind === 'air') ? Math.PI : Math.PI/2;      // door toward +x: the creek (creek sites) or the lane (별빛존)
+  const face = (x, z) => Math.atan2(T.x - x, T.z - z);
+  const seats = [[T.x - .8, T.z], [T.x, T.z - .78], [T.x, T.z + .78]].map(([x, z]) => ({ x, z, ry:face(x, z) }));
+  return { P, T, tent, doorRy, seats, anchor:{ x:P.x - 2.3, z:P.z - 1.8 } };
+}
+function xpTentPicker(s){
+  const box_ = $('#xp-tent'), list = $('#xp-tent-list'); list.innerHTML = '';
+  $('#xp-tent-site').textContent = s.id + (s.creek ? ' · 계곡 쪽 — 텐트 입구와 의자가 계곡을 향해요' : ' · 산 쪽 테라스');
+  TENTS.forEach(t => { const b = document.createElement('button'); b.innerHTML = `<b>${t.name}</b><span>${t.desc}</span>`; b.addEventListener('click', () => { box_.hidden = true; EXP.lock = false; xpPitch(s, t.id); }); list.appendChild(b); });
+  box_.hidden = false; EXP.lock = true;
+}
+const XP_ANIM = [];
+function xpGrow(objs, delay, dur, dir, done){
+  for (const o of objs){ if (!o.userData.s0) o.userData.s0 = o.scale.clone(); if (dir > 0){ o.scale.set(o.userData.s0.x, o.userData.s0.y*.02, o.userData.s0.z); o.visible = false; } }
+  XP_ANIM.push({ objs, t:-delay, dur, dir, done });
+}
+function xpAnimUpdate(dt){
+  for (let i = XP_ANIM.length - 1; i >= 0; i--){
+    const a = XP_ANIM[i]; a.t += dt; if (a.t < 0) continue;
+    const u = clamp(a.t/a.dur, 0, 1), e = a.dir > 0 ? 1 + 2.2*Math.pow(u - 1, 3) + 1.2*Math.pow(u - 1, 2) : 1 - u*u;
+    for (const o of a.objs){ o.visible = true; const s0 = o.userData.s0; o.scale.set(s0.x*(a.dir > 0 ? Math.min(1, .6 + .4*u) : 1), s0.y*Math.max(.02, e), s0.z*(a.dir > 0 ? Math.min(1, .6 + .4*u) : 1)); }
+    if (u >= 1){ XP_ANIM.splice(i, 1); a.done && a.done(); }
+  }
+}
+function xpProgress(text, dur, done){
+  const p = $('#xp-prog'); $('#xp-prog-text').textContent = text; const bar = $('#xp-prog-bar'); p.hidden = false; EXP.lock = true;
+  const t0 = performance.now(); EXP.prog = { t0, dur, done, bar, el:p };
+}
+function xpProgUpdate(){
+  const P = EXP.prog; if (!P) return;
+  const u = Math.min(1, (performance.now() - P.t0)/(P.dur*1000)); P.bar.style.width = (u*100).toFixed(1) + '%';
+  if (u >= 1){ EXP.prog = null; P.el.hidden = true; EXP.lock = false; P.done && P.done(); xpCtx(true); }
+}
+function xpPitch(s, kind){
+  const L = xpLayout(s, kind);
+  const opt = kind === 'tunnel' ? { L:4.8 } : kind === 'air' ? { L:4.8 } : kind === 'bell' ? { base:'#efe6d2' } : kind === 'teepee' ? { base:'#d8ccb2' } : kind === 'dome' ? { base:'#6f7a8c', skirt:'#34393f' } : {};
+  const camp = { site:s, kind, ...L, parts:[], friends:[], table:{ x:L.T.x, z:L.T.z } };
+  const tent = xpCapture(() => pitch(kind, L.tent.x, L.tent.z, L.doorRy, opt, false));
+  { const g = tent.objs[0], bb = new THREE.Box3().setFromObject(g), dz = (L.P.z - 1.95) - bb.max.z, dx = (L.P.x - .3) - bb.max.x;
+    const sx = Math.min(0, dx); g.position.z += dz; g.position.x += sx; for (const c of tent.cols){ c.z += dz; c.x += sx; } L.tent.z += dz; L.tent.x += sx; }
+  const tarp = xpCapture(() => { const t = hexaTarp({ L:4.0, W:3.5, Hp:2.3, Hc:1.42, color:'#b9a98a' }); place(t, L.T.x - .25, groundAt(L.T.x, L.T.z), L.T.z, Math.PI/2); for (const sz of [-1, 1]) colliders.push({ x:L.T.x - .25, z:L.T.z + sz*2.3, r:.1 }); });
+  const table = xpCapture(() => { camp.tableObj = xpTable(L.T.x, L.T.z); });
+  const chairs = xpCapture(() => { const fab = [0x2f3a30, 0x6b4d33, 0x2e3d52]; L.seats.forEach((q, i) => chair(q.x, q.z, q.ry, fab[i])); });
+  camp.parts = [tent, tarp, table, chairs];
+  // keep the player out of the footprint while it goes up
+  const stand = { x:L.anchor.x - .2, z:L.P.z + 1.9 };
+  if (Math.hypot(player.pos.x - L.tent.x, player.pos.z - L.tent.z) < 3.6 || Math.hypot(player.pos.x - L.T.x, player.pos.z - L.T.z) < 1.2){ player.pos.set(stand.x, groundAt(stand.x, stand.z), stand.z); }
+  xpGrow(tent.objs, 0, 1.6, 1); xpGrow(tarp.objs, 1.4, 1.0, 1); xpGrow(table.objs, 2.2, .5, 1); xpGrow(chairs.objs, 2.6, .6, 1);
+  sfx('tent'); setTimeout(() => sfx('tent'), 700); setTimeout(() => sfx('tent'), 1500);
+  EXP.camp = camp;
+  xpProgress(`${TENTS.find(t => t.id === kind).name} 설치 중 · 펙 박기 → 폴 세우기 → 타프 → 테이블·의자`, 3.4, () => {
+    EXP.done.tent = true; EXP.stats.tents++; xpFriends(true); xpHud();
+    toast(`<b>${s.id}</b> 피칭 완료 · 친구 지훈·서연이 도착했어요`); xpAddTrash({ n:'텐트 펙 포장 비닐', c:'plastic', i:'🛍️' });
+  });
+  xpHud();
+}
+function xpStrike(){
+  const c = EXP.camp; if (!c) return;
+  if (EXP.fire){ xpFireRemove(); }
+  xpFriends(false);
+  const all = c.parts.slice().reverse();
+  all.forEach((p, i) => xpGrow(p.objs, i*.35, .7, -1, () => { for (const o of p.objs) scene.remove(o); for (const col of p.cols){ const k = colliders.indexOf(col); if (k >= 0) colliders.splice(k, 1); } }));
+  sfx('tent');
+  xpProgress('철수 중 · 의자·테이블 접기 → 타프 → 텐트 걷기', 2.6, () => { EXP.camp = null; xpHud(); toast('<b>철수 완료</b> · 다른 사이트에 다시 칠 수도 있어요'); });
+}
+/* friends: two seated/standing companions for Halli Galli */
+const FRIEND_DEF = [{ name:'지훈', tint:{ Wolf3D_Outfit_Top:0x9c4a3a, Wolf3D_Outfit_Bottom:0x3c4450 } }, { name:'서연', tint:{ Wolf3D_Outfit_Top:0xd7c9a4, Wolf3D_Outfit_Bottom:0x5b6b7c, Wolf3D_Headwear:0x8a6a45 } }];
+function xpFriends(on){
+  const c = EXP.camp; if (!c) return;
+  for (const f of c.friends){ scene.remove(f.root); const k = colliders.indexOf(f.col); if (k >= 0) colliders.splice(k, 1); }
+  c.friends = [];
+  if (!on) return;
+  FRIEND_DEF.forEach((d, i) => {
+    const seat = c.seats[i + 1], sx = Math.sin(seat.ry), sz = Math.cos(seat.ry);
+    const x = seat.x - sx*.75, z = seat.z - sz*.75;
+    let av; if (avatarSrc){ av = new Avatar(avatarSrc, avatarClips, d.tint); av.mixer.update(Math.random()*3); } else { av = new Hiker({ jacket:d.tint.Wolf3D_Outfit_Top, pants:d.tint.Wolf3D_Outfit_Bottom, cap:0x333333 }); shadowAll(av.root, true, false); }
+    const root = new THREE.Group(); root.add(av.root); const lb = labelSprite(d.name); lb.position.y = 2.0; lb.scale.multiplyScalar(.8); root.add(lb);
+    place(root, x, groundAt(x, z), z, seat.ry);
+    const f = { name:d.name, av, root, seat, stand:{ x, z }, sit:0, reach:0, label:lb, col:{ x, z, r:.3 } };
+    colliders.push(f.col); c.friends.push(f); xpGrow([root], i*.3, .5, 1);
+  });
+}
+/* world-space bone rotation on top of the animation clip (used for sitting and reaching for the bell) */
+const _bq = new THREE.Quaternion(), _bq2 = new THREE.Quaternion(), _bax = new THREE.Vector3();
+function boneMap(model){ const m = {}; model.traverse(o => { if (o.isBone) m[o.name] = o; }); return m; }
+function boneRot(bone, axis, ang){
+  bone.parent.getWorldQuaternion(_bq2); _bq.setFromAxisAngle(axis, ang);
+  bone.quaternion.premultiply(_bq2.clone().invert().multiply(_bq).multiply(_bq2));
+  bone.updateMatrixWorld(true);
+}
+function poseSit(f, sit, reach, side){
+  const av = f.av; if (!av.model) return;
+  const B = f.bones || (f.bones = boneMap(av.model));
+  av.root.updateMatrixWorld(true);
+  const ry = f.root.rotation.y, right = _bax.set(Math.cos(ry), 0, -Math.sin(ry)).clone(), up = new THREE.Vector3(0, 1, 0);
+  if (sit > 0){
+    av.root.position.set(0, -.42*sit, -.12*sit);
+    for (const s of ['Left', 'Right']){ if (B[s + 'UpLeg']) boneRot(B[s + 'UpLeg'], right, -1.45*sit); if (B[s + 'Leg']) boneRot(B[s + 'Leg'], right, 1.5*sit); }
+    if (B.Spine) boneRot(B.Spine, right, .08*sit);
+    for (const s of ['Left', 'Right']){ if (B[s + 'Arm']) boneRot(B[s + 'Arm'], right, -.55*sit); if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -.7*sit); }
+  } else av.root.position.set(0, 0, 0);
+  if (reach > 0){ const s = side > 0 ? 'Right' : 'Left'; if (B[s + 'Arm']) boneRot(B[s + 'Arm'], right, -.95*reach); if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, .5*reach); if (B[s + 'Arm']) boneRot(B[s + 'Arm'], up, (side > 0 ? .45 : -.45)*reach); }
+}
+function xpFriendsUpdate(dt){
+  const c = EXP.camp; if (!c) return;
+  for (const f of c.friends){
+    const want = f.sitting ? 1 : 0; f.sit = lerp(f.sit, want, 1 - Math.exp(-dt*5)); f.reach = Math.max(0, f.reach - dt*2.2);
+    const at = f.sit > .5 ? f.seat : f.stand;
+    f.root.position.x = lerp(f.root.position.x, at.x, 1 - Math.exp(-dt*5)); f.root.position.z = lerp(f.root.position.z, at.z, 1 - Math.exp(-dt*5));
+    f.root.position.y = groundAt(f.root.position.x, f.root.position.z);
+    f.col.x = f.root.position.x; f.col.z = f.root.position.z;
+    f.av.update(dt, 0);
+    if (f.av.model) poseSit(f, f.sit, f.reach, f === c.friends[0] ? 1 : -1);
+    f.label.visible = !f.sitting;
+  }
+}
+
+/* ---------- campfire on the brick pad: steel brazier, logs, flames, embers, smoke, crackle ---------- */
+let smokeTex = null;
+function xpFireBuild(){
+  const P = EXP.camp.site.pad, g = new THREE.Group();
+  const steel = new THREE.MeshStandardMaterial({ color:0x2a2b2d, roughness:.5, metalness:.7 }), rim = new THREE.MeshStandardMaterial({ color:0x6d6a66, roughness:.4, metalness:.8 });
+  for (const s of [-1, 1]){ g.add(tubeAlong([V3(-.26, 0, s*.2), V3(.26, .34, -s*.2)], .012, steel)); g.add(tubeAlong([V3(.26, 0, s*.2), V3(-.26, .34, -s*.2)], .012, steel)); }
+  const pts = []; for (let i = 0; i <= 8; i++){ const u = i/8; pts.push(new THREE.Vector2(.05 + .27*Math.sin(u*Math.PI/2), .34 + .12*u*u)); }
+  const bowl = new THREE.Mesh(new THREE.LatheGeometry(pts, 28), new THREE.MeshStandardMaterial({ color:0x2b2c2e, roughness:.45, metalness:.75, side:THREE.DoubleSide })); g.add(bowl);
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(.32, .008, 6, 32), rim); lip.rotation.x = -Math.PI/2; lip.position.y = .46; g.add(lip);
+  const logM = M(0x3a2a1c, { roughness:.95 }), charM = M(0x141110, { roughness:1 });
+  const logs = new THREE.Group(); for (let i = 0; i < 6; i++){ const l = new THREE.Mesh(new THREE.CylinderGeometry(.035, .042, .42, 7), i % 2 ? logM : charM); const a = i*Math.PI/3; l.rotation.set(0, a, Math.PI/2 - .55); l.position.set(Math.cos(a)*.07, .44, -Math.sin(a)*.07); logs.add(l); } g.add(logs);
+  const ember = new THREE.Mesh(new THREE.CircleGeometry(.17, 20), new THREE.MeshBasicMaterial({ color:0xff5a14, transparent:true, opacity:0 })); ember.rotation.x = -Math.PI/2; ember.position.y = .43; g.add(ember);
+  const grate = new THREE.Group(); for (let i = -5; i <= 5; i++){ const r = box(.006, .006, .52, rim); r.position.set(i*.045, .5, 0); grate.add(r); } const fr = new THREE.Mesh(new THREE.TorusGeometry(.27, .006, 4, 32), rim); fr.rotation.x = -Math.PI/2; fr.position.y = .5; grate.add(fr); grate.visible = false; g.add(grate);
+  shadowAll(g); place(g, P.x, groundAt(P.x, P.z) + .06, P.z, 0);
+  const col = { x:P.x, z:P.z, r:.45 }; colliders.push(col);
+  if (!smokeTex) smokeTex = canvasTex(64, 64, (c) => { const gr = c.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(200,200,200,.55)'); gr.addColorStop(1, 'rgba(200,200,200,0)'); c.fillStyle = gr; c.fillRect(0, 0, 64, 64); });
+  const fm = new THREE.SpriteMaterial({ map:flameTex, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, fog:false });
+  const flames = []; for (let i = 0; i < 7; i++){ const s = new THREE.Sprite(fm); s.userData = { o:new THREE.Vector3(xpRand(-.12, .12), 0, xpRand(-.12, .12)), k:xpRand(.7, 1.15), p:Math.random()*10 }; scene.add(s); flames.push(s); }
+  const smoke = []; for (let i = 0; i < 8; i++){ const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:smokeTex, depthWrite:false, transparent:true, opacity:0 })); s.userData = { p:i/8, ox:xpRand(-.08, .08), oz:xpRand(-.08, .08) }; scene.add(s); smoke.push(s); }
+  const light = new THREE.PointLight(0xff8a3c, 0, 14, 1.8); light.position.set(P.x, groundAt(P.x, P.z) + 1.0, P.z); scene.add(light);
+  const N = 40, ep = new Float32Array(N*3), ed = []; for (let i = 0; i < N; i++) ed.push({ t:Math.random()*2, vx:xpRand(-.2, .2), vz:xpRand(-.2, .2), s:xpRand(.6, 1.3) });
+  const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.BufferAttribute(ep, 3));
+  const embers = new THREE.Points(eg, new THREE.PointsMaterial({ color:0xffa040, size:.05, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })); embers.frustumCulled = false; scene.add(embers);
+  EXP.fire = { g, col, flames, smoke, light, embers, ed, ember, logs, grate, lvl:0, on:false, steam:0, base:new THREE.Vector3(P.x, groundAt(P.x, P.z) + .06, P.z) };
+  xpGrow([g], 0, .6, 1);
+}
+function xpFireOn(){
+  if (!EXP.camp) return;
+  if (!EXP.fire) xpFireBuild();
+  const F = EXP.fire;
+  xpProgress('화로를 벽돌 위에 놓고 장작에 불을 붙이는 중…', 1.8, () => { F.on = true; EXP.done.fire = true; EXP.stats.fires++; sfx('ignite'); xpHud(); toast('<b>모닥불</b> · 타닥타닥, 불멍 시작!'); xpAddTrash({ n:'장작 포장 상자', c:'paper', i:'📦' }, { n:'토치 부탄가스', c:'can', i:'🥫' }); });
+}
+function xpFireOff(){
+  const F = EXP.fire; if (!F) return;
+  F.on = false; F.steam = 1.6; sfx('steam'); toast('<b>모닥불 끄기</b> · 물을 부어 불씨까지 꺼요');
+}
+function xpFireRemove(){
+  const F = EXP.fire; if (!F) return;
+  for (const o of [...F.flames, ...F.smoke, F.light, F.embers]) scene.remove(o);
+  xpGrow([F.g], 0, .4, -1, () => scene.remove(F.g));
+  const k = colliders.indexOf(F.col); if (k >= 0) colliders.splice(k, 1);
+  EXP.fire = null; fire.pos.set(1e4, 0, 1e4);
+}
+function xpFireUpdate(dt, t){
+  const F = EXP.fire; if (!F) return;
+  F.lvl = lerp(F.lvl, F.on ? 1 : 0, 1 - Math.exp(-dt*(F.on ? .9 : 1.6)));
+  const L = F.lvl, b = F.base;
+  fire.pos.copy(L > .05 ? b : tmpV.set(1e4, 0, 1e4));
+  const gk = GR.on && GR.src === 'fire' ? .32 : 1;
+  F.flames.forEach((s, i) => { const u = s.userData, f = .75 + .25*Math.sin(t*9.3*u.k + u.p) + .12*Math.sin(t*23 + i); s.visible = L > .02; s.scale.set(.36*u.k*L*(gk < 1 ? .7 : 1), .72*u.k*f*L*gk, 1); s.position.set(b.x + u.o.x + Math.sin(t*3 + i)*.02, b.y + .42 + .34*u.k*f*L*gk, b.z + u.o.z); });
+  F.light.intensity = (5 + 26*nightF)*L*(.85 + .15*Math.sin(t*17) + .08*Math.sin(t*31));
+  F.ember.material.opacity = Math.max(L, F.steam > 0 ? .25 : 0)*.85;
+  F.logs.children.forEach((l, i) => l.material = (i % 2 && L < .3) ? l.material : l.material);
+  const p = F.embers.geometry.attributes.position;
+  F.ed.forEach((e, i) => { e.t += dt*e.s*.6; if (e.t > 2){ e.t = 0; e.vx = xpRand(-.25, .25); e.vz = xpRand(-.25, .25); } p.setXYZ(i, b.x + e.vx*e.t, b.y + .5 + e.t*1.2, b.z + e.vz*e.t); });
+  p.needsUpdate = true; F.embers.material.opacity = L*(.4 + .6*nightF);
+  F.steam = Math.max(0, F.steam - dt*.35);
+  const sm = Math.max(L*.35, F.steam);
+  F.smoke.forEach(s => { const d = s.userData; d.p = (d.p + dt*(.18 + F.steam*.2)) % 1; const q = d.p; s.position.set(b.x + d.ox + q*.4, b.y + .55 + q*2.2, b.z + d.oz + q*.15); const sc = .3 + q*1.2; s.scale.set(sc, sc, sc); s.material.opacity = sm*.5*Math.sin(Math.PI*q)*(F.steam > 0 ? 1.4 : 1); s.material.color.setScalar(F.steam > 0 ? 1 : lerp(.25, .8, dayF)); });
+}
+
+/* ---------- grilling: on the brazier's grate or on a gas burner on the table ---------- */
+const FOODS = {
+  pork:{ name:'삼겹살', w:.17, h:.012, d:.07, raw:0xe8a2a0, k:1 },
+  neck:{ name:'목살', w:.13, h:.018, d:.085, raw:0xc8706c, k:.85 },
+  saus:{ name:'소시지', w:.13, h:.03, d:.03, raw:0xd88a74, k:.9, cyl:true },
+  mush:{ name:'새송이버섯', w:.1, h:.03, d:.045, raw:0xefe6d4, k:1.3 },
+  fish:{ name:'물고기', w:.15, h:.03, d:.05, raw:0xb7c2c8, k:.7, fish:true }};
+let porkTex = null;
+const GR = { on:false, src:'fire', items:[], base:null, burner:null, uiT:0, sizzleT:0, smoke:[], used:false };
+function xpGrillOpen(src){
+  const c = EXP.camp; if (!c) return;
+  GR.on = true; GR.src = src; GR.items = []; EXP.mode = 'grill'; EXP.lock = true;
+  if (src === 'fire'){ EXP.fire.grate.visible = true; GR.base = EXP.fire.base.clone().setY(EXP.fire.base.y + .51); }
+  else {
+    const T = c.table, y = groundAt(T.x, T.z), g = new THREE.Group();
+    const bodyM = new THREE.MeshStandardMaterial({ color:0x2c2d30, roughness:.4, metalness:.5 });
+    const bd = box(.34, .1, .28, bodyM); bd.position.y = .05; g.add(bd);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.06, .006, 6, 20), new THREE.MeshBasicMaterial({ color:0x4aa8ff })); ring.rotation.x = -Math.PI/2; ring.position.y = .11; g.add(ring);
+    const pan = new THREE.Mesh(new THREE.CylinderGeometry(.16, .14, .02, 28), new THREE.MeshStandardMaterial({ color:0x1d1d1f, roughness:.35, metalness:.6 })); pan.position.y = .14; g.add(pan);
+    for (let i = -3; i <= 3; i++){ const rib = box(.3 - Math.abs(i)*.02, .004, .006, M(0x101011)); rib.position.set(0, .152, i*.04); g.add(rib); }
+    shadowAll(g); place(g, T.x - .12, y + .655, T.z - .05, 0); GR.burner = g;
+    GR.base = new THREE.Vector3(T.x - .12, y + .655 + .155, T.z - .05);
+    xpAddTrash({ n:'다 쓴 부탄가스', c:'can', i:'🥫' });
+  }
+  const b = GR.base;
+  GR.camFrom = camera.position.clone();
+  EXP.cam = { pos:new THREE.Vector3(b.x - .78, b.y + .78, b.z + .32), tgt:new THREE.Vector3(b.x + .02, b.y - .02, b.z) };
+  view = 'xpcam';
+  if (!GR.used){ GR.used = true; xpAddTrash({ n:'고기 포장 트레이', c:'plastic', i:'🍱' }, { n:'맥주 캔', c:'can', i:'🍺' }, { n:'종이컵', c:'paper', i:'🥤' }); }
+  grillUI(); $('#xp-grill').hidden = false; $('#xp-grill-title').textContent = src === 'fire' ? '화로 숯불 구이' : '버너 그릴팬 구이';
+}
+function grillClose(){
+  for (const it of GR.items) scene.remove(it.mesh);
+  GR.items = []; GR.on = false; $('#xp-grill').hidden = true; EXP.mode = 'free'; EXP.lock = false;
+  if (EXP.fire) EXP.fire.grate.visible = false;
+  if (GR.burner){ scene.remove(GR.burner); GR.burner = null; }
+  for (const s of GR.smoke) scene.remove(s); GR.smoke = [];
+  view = 'tp'; setView('tp'); xpCtx(true);
+}
+function grillAdd(kind){
+  if (GR.items.length >= 5){ toast('그릴이 가득 찼어요 · 다 익은 걸 먼저 집어 주세요'); return; }
+  if (kind === 'fish'){ if (!EXP.fish.length){ toast('아이스박스에 물고기가 없어요 · 계곡에서 잡아 오세요'); return; } }
+  const F = FOODS[kind];
+  let mesh, mats;
+  if (F.cyl){ mats = [new THREE.MeshStandardMaterial({ color:F.raw, roughness:.5 })]; mesh = new THREE.Mesh(new THREE.CapsuleGeometry(F.h/2, F.w - F.h, 4, 10), mats[0]); mesh.rotation.z = Math.PI/2; }
+  else if (F.fish){ const fishObj = EXP.fish.shift(); mats = [new THREE.MeshStandardMaterial({ color:F.raw, roughness:.4, metalness:.3 })]; const g = new THREE.SphereGeometry(.5, 14, 8); g.scale(F.w*(fishObj.cm/16), F.h, F.d*(fishObj.cm/16)); mesh = new THREE.Mesh(g, mats[0]); const tail = new THREE.Mesh(new THREE.ConeGeometry(.025, .05, 4), mats[0]); tail.rotation.z = Math.PI/2; tail.position.x = -F.w*(fishObj.cm/16)*.55; mesh.add(tail); mesh.userData.fname = fishObj.name; }
+  else {
+    if (!porkTex) porkTex = canvasTex(64, 32, (g, w, h) => { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(255,240,235,1)'; for (const y of [5, 14, 24]){ g.fillRect(0, y, w, 3 + Math.random()*2); } g.fillStyle = 'rgba(190,120,115,.35)'; for (const y of [9, 19]) g.fillRect(0, y, w, 4); });
+    const top = new THREE.MeshStandardMaterial({ color:F.raw, roughness:.55, map:kind === 'pork' ? porkTex : null }), bot = new THREE.MeshStandardMaterial({ color:F.raw, roughness:.55, map:kind === 'pork' ? porkTex : null }), side = new THREE.MeshStandardMaterial({ color:F.raw, roughness:.6 });
+    mats = [top, bot, side]; mesh = new THREE.Mesh(new THREE.BoxGeometry(F.w, F.h, F.d), [side, side, top, bot, side, side]);
+  }
+  mesh.castShadow = true;
+  const n = GR.items.length, slot = [[-.09, -.09], [.08, -.08], [-.08, .09], [.09, .08], [0, 0]][GR.free ? GR.free() : n];
+  const it = { kind, F, mesh, mats, sides:[0, 0], up:0, flip:0, slot, name:F.fish ? mesh.userData.fname : F.name };
+  mesh.position.set(GR.base.x + slot[0], GR.base.y + F.h/2 + .004, GR.base.z + slot[1]); mesh.rotation.y = xpRand(-.4, .4);
+  scene.add(mesh); GR.items.push(it); sfx('sizzle'); grillUI();
+}
+GR.free = () => { const used = new Set(GR.items.map(i => i.slot)); const all = [[-.09, -.09], [.08, -.08], [-.08, .09], [.09, .08], [0, 0]]; return all.findIndex(s => !GR.items.some(i => i.slot[0] === s[0] && i.slot[1] === s[1])); };
+function grillColor(d, raw){
+  const c = new THREE.Color(raw), cooked = new THREE.Color(0x9a5a33), done = new THREE.Color(0x6b3a1e), burnt = new THREE.Color(0x1a110c);
+  if (d < .55) return c.lerp(cooked, d/.55);
+  if (d < .95) return cooked.lerp(done, (d - .55)/.4);
+  return done.lerp(burnt, clamp((d - .95)/.4, 0, 1));
+}
+function grillFlip(i){ const it = GR.items[i]; if (!it || it.flip > 0) return; it.flip = 1e-4; sfx('sizzle'); }
+function grillTake(i){
+  const it = GR.items[i]; if (!it) return;
+  const [a, b] = it.sides, lo = Math.min(a, b), hi = Math.max(a, b);
+  let msg, cls;
+  if (hi > 1.15){ msg = '앗, 탔어요…'; cls = 'bad'; EXP.stats.burnt++; sfx('bad'); }
+  else if (lo < .5){ msg = '아직 덜 익었어요! 조금 더 구워요'; cls = 'bad'; sfx('bad'); return toast('<b>' + it.name + '</b> · ' + msg); }
+  else if (lo >= .58 && hi <= .98){ msg = '완벽하게 구웠어요! 겉바속촉'; cls = 'ok'; EXP.stats.perfect++; sfx('ok'); }
+  else { msg = '맛있게 익었어요'; cls = 'ok'; sfx('ok'); }
+  scene.remove(it.mesh); GR.items.splice(i, 1); EXP.stats.grilled++; EXP.done.grill = true; xpHud();
+  toast('<b>' + it.name + '</b> · ' + msg); grillUI();
+}
+function grillUI(){
+  const box_ = $('#xp-grill-items');
+  box_.innerHTML = GR.items.length ? GR.items.map((it, i) => `<div class="gi"><b>${it.name}</b><div class="gbars"><span title="아랫면"><i style="width:${Math.min(100, it.sides[it.up ^ 1]/1.3*100)}%"></i></span><span title="윗면"><i style="width:${Math.min(100, it.sides[it.up]/1.3*100)}%"></i></span></div><em data-st="${i}"></em><button data-flip="${i}">뒤집기</button><button data-take="${i}">집기</button></div>`).join('') : '<p class="note">아래에서 재료를 골라 그릴에 올리세요. 아랫면이 익으면 뒤집고, 양면이 노릇해지면(초록 구간) 집어요.</p>';
+  box_.querySelectorAll('[data-flip]').forEach(b => b.addEventListener('click', () => grillFlip(+b.dataset.flip)));
+  box_.querySelectorAll('[data-take]').forEach(b => b.addEventListener('click', () => grillTake(+b.dataset.take)));
+  $('#xp-grill-fishn').textContent = EXP.fish.length ? `(${EXP.fish.length})` : '';
+  grillBars();
+}
+function grillBars(){
+  const rows = $('#xp-grill-items').querySelectorAll('.gi');
+  GR.items.forEach((it, i) => { const r = rows[i]; if (!r) return; const bars = r.querySelectorAll('i'); const bot = it.sides[it.up ^ 1], top = it.sides[it.up];
+    [bot, top].forEach((d, k) => { bars[k].style.width = Math.min(100, d/1.3*100) + '%'; bars[k].style.background = d > 1.15 ? '#3a2a22' : d >= .58 && d <= .98 ? '#7cc47f' : d > .98 ? '#c98a3a' : '#e3a36f'; });
+    const lo = Math.min(bot, top), hi = Math.max(bot, top); r.querySelector('em').textContent = hi > 1.15 ? '탐!' : lo >= .58 && hi <= .98 ? '딱 좋아요' : bot > .8 && top < .4 ? '뒤집을 때!' : '굽는 중'; });
+}
+function grillUpdate(dt, t){
+  if (!GR.on) return;
+  const heat = GR.src === 'fire' ? (EXP.fire && EXP.fire.on ? .1 : .02) : .085;
+  for (const it of GR.items){
+    if (it.flip > 0){ it.flip += dt/.38; if (it.flip >= .5 && !it.flipped){ it.up ^= 1; it.flipped = true; } if (it.flip >= 1){ it.flip = 0; it.flipped = false; } }
+    const bottom = it.up ^ 1; it.sides[bottom] += heat*it.F.k*dt*(it.flip > 0 ? .2 : 1);
+    const s = it.flip > 0 ? it.flip : 0, hop = Math.sin(Math.PI*s)*.06;
+    it.mesh.position.y = GR.base.y + it.F.h/2 + .004 + hop;
+    if (it.F.cyl) it.mesh.rotation.x = (it.up + s)*Math.PI;
+    else if (it.F.fish) it.mesh.rotation.x = (it.up + s)*Math.PI;
+    else it.mesh.rotation.x = (it.up + s)*Math.PI;
+    const topD = it.sides[it.up], botD = it.sides[bottom];
+    if (it.mats.length === 3){ it.mats[0].color.copy(grillColor(it.sides[0], it.F.raw)); it.mats[1].color.copy(grillColor(it.sides[1], it.F.raw)); it.mats[2].color.copy(grillColor((topD + botD)/2*.8, it.F.raw)); }
+    else it.mats[0].color.copy(grillColor(Math.max(topD, botD)*.6 + Math.min(topD, botD)*.4, it.F.raw));
+  }
+  // smoke and sizzle
+  if (GR.items.length && GR.smoke.length < 10 && Math.random() < dt*6){
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:smokeTex || flameTex, depthWrite:false, transparent:true, opacity:.4 })); s.userData.t = 0; s.position.copy(GR.base).add(tmpV.set(xpRand(-.1, .1), .02, xpRand(-.1, .1))); scene.add(s); GR.smoke.push(s);
+  }
+  for (let i = GR.smoke.length - 1; i >= 0; i--){ const s = GR.smoke[i]; s.userData.t += dt; const q = s.userData.t/1.8; s.position.y += dt*.35; s.position.x += dt*.05; const sc = .08 + q*.4; s.scale.set(sc, sc, sc); s.material.opacity = .35*(1 - q); if (q >= 1){ scene.remove(s); GR.smoke.splice(i, 1); } }
+  GR.sizzleT -= dt; if (GR.items.length && GR.sizzleT <= 0){ GR.sizzleT = xpRand(.4, .9); sfx('sizzle'); }
+  GR.uiT -= dt; if (GR.uiT <= 0){ GR.uiT = .12; grillBars(); }
+}
+
+/* ---------- creek fishing: float rod (cast → bite → strike → reel with line tension) and a Korean scoop net (족대: set, drive the fish, lift) ---------- */
+const FISH_SPECIES = [
+  { name:'피라미', w:30, cm:[8, 15], body:'#c9d3d8', back:'#7d8f95', mark:'stripes', net:true },
+  { name:'갈겨니', w:16, cm:[10, 18], body:'#d2d6c9', back:'#6f7d6a', mark:'band', net:true },
+  { name:'버들치', w:18, cm:[7, 13], body:'#b9a98a', back:'#6b5d45', mark:'dots', net:true },
+  { name:'쉬리', w:9, cm:[8, 12], body:'#e6e0c8', back:'#3e4a5a', mark:'lines', net:true },
+  { name:'꺽지', w:9, cm:[12, 22], body:'#8b8a6a', back:'#4c4a35', mark:'blotch', net:false },
+  { name:'동사리', w:6, cm:[10, 18], body:'#9a8a70', back:'#5a4c38', mark:'blotch', net:true },
+  { name:'메기', w:2, cm:[30, 52], body:'#7a7466', back:'#3e3b33', mark:'plain', net:false },
+  { name:'다슬기', w:10, cm:[2, 3], body:'#3b3a30', back:'#23221c', mark:'snail', net:true, snail:true }];
+function fishPick(net){
+  const pool = FISH_SPECIES.filter(f => net ? f.net : !f.snail), tot = pool.reduce((s, f) => s + f.w, 0);
+  let r = Math.random()*tot; for (const f of pool){ r -= f.w; if (r <= 0) return { ...f, cm:+(xpRand(...f.cm)).toFixed(1) }; } return { ...pool[0], cm:10 };
+}
+function drawFish(f){
+  return canvasTex(256, 128, (g, w, h) => {
+    g.fillStyle = 'rgba(0,0,0,0)'; g.clearRect(0, 0, w, h);
+    if (f.snail){ g.fillStyle = f.body; g.beginPath(); g.ellipse(128, 70, 34, 24, -.4, 0, 7); g.fill(); g.strokeStyle = '#6b6a58'; g.lineWidth = 3; for (let i = 0; i < 3; i++){ g.beginPath(); g.arc(120 + i*8, 70 - i*4, 22 - i*6, -.5, 3.4); g.stroke(); } return; }
+    const L = f.name === '메기' ? 200 : 170, cx = 120, cy = 64, bh = f.name === '꺽지' || f.name === '동사리' ? 30 : f.name === '메기' ? 26 : 24;
+    const gr = g.createLinearGradient(0, cy - bh, 0, cy + bh); gr.addColorStop(0, f.back); gr.addColorStop(.55, f.body); gr.addColorStop(1, '#f2f0e6');
+    g.fillStyle = gr; g.beginPath(); g.moveTo(cx - L/2, cy); g.bezierCurveTo(cx - L/4, cy - bh*1.3, cx + L/4, cy - bh*1.1, cx + L/2 - 8, cy - 4); g.quadraticCurveTo(cx + L/2 + 4, cy, cx + L/2 - 8, cy + 6); g.bezierCurveTo(cx + L/4, cy + bh*1.05, cx - L/4, cy + bh*1.1, cx - L/2, cy); g.fill();
+    g.fillStyle = f.back; g.beginPath(); g.moveTo(cx - L/2 + 4, cy); g.lineTo(cx - L/2 - 26, cy - 22); g.lineTo(cx - L/2 - 20, cy); g.lineTo(cx - L/2 - 26, cy + 22); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(cx - 10, cy - bh*.95); g.quadraticCurveTo(cx + 6, cy - bh*1.6, cx + 22, cy - bh*.9); g.fill();
+    g.globalAlpha = .55; g.fillStyle = g.strokeStyle = f.name === '피라미' ? '#d88a6a' : f.back;
+    if (f.mark === 'stripes') for (let i = 0; i < 9; i++){ g.fillRect(cx - 50 + i*12, cy - 8, 5, 20); }
+    if (f.mark === 'band'){ g.fillRect(cx - 70, cy - 2, 120, 6); }
+    if (f.mark === 'dots') for (let i = 0; i < 24; i++){ g.beginPath(); g.arc(cx - 60 + Math.random()*120, cy - 14 + Math.random()*24, 2, 0, 7); g.fill(); }
+    if (f.mark === 'lines'){ g.lineWidth = 4; for (const y of [-8, 6]){ g.beginPath(); g.moveTo(cx - 70, cy + y); g.lineTo(cx + 60, cy + y*.6); g.stroke(); } }
+    if (f.mark === 'blotch') for (let i = 0; i < 7; i++){ g.beginPath(); g.ellipse(cx - 55 + i*18, cy - 4 + (i % 2)*8, 8, 11, 0, 0, 7); g.fill(); }
+    g.globalAlpha = 1;
+    if (f.name === '메기'){ g.strokeStyle = '#3e3b33'; g.lineWidth = 2; for (const s of [-1, 1]){ g.beginPath(); g.moveTo(cx + L/2 - 10, cy + 2); g.quadraticCurveTo(cx + L/2 + 20, cy + s*20, cx + L/2 + 26, cy + s*30); g.stroke(); } }
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(cx + L/2 - 26, cy - 5, 5, 0, 7); g.fill(); g.fillStyle = '#111'; g.beginPath(); g.arc(cx + L/2 - 25, cy - 5, 3, 0, 7); g.fill();
+  });
+}
+const FISH = { on:false, mode:'rod', st:'idle', t:0, power:0, hold:false, dir:0, bob:null, line:null, rod:null, net:null, tension:.4, prog:0, slack:0, fish:null, stomps:0, ripples:[] };
+function fishBuildGear(){
+  if (FISH.rod) return;
+  const rod = new THREE.Group(), cork = new THREE.MeshStandardMaterial({ color:0xb08a5a, roughness:.8 }), blank = new THREE.MeshStandardMaterial({ color:0x1f2a33, roughness:.35, metalness:.3 });
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(.014, .016, .28, 10), cork); grip.position.y = .14; rod.add(grip);
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(.0025, .011, 2.3, 8), blank); b.position.y = .28 + 1.15; rod.add(b);
+  const reel = new THREE.Mesh(new THREE.CylinderGeometry(.03, .03, .03, 16), new THREE.MeshStandardMaterial({ color:0x9aa0a6, roughness:.3, metalness:.9 })); reel.rotation.z = Math.PI/2; reel.position.set(.035, .3, 0); rod.add(reel);
+  rod.userData.tip = new THREE.Object3D(); rod.userData.tip.position.y = 2.58; rod.add(rod.userData.tip);
+  shadowAll(rod); FISH.rod = rod;
+  const bob = new THREE.Group(); const top = new THREE.Mesh(new THREE.SphereGeometry(.03, 12, 8, 0, Math.PI*2, 0, Math.PI/2), M(0xe8392e, { roughness:.4 })); bob.add(top); const bot = new THREE.Mesh(new THREE.SphereGeometry(.03, 12, 8, 0, Math.PI*2, Math.PI/2, Math.PI/2), M(0xf4f4f0, { roughness:.4 })); bob.add(bot); const ant = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .1, 6), M(0xffd23a)); ant.position.y = .06; bob.add(ant);
+  FISH.bob = bob;
+  const lg = new THREE.BufferGeometry().setFromPoints(Array.from({ length:16 }, () => new THREE.Vector3()));
+  FISH.line = new THREE.Line(lg, new THREE.LineBasicMaterial({ color:0xe8e8e0, transparent:true, opacity:.8 })); FISH.line.frustumCulled = false;
+  // scoop net (족대): two poles with a sagging green mesh
+  const net = new THREE.Group(), poleM = new THREE.MeshStandardMaterial({ color:0xc9a46a, roughness:.7 });
+  for (const s of [-1, 1]){ const p = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, 1.6, 8), poleM); p.position.set(s*.62, .8, 0); p.rotation.z = -s*.25; net.add(p); }
+  const ng = new THREE.PlaneGeometry(1.4, .9, 14, 9), np = ng.attributes.position; for (let i = 0; i < np.count; i++){ const x = np.getX(i), y = np.getY(i); np.setZ(i, -.25*Math.cos(x/1.4*Math.PI)*(1 - Math.abs(y)/.45*.3)); }
+  ng.computeVertexNormals();
+  const nt = canvasTex(64, 64, (g) => { g.clearRect(0, 0, 64, 64); g.strokeStyle = 'rgba(40,110,60,.95)'; g.lineWidth = 2; for (let i = 0; i <= 64; i += 8){ g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 64); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(64, i); g.stroke(); } });
+  nt.wrapS = nt.wrapT = THREE.RepeatWrapping; nt.repeat.set(6, 4);
+  const nm = new THREE.Mesh(ng, new THREE.MeshStandardMaterial({ map:nt, transparent:true, alphaTest:.3, side:THREE.DoubleSide, roughness:.8 })); nm.position.y = .55; net.add(nm);
+  shadowAll(net); FISH.net = net;
+}
+function heroHand(){
+  if (hero.model){ let h = null; hero.model.traverse(o => { if (o.isBone && o.name === 'RightHand') h = o; }); return h; }
+  return null;
+}
+function fishStart(mode, w){
+  fishBuildGear();
+  FISH.on = true; FISH.mode = mode; FISH.st = 'idle'; FISH.t = 0; FISH.power = 0; FISH.prog = 0; FISH.tension = .35; FISH.stomps = 0;
+  EXP.mode = 'fish'; EXP.lock = true;
+  FISH.dir = w.a; player.heading = w.a; hero.root.rotation.y = w.a;
+  const sx = Math.sin(w.a), sz = Math.cos(w.a), p = player.pos;
+  const rx = -sz, rz = sx;                                                 // camera to the player's right so the panel never covers them
+  EXP.cam = { pos:new THREE.Vector3(p.x - sx*4.4 + rx*1.9, p.y + 3.1, p.z - sz*4.4 + rz*1.9), tgt:new THREE.Vector3(p.x + sx*3.2 + rx*1.3, WATER_Y + .4, p.z + sz*3.2 + rz*1.3) };
+  view = 'xpcam';
+  if (mode === 'rod'){
+    scene.add(FISH.rod); scene.add(FISH.line); FISH.bob.visible = false; scene.add(FISH.bob);
+    if (!EXP.rodBag){ EXP.rodBag = true; xpAddTrash({ n:'떡밥·미끼 봉지', c:'plastic', i:'🛍️' }); }
+  } else {
+    const nx = p.x + sx*1.7, nz = p.z + sz*1.7; FISH.net.position.set(nx, WATER_Y - .55, nz); FISH.net.rotation.set(0, w.a + Math.PI, 0); FISH.net.userData.y0 = WATER_Y - .55; scene.add(FISH.net);
+    FISH.st = 'netset'; FISH.t = 0;
+  }
+  $('#xp-fish').hidden = false; fishUI();
+}
+function fishStop(){
+  FISH.on = false; EXP.mode = 'free'; EXP.lock = false;
+  for (const o of [FISH.rod, FISH.line, FISH.bob, FISH.net]) if (o) scene.remove(o);
+  $('#xp-fish').hidden = true; $('#xp-catch').hidden = true; view = 'tp'; setView('tp'); xpCtx(true);
+}
+function fishUI(){
+  const st = FISH.st, m = FISH.mode;
+  const T = { idle:'낚싯대를 들고 계곡을 봐요. 버튼을 꾹 눌렀다 떼면 찌를 던져요.', power:'힘 조절 중… 손을 떼면 던져요', flight:'휘익—', wait:'찌를 지켜보세요… 입질이 오면 바로 챔질!', bite:'찌가 쑥 들어갔어요! 지금 챔질!', reel:'꾹 누르면 릴을 감아요. 줄이 너무 팽팽하면 끊어지고, 느슨하면 놓쳐요!', lost:'', netset:'족대를 물살 아래쪽에 대 놓았어요. ‘고기 몰기’를 연타해 돌을 밟아 고기를 몰아요!', drive:'첨벙첨벙! 고기를 족대 쪽으로 몰고 있어요…', lift:'족대를 들어 올리는 중…' };
+  $('#xp-fish-title').textContent = m === 'rod' ? '찌낚시' : '족대(어망) 고기잡이';
+  $('#xp-fish-text').textContent = T[st] || '';
+  const btn = $('#xp-fish-main');
+  btn.textContent = m === 'rod' ? ({ idle:'꾹 눌러 던지기', power:'놓아서 던지기', flight:'…', wait:'챔질 (기다리는 중)', bite:'챔질!', reel:'꾹 눌러 감기', lost:'다시 던지기' }[st] || '던지기') : ({ netset:'고기 몰기', drive:`고기 몰기 (${FISH.stomps})`, lift:'…' }[st] || '고기 몰기');
+  btn.className = (st === 'bite') ? 'pri hot' : 'pri';
+  $('#xp-fish-alt').hidden = !(m === 'net' && (st === 'drive' || st === 'netset'));
+  $('#xp-fish-meter').hidden = !(st === 'power' || st === 'reel');
+  $('#xp-fish-count').textContent = `아이스박스 ${EXP.fish.length}마리`;
+}
+function fishDown(){
+  if (FISH.mode === 'rod'){
+    if (FISH.st === 'idle' || FISH.st === 'lost'){ FISH.st = 'power'; FISH.power = 0; FISH.pdir = 1; }
+    else if (FISH.st === 'bite'){ FISH.st = 'reel'; FISH.fish = fishPick(false); FISH.prog = .08; FISH.tension = .45; FISH.slack = 0; sfx('reel'); FISH.pull = 0; }
+    else if (FISH.st === 'wait'){ FISH.st = 'lost'; toast('너무 일찍 챔질했어요 · 다시 던져 보세요'); FISH.bob.visible = false; }
+    FISH.hold = true;
+  } else {
+    if (FISH.st === 'netset' || FISH.st === 'drive'){ FISH.st = 'drive'; FISH.stomps++; sfx('splash'); fishRipple(FISH.net.position.x + xpRand(-1.4, 1.4) - Math.sin(FISH.dir)*1.6, FISH.net.position.z + xpRand(-1.4, 1.4) - Math.cos(FISH.dir)*1.6, .8); }
+  }
+  fishUI();
+}
+function fishUp(){
+  FISH.hold = false;
+  if (FISH.mode === 'rod' && FISH.st === 'power'){
+    const d = 3 + FISH.power*7.5, sx = Math.sin(FISH.dir), sz = Math.cos(FISH.dir), p = player.pos;
+    let tx = p.x + sx*d, tz = p.z + sz*d;
+    for (let k = 0; k < 10 && H(tx, tz) > WATER_Y - .12; k++){ tx += sx*.6; tz += sz*.6; }
+    FISH.target = new THREE.Vector3(tx, WATER_Y, tz); FISH.from = FISH.rod.userData.tip.getWorldPosition(new THREE.Vector3()); FISH.st = 'flight'; FISH.t = 0; FISH.bob.visible = true;
+    fishUI();
+  }
+}
+function fishLift(){
+  if (FISH.mode !== 'net' || !(FISH.st === 'drive' || FISH.st === 'netset')) return;
+  FISH.st = 'lift'; FISH.t = 0; fishUI();
+}
+function fishRipple(x, z, s = .5){
+  const m = new THREE.Mesh(new THREE.RingGeometry(.12, .16, 32), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:.6, depthWrite:false }));
+  m.rotation.x = -Math.PI/2; m.position.set(x, WATER_Y + .03, z); m.userData = { t:0, s }; scene.add(m); FISH.ripples.push(m);
+}
+function fishCatch(list){
+  for (const f of list){ EXP.fish.push(f); EXP.stats.caught++; }
+  EXP.done.fish = true; xpHud();
+  const c = $('#xp-catch'); const f = list[0];
+  if (!f){ c.hidden = true; toast('<b>허탕</b> · 이번엔 한 마리도 못 잡았어요. 다시 해 봐요!'); return; }
+  const img = drawFish(f).image;
+  $('#xp-catch-img').src = img.toDataURL();
+  $('#xp-catch-name').textContent = list.length > 1 ? `${f.name} 외 ${list.length - 1}마리` : f.name;
+  $('#xp-catch-size').textContent = list.map(x => `${x.name} ${x.cm}cm`).join(' · ');
+  c.hidden = false; sfx('ok'); clearTimeout(FISH.ct); FISH.ct = setTimeout(() => c.hidden = true, 3200);
+}
+function fishUpdate(dt, t){
+  for (let i = FISH.ripples.length - 1; i >= 0; i--){ const r = FISH.ripples[i]; r.userData.t += dt; const q = r.userData.t/1.4; const sc = 1 + q*6*r.userData.s; r.scale.set(sc, sc, sc); r.material.opacity = .55*(1 - q); if (q >= 1){ scene.remove(r); FISH.ripples.splice(i, 1); } }
+  if (!FISH.on) return;
+  const p = player.pos, sx = Math.sin(FISH.dir), sz = Math.cos(FISH.dir);
+  if (FISH.mode === 'rod'){
+    // rod in the right hand, pointing out over the water
+    const hand = heroHand(); const rod = FISH.rod;
+    const lift = FISH.st === 'power' ? -.6*FISH.power : FISH.st === 'reel' ? .35 + Math.sin(t*12)*.03*FISH.tension : FISH.st === 'bite' ? .25 : 0;
+    if (hand){ hand.updateMatrixWorld(true); hand.getWorldPosition(tmpV); rod.position.copy(tmpV); } else rod.position.set(p.x + sz*.25 + sx*.3, p.y + 1.0, p.z - sx*.25 + sz*.3);
+    rod.rotation.set(0, 0, 0); rod.quaternion.setFromAxisAngle(tmpV.set(sz, 0, -sx), 1.0 + lift);
+    rod.updateMatrixWorld(true);
+    const tip = rod.userData.tip.getWorldPosition(new THREE.Vector3());
+    if (FISH.st === 'power'){ FISH.power += FISH.pdir*dt*.9; if (FISH.power > 1){ FISH.power = 1; FISH.pdir = -1; } if (FISH.power < 0){ FISH.power = 0; FISH.pdir = 1; } $('#xp-fish-bar').style.width = (FISH.power*100) + '%'; $('#xp-fish-bar').style.background = '#f2b35b'; }
+    if (FISH.st === 'flight'){ FISH.t += dt/.7; const q = Math.min(1, FISH.t); FISH.bob.position.lerpVectors(FISH.from, FISH.target, q); FISH.bob.position.y += Math.sin(Math.PI*q)*2.2; if (q >= 1){ FISH.st = 'wait'; FISH.t = 0; FISH.waitT = xpRand(2.5, 8) * (nightF > .5 || dayF < .7 ? .8 : 1); fishRipple(FISH.target.x, FISH.target.z, .6); sfx('splash'); fishUI(); } }
+    if (FISH.st === 'wait'){ FISH.t += dt; FISH.bob.position.set(FISH.target.x, WATER_Y + .01 + Math.sin(t*2.4)*.008, FISH.target.z); if (FISH.t > FISH.waitT - .8 && Math.random() < dt*3) FISH.bob.position.y -= .01; if (FISH.t > FISH.waitT){ FISH.st = 'bite'; FISH.t = 0; fishRipple(FISH.target.x, FISH.target.z, .4); sfx('splash'); fishUI(); } }
+    if (FISH.st === 'bite'){ FISH.t += dt; FISH.bob.position.set(FISH.target.x, WATER_Y - .05 - Math.abs(Math.sin(t*14))*.03, FISH.target.z); if (FISH.t > .95){ FISH.st = 'lost'; FISH.bob.visible = false; toast('<b>놓쳤어요</b> · 입질이 오면 바로 챔질!'); fishUI(); } }
+    if (FISH.st === 'reel'){
+      FISH.pull = lerp(FISH.pull, (Math.sin(t*2.3) + Math.sin(t*5.1 + 1) > .9 ? 1 : .2)*(FISH.fish.cm > 25 ? 1.4 : 1), 1 - Math.exp(-dt*3));
+      FISH.tension += (FISH.hold ? .55 : -.5)*dt + FISH.pull*.28*dt;
+      FISH.tension = clamp(FISH.tension, 0, 1.05);
+      if (FISH.hold && FISH.tension < .92) FISH.prog += dt*(.22 + .12*(1 - FISH.pull))/(FISH.fish.cm > 25 ? 1.8 : 1);
+      FISH.prog -= FISH.pull*dt*.03; FISH.prog = clamp(FISH.prog, 0, 1);
+      FISH.slack = FISH.tension < .12 ? FISH.slack + dt : 0;
+      const bar = $('#xp-fish-bar'); bar.style.width = (FISH.tension*95) + '%'; bar.style.background = FISH.tension > .85 ? '#e0454a' : FISH.tension > .25 ? '#7cc47f' : '#8aa0b4';
+      $('#xp-fish-prog').style.width = (FISH.prog*100) + '%';
+      const k = 1 - FISH.prog; FISH.bob.position.set(p.x + (FISH.target.x - p.x)*k + Math.sin(t*7)*.15*k, WATER_Y - .02, p.z + (FISH.target.z - p.z)*k + Math.cos(t*6)*.15*k);
+      if (Math.random() < dt*5) fishRipple(FISH.bob.position.x, FISH.bob.position.z, .25);
+      if (FISH.hold && Math.random() < dt*4) sfx('reel');
+      if (FISH.tension >= 1.04){ FISH.st = 'lost'; FISH.bob.visible = false; toast('<b>툭!</b> 줄이 끊어졌어요 · 너무 세게 감았어요'); sfx('bad'); fishUI(); }
+      else if (FISH.slack > 1.6){ FISH.st = 'lost'; FISH.bob.visible = false; toast('<b>도망갔어요</b> · 줄이 너무 느슨했어요'); fishUI(); }
+      else if (FISH.prog >= 1){ FISH.st = 'idle'; FISH.bob.visible = false; fishCatch([FISH.fish]); fishUI(); }
+    }
+    // line: rod tip → float with a little sag
+    const pos = FISH.line.geometry.attributes.position, end = FISH.bob.visible ? FISH.bob.position : tmpV.copy(tip).add(new THREE.Vector3(0, -.6, 0));
+    for (let i = 0; i < 16; i++){ const u = i/15; const x = lerp(tip.x, end.x, u), z = lerp(tip.z, end.z, u), y = lerp(tip.y, end.y + (FISH.bob.visible ? .03 : 0), u) - Math.sin(Math.PI*u)*(FISH.st === 'reel' ? .05 : .35); pos.setXYZ(i, x, y, z); }
+    pos.needsUpdate = true;
+  } else {
+    const n = FISH.net;
+    if (FISH.st === 'drive' && Math.random() < dt*2) fishRipple(n.position.x + xpRand(-.6, .6), n.position.z + xpRand(-.6, .6), .3);
+    if (FISH.st === 'lift'){
+      FISH.t += dt/1.4; const q = Math.min(1, FISH.t); n.position.y = n.userData.y0 + Math.sin(q*Math.PI/2)*1.1; n.rotation.x = -q*.5;
+      if (q >= 1){
+        const k = FISH.stomps, cnt = k < 4 ? (Math.random() < .3 ? 1 : 0) : Math.min(4, Math.floor(k/4 + Math.random()*1.6));
+        const list = []; for (let i = 0; i < cnt; i++) list.push(fishPick(true));
+        fishCatch(list); FISH.st = 'netset'; FISH.stomps = 0; n.position.y = n.userData.y0; n.rotation.x = 0; fishUI();
+      }
+    }
+  }
+}
+
+/* ---------- Halli Galli at the camp table: 56 fruit cards (per fruit five 1s, three 2s, three 3s, two 4s, one 5), three players.
+   Players flip in turn onto their own face-up pile; when exactly five of one fruit are showing, the first to hit the bell takes every
+   face-up pile. A wrong ring costs one card to each other player. Players without cards are out; the last one holding cards wins
+   (or whoever holds the most when time runs out). The two friends ring with human-like random reaction times and the odd false alarm. ---------- */
+const HG_FRUITS = ['strawberry', 'banana', 'lime', 'plum'], HG_FRUIT_KO = { strawberry:'딸기', banana:'바나나', lime:'라임', plum:'자두' };
+const HG = { on:false, P:[], turn:0, busy:false, ringLock:false, t:0, limit:240, plans:[], anims:[], tex:{}, meshes:null, wait:0, lastFlip:0, msgT:0, over:false };
+function hgDrawFruit(g, kind, x, y, s){
+  g.save(); g.translate(x, y);
+  if (kind === 'strawberry'){
+    const gr = g.createRadialGradient(-s*.15, -s*.1, s*.05, 0, 0, s*.6); gr.addColorStop(0, '#ff6b6b'); gr.addColorStop(1, '#c81e2b'); g.fillStyle = gr;
+    g.beginPath(); g.moveTo(0, s*.55); g.bezierCurveTo(-s*.62, s*.05, -s*.5, -s*.42, 0, -s*.3); g.bezierCurveTo(s*.5, -s*.42, s*.62, s*.05, 0, s*.55); g.fill();
+    g.fillStyle = '#ffe9a8'; for (let i = 0; i < 9; i++){ const a = i*2.4, r = s*.12 + (i % 3)*s*.1; g.beginPath(); g.ellipse(Math.cos(a)*r, Math.sin(a)*r*.9 + s*.05, s*.03, s*.045, 0, 0, 7); g.fill(); }
+    g.fillStyle = '#2f8a3a'; for (let k = -2; k <= 2; k++){ g.beginPath(); g.ellipse(k*s*.11, -s*.36, s*.09, s*.04, k*.5, 0, 7); g.fill(); }
+  } else if (kind === 'banana'){
+    g.rotate(-.5); g.fillStyle = '#f7d43a'; g.strokeStyle = '#c99a17'; g.lineWidth = s*.04;
+    g.beginPath(); g.moveTo(-s*.5, -s*.15); g.quadraticCurveTo(0, s*.55, s*.52, -s*.12); g.quadraticCurveTo(0, s*.25, -s*.5, -s*.15); g.fill(); g.stroke();
+    g.fillStyle = '#5a4020'; g.beginPath(); g.arc(-s*.5, -s*.15, s*.05, 0, 7); g.fill(); g.beginPath(); g.arc(s*.52, -s*.12, s*.04, 0, 7); g.fill();
+  } else if (kind === 'lime'){
+    g.fillStyle = '#3f9b2f'; g.beginPath(); g.arc(0, 0, s*.42, 0, 7); g.fill(); g.fillStyle = '#c9ef7a'; g.beginPath(); g.arc(0, 0, s*.34, 0, 7); g.fill();
+    g.strokeStyle = '#eaffc4'; g.lineWidth = s*.035; for (let k = 0; k < 8; k++){ const a = k*Math.PI/4; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a)*s*.33, Math.sin(a)*s*.33); g.stroke(); }
+    g.fillStyle = '#eaffc4'; g.beginPath(); g.arc(0, 0, s*.05, 0, 7); g.fill();
+  } else {
+    const gr = g.createRadialGradient(-s*.14, -s*.14, s*.04, 0, 0, s*.48); gr.addColorStop(0, '#b56fd0'); gr.addColorStop(1, '#5b1f78'); g.fillStyle = gr;
+    g.beginPath(); g.arc(0, s*.04, s*.42, 0, 7); g.fill(); g.strokeStyle = 'rgba(40,10,60,.5)'; g.lineWidth = s*.03; g.beginPath(); g.moveTo(0, -s*.36); g.quadraticCurveTo(s*.08, 0, 0, s*.44); g.stroke();
+    g.strokeStyle = '#6b4a2a'; g.lineWidth = s*.05; g.beginPath(); g.moveTo(0, -s*.36); g.lineTo(s*.05, -s*.5); g.stroke(); g.fillStyle = '#3f8f3a'; g.beginPath(); g.ellipse(s*.17, -s*.47, s*.13, s*.05, -.4, 0, 7); g.fill();
+  }
+  g.restore();
+}
+const HG_PIPS = { 1:[[.5, .5]], 2:[[.5, .28], [.5, .72]], 3:[[.3, .25], [.5, .5], [.7, .75]], 4:[[.3, .28], [.7, .28], [.3, .72], [.7, .72]], 5:[[.3, .25], [.7, .25], [.5, .5], [.3, .75], [.7, .75]] };
+function hgCardTex(fruit, n){
+  const k = fruit + n; if (HG.tex[k]) return HG.tex[k];
+  HG.tex[k] = canvasTex(160, 240, (g, w, h) => {
+    g.fillStyle = '#fbf8f0'; g.fillRect(0, 0, w, h); g.strokeStyle = '#d9d2c2'; g.lineWidth = 6; g.strokeRect(5, 5, w - 10, h - 10);
+    for (const [u, v] of HG_PIPS[n]) hgDrawFruit(g, fruit, u*w, v*h, n >= 4 ? 62 : 72);
+  });
+  return HG.tex[k];
+}
+function hgBackTex(){
+  return HG.tex.back || (HG.tex.back = canvasTex(160, 240, (g, w, h) => {
+    g.fillStyle = '#1f5a36'; g.fillRect(0, 0, w, h); g.strokeStyle = '#f2b35b'; g.lineWidth = 6; g.strokeRect(10, 10, w - 20, h - 20);
+    g.fillStyle = 'rgba(242,179,91,.25)'; for (let y = 24; y < h - 20; y += 22) for (let x = 24 + (y/22 % 2)*11; x < w - 20; x += 22){ g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); }
+    g.fillStyle = '#f2b35b'; g.font = '700 30px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.fillText('★', w/2, h/2 - 6); g.font = '600 15px "IBM Plex Sans KR", sans-serif'; g.fillText('별빛 과일 종치기', w/2, h/2 + 22);
+  }));
+}
+const CW = .062, CH = .093, CT = .0016;
+function hgCardMesh(card, faceUp){
+  const edge = new THREE.MeshStandardMaterial({ color:0xe9e3d4, roughness:.8 });
+  const front = new THREE.MeshStandardMaterial({ map:hgCardTex(card.f, card.n), roughness:.55 }), back = new THREE.MeshStandardMaterial({ map:hgBackTex(), roughness:.55 });
+  const m = new THREE.Mesh(new THREE.BoxGeometry(CW, CT, CH), [edge, edge, front, back, edge, edge]); m.castShadow = true;
+  m.userData.faceUp = faceUp; return m;
+}
+function hgSetup(){
+  const c = EXP.camp, T = c.table, y = groundAt(T.x, T.z) + .652;
+  const C = new THREE.Vector3(T.x, y, T.z);
+  const dirs = [[-1, 0], [0, -1], [0, 1]];
+  HG.P = [{ name:'나', me:true }, { name:c.friends[0].name, f:c.friends[0], react:[.42, 1.05], miss:.1, fals:.05 }, { name:c.friends[1].name, f:c.friends[1], react:[.55, 1.45], miss:.14, fals:.07 }];
+  HG.P.forEach((p, i) => {
+    const [dx, dz] = dirs[i], fx = -dx, fz = -dz, rx = -fz, rz = fx;              // facing toward the centre, right-hand side
+    const reach = i === 0 ? .19 : .33;
+    p.deckPos = C.clone().add(new THREE.Vector3(dx*reach - rx*.05, 0, dz*reach - rz*.05));
+    p.upPos = C.clone().add(new THREE.Vector3(dx*reach + rx*.085, 0, dz*reach + rz*.085));
+    p.yaw = Math.atan2(-fx, -fz); p.deck = []; p.up = []; p.out = false;
+    p.deckStack = new THREE.Mesh(new THREE.BoxGeometry(CW, 1, CH), [new THREE.MeshStandardMaterial({ color:0xdcd4c2 }), new THREE.MeshStandardMaterial({ color:0xdcd4c2 }), new THREE.MeshStandardMaterial({ map:hgBackTex() }), new THREE.MeshStandardMaterial({ color:0xdcd4c2 }), new THREE.MeshStandardMaterial({ color:0xdcd4c2 }), new THREE.MeshStandardMaterial({ color:0xdcd4c2 })]);
+    p.deckStack.rotation.y = p.yaw; p.deckStack.castShadow = true; scene.add(p.deckStack);
+    p.upStack = new THREE.Mesh(new THREE.BoxGeometry(CW, 1, CH), new THREE.MeshStandardMaterial({ color:0xf3efe4 })); p.upStack.rotation.y = p.yaw; scene.add(p.upStack);
+    p.top = null;
+  });
+  // the bell
+  const bell = new THREE.Group(), steel = new THREE.MeshStandardMaterial({ color:0xd8dde2, roughness:.12, metalness:1 }), baseM = new THREE.MeshStandardMaterial({ color:0x1b1c1e, roughness:.5 });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(.04, .044, .014, 24), baseM); base.position.y = .007; bell.add(base);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.036, 24, 12, 0, Math.PI*2, 0, Math.PI/2), steel); dome.position.y = .014; bell.add(dome);
+  const btn = new THREE.Mesh(new THREE.CylinderGeometry(.007, .007, .012, 10), steel); btn.position.y = .054; bell.add(btn);
+  bell.position.copy(C).add(new THREE.Vector3(.04, 0, 0)); shadowAll(bell); scene.add(bell);
+  HG.bell = bell; HG.bellBtn = btn; HG.bellDome = dome; HG.C = C;
+  if (c.tableObj) c.tableObj.children.forEach(o => { if (o.isGroup) o.visible = false; });
+}
+function hgStackUpdate(){
+  for (const p of HG.P){
+    const nd = p.deck.length, nu = p.up.length;
+    p.deckStack.visible = nd > 0; p.deckStack.scale.y = Math.max(1, nd)*CT; p.deckStack.position.copy(p.deckPos).setY(p.deckPos.y + nd*CT/2);
+    const below = Math.max(0, nu - 1); p.upStack.visible = below > 0; p.upStack.scale.y = Math.max(1, below)*CT; p.upStack.position.copy(p.upPos).setY(p.upPos.y + below*CT/2);
+    if (p.top && p.top.userData.card !== p.up[nu - 1]){ scene.remove(p.top); p.top = null; }
+    if (!p.top && nu){ const m = hgCardMesh(p.up[nu - 1], true); m.userData.card = p.up[nu - 1]; m.rotation.y = p.yaw + xpRand(-.12, .12); m.position.copy(p.upPos).setY(p.upPos.y + below*CT + CT/2); scene.add(m); p.top = m; }
+  }
+}
+function hgStart(){
+  const c = EXP.camp; if (!c || c.friends.length < 2) return;
+  HG.on = true; HG.over = false; EXP.mode = 'hg'; EXP.lock = true; HG.t = 0; HG.plans = []; HG.anims = []; HG.ringLock = false; HG.busy = false;
+  hgSetup();
+  const deck = []; for (const f of HG_FRUITS) for (const [n, k] of [[1, 5], [2, 3], [3, 3], [4, 2], [5, 1]]) for (let i = 0; i < k; i++) deck.push({ f, n });
+  for (let i = deck.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  deck.forEach((card, i) => HG.P[i % 3].deck.push(card));
+  hgStackUpdate();
+  c.friends.forEach(f => f.sitting = true);
+  const s = c.seats[0]; player.pos.set(s.x, groundAt(s.x, s.z), s.z); hero.root.visible = false;
+  const fx = Math.sin(s.ry), fz = Math.cos(s.ry);
+  EXP.cam = { pos:new THREE.Vector3(s.x - fx*.12, HG.C.y + .78, s.z - fz*.12), tgt:new THREE.Vector3(HG.C.x - fx*.2, HG.C.y - .02, HG.C.z - fz*.2) };
+  view = 'xpcam'; HG.turn = 0; HG.wait = 0;
+  $('#xp-hg').hidden = false; xpAddTrash({ n:'과자 봉지', c:'plastic', i:'🍿' }, { n:'생수병', c:'plastic', i:'🧴' });
+  hgMsg('내 차례부터! ‘카드 뒤집기’(F)로 한 장씩 뒤집고, 같은 과일이 정확히 5개가 되면 ‘종 치기’(Space)!'); hgUI();
+}
+function hgEnd(silent){
+  if (!HG.on) return;
+  if (!HG.over && HG.P.some(p => p.up.length)){ EXP.stats.hg = EXP.stats.hg || `중간에 끝냄 (내 카드 ${HG.P[0].deck.length + HG.P[0].up.length}장)`; EXP.done.hg = true; xpHud(); }
+  HG.on = false; EXP.mode = 'free'; EXP.lock = false;
+  for (const p of HG.P){ scene.remove(p.deckStack); scene.remove(p.upStack); if (p.top) scene.remove(p.top); }
+  for (const a of HG.anims) scene.remove(a.m); HG.anims = [];
+  scene.remove(HG.bell);
+  const c = EXP.camp; if (c){ c.friends.forEach(f => f.sitting = false); if (c.tableObj) c.tableObj.children.forEach(o => { if (o.isGroup) o.visible = true; }); }
+  $('#xp-hg').hidden = true; hero.root.visible = true;
+  const s = c ? c.seats[0] : null; if (s){ const px = s.x - Math.sin(s.ry)*.7, pz = s.z - Math.cos(s.ry)*.7; player.pos.set(px, groundAt(px, pz), pz); camYaw = s.ry + Math.PI; }
+  view = 'tp'; setView('tp'); xpCtx(true);
+}
+function hgCounts(){ const c = { strawberry:0, banana:0, lime:0, plum:0 }; for (const p of HG.P){ const t = p.up[p.up.length - 1]; if (t) c[t.f] += t.n; } return c; }
+function hgValid(){ const c = hgCounts(); return Object.values(c).some(v => v === 5); }
+function hgActive(){ return HG.P.filter(p => !p.out); }
+function hgNext(from){ for (let k = 1; k <= 3; k++){ const i = (from + k) % 3; if (!HG.P[i].out && HG.P[i].deck.length) return i; } return -1; }
+function hgMsg(t){ $('#xp-hg-msg').innerHTML = t; HG.msgT = 4; }
+function hgUI(){
+  $('#xp-hg-players').innerHTML = HG.P.map((p, i) => `<div class="hp ${i === HG.turn && !HG.over ? 'turn' : ''} ${p.out ? 'out' : ''}"><b>${p.name}</b><span>카드 ${p.deck.length}${p.up.length ? ` · 바닥 ${p.up.length}` : ''}</span></div>`).join('');
+  const myTurn = HG.turn === 0 && !HG.busy && !HG.over && HG.P[0].deck.length > 0;
+  $('#xp-hg-flip').disabled = !myTurn; $('#xp-hg-flip').classList.toggle('pri', myTurn);
+  $('#xp-hg-ring').disabled = HG.over || HG.P[0].out;
+  const left = Math.max(0, HG.limit - HG.t); $('#xp-hg-time').textContent = `${Math.floor(left/60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
+  const cnt = hgCounts(); $('#xp-hg-sum').textContent = Object.entries(cnt).filter(([, v]) => v).map(([k, v]) => `${HG_FRUIT_KO[k]} ${v}`).join(' · ') || '아직 바닥에 카드가 없어요';
+}
+function hgFlip(i){
+  const p = HG.P[i]; if (HG.busy || HG.over || HG.ringLock || HG.turn !== i || !p.deck.length) return;
+  HG.busy = true; HG.plans = [];
+  const card = p.deck.shift(), m = hgCardMesh(card, false);
+  m.position.copy(p.deckPos).setY(p.deckPos.y + (p.deck.length + 1)*CT); m.rotation.set(0, p.yaw, Math.PI);
+  scene.add(m); hgStackUpdate(); sfx('card');
+  HG.anims.push({ m, t:0, dur:.36, from:m.position.clone(), to:p.upPos.clone().setY(p.upPos.y + Math.max(0, p.up.length)*CT + CT), yaw:p.yaw + xpRand(-.12, .12), flip:true, done:() => {
+    scene.remove(m); p.up.push(card); hgStackUpdate(); HG.busy = false; HG.lastFlip = HG.t;
+    if (!p.deck.length){ hgMsg(`${p.name}의 손에 카드가 다 떨어졌어요`); }
+    hgPlan(); HG.turn = hgNext(i); HG.wait = 0;
+    if (HG.turn < 0) hgFinish(); hgUI();
+  } });
+}
+function hgPlan(){
+  HG.plans = []; const valid = hgValid(), cnt = hgCounts(), tempting = Object.values(cnt).some(v => v === 4 || v === 6);
+  for (let i = 1; i < 3; i++){
+    const p = HG.P[i]; if (p.out) continue;
+    if (valid){ if (Math.random() > p.miss) HG.plans.push({ who:i, at:HG.t + xpRand(...p.react) }); }
+    else if (tempting && Math.random() < p.fals) HG.plans.push({ who:i, at:HG.t + xpRand(.55, 1.25) });
+  }
+}
+function hgRing(who){
+  if (!HG.on || HG.over || HG.ringLock || HG.P[who].out) return;
+  HG.ringLock = true; HG.plans = [];
+  sfx('bell'); HG.bellT = .25;
+  const P = HG.P[who]; if (P.f) P.f.reach = 1;
+  const valid = hgValid();
+  setTimeout(() => {
+    if (valid){
+      const won = []; for (const p of HG.P){ won.push(...p.up); p.up = []; }
+      for (const p of HG.P) if (p.top){ const m = p.top; p.top = null; HG.anims.push({ m, t:0, dur:.45, from:m.position.clone(), to:P.deckPos.clone().setY(P.deckPos.y + .02), yaw:P.yaw, done:() => scene.remove(m) }); }
+      P.deck.push(...won.sort(() => Math.random() - .5));
+      hgMsg(`<b>${P.name}</b> 딩! 과일 5개 정답 — 바닥 카드 <b>${won.length}장</b>을 가져갔어요`);
+      if (who === 0) sfx('ok');
+      HG.turn = P.deck.length ? who : hgNext(who);
+    } else {
+      let gave = 0; for (const p of HG.P){ if (p === P || p.out) continue; if (P.deck.length){ p.deck.push(P.deck.pop()); gave++; } }
+      hgMsg(`<b>${P.name}</b> 땡! 5개가 아니었어요 — 벌칙으로 카드 ${gave}장을 나눠 줬어요`);
+      if (who === 0) sfx('bad');
+    }
+    for (const p of HG.P) if (!p.deck.length && !p.up.length && !p.out){ p.out = true; hgMsg(`${HG.$m || ''}<b>${p.name}</b> 카드가 없어 탈락!`); }
+    hgStackUpdate(); HG.ringLock = false; HG.wait = 0;
+    if (hgActive().filter(p => p.deck.length).length <= 1 || HG.turn < 0) hgFinish();
+    hgUI();
+  }, 650);
+}
+function hgFinish(){
+  if (HG.over) return; HG.over = true;
+  const tot = HG.P.map(p => p.deck.length + p.up.length), best = Math.max(...tot), win = HG.P.filter((p, i) => tot[i] === best);
+  const meWin = win.some(p => p.me);
+  EXP.stats.hg = meWin ? (win.length > 1 ? '공동 우승' : '우승') : `${win.map(p => p.name).join('·')} 우승`;
+  EXP.done.hg = true; xpHud();
+  hgMsg(meWin ? `🎉 <b>내가 이겼어요!</b> 카드 ${best}장` : `<b>${win.map(p => p.name).join('·')}</b>의 승리! (나: ${tot[0]}장) — 다시 도전?`);
+  sfx(meWin ? 'ok' : 'bad'); hgUI();
+  $('#xp-hg-flip').disabled = true;
+}
+function hgClick(cx, cy){
+  const r = canvas.getBoundingClientRect(), ndc = new THREE.Vector2(((cx - r.left)/r.width)*2 - 1, -((cy - r.top)/r.height)*2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera);
+  if (ray.intersectObject(HG.bell, true).length) { hgRing(0); return true; }
+  if (HG.P[0].deckStack.visible && ray.intersectObject(HG.P[0].deckStack).length){ hgFlip(0); return true; }
+  return false;
+}
+function hgUpdate(dt){
+  if (!HG.on) return;
+  for (let i = HG.anims.length - 1; i >= 0; i--){
+    const a = HG.anims[i]; a.t += dt/a.dur; const q = Math.min(1, a.t), e = q*q*(3 - 2*q);
+    a.m.position.lerpVectors(a.from, a.to, e); a.m.position.y += Math.sin(Math.PI*q)*.06;
+    a.m.rotation.y = lerp(a.m.rotation.y, a.yaw, e); if (a.flip) a.m.rotation.z = Math.PI*(1 - e);
+    if (q >= 1){ HG.anims.splice(i, 1); a.done && a.done(); }
+  }
+  if (HG.bellT > 0){ HG.bellT -= dt; HG.bellBtn.position.y = .054 - .006*Math.sin(Math.PI*clamp(HG.bellT/.25, 0, 1)); HG.bellDome.scale.setScalar(1 + .04*Math.sin(HG.bellT*80)); }
+  if (HG.over) return;
+  HG.t += dt; HG.wait += dt;
+  if (HG.t >= HG.limit){ hgMsg('시간 종료!'); hgFinish(); return; }
+  for (const pl of HG.plans) if (HG.t >= pl.at){ hgRing(pl.who); break; }
+  if (!HG.busy && !HG.ringLock && HG.turn >= 0){
+    const p = HG.P[HG.turn];
+    if (p.out || !p.deck.length){ HG.turn = hgNext(HG.turn); if (HG.turn < 0) hgFinish(); }
+    else if (!p.me && HG.wait > xpRand(.95, 1.5) && HG.t - HG.lastFlip > .9) hgFlip(HG.turn);
+    else if (p.me && HG.wait > 6){ hgMsg('시간이 지나 자동으로 뒤집었어요'); hgFlip(0); }
+  }
+  HG.uiT = (HG.uiT || 0) - dt; if (HG.uiT <= 0){ HG.uiT = .25; hgUI(); }
+}
+
+/* ---------- recycling station: sort every item in the trash bag before check-out ---------- */
+const BINS = [{ c:'can', name:'캔·병', color:'#d9b21e' }, { c:'plastic', name:'플라스틱·비닐', color:'#2f6db5' }, { c:'paper', name:'종이', color:'#3d9a4c' }, { c:'general', name:'일반쓰레기', color:'#8b8f94' }];
+const REC_HINT = { can:'캔·병·부탄가스는 노란 캔·병 칸이에요 (부탄가스는 구멍을 뚫어 비워서!)', plastic:'페트병·포장 트레이·과자 봉지 같은 비닐류는 파란 플라스틱·비닐 칸이에요', paper:'깨끗한 종이·종이상자·종이컵은 초록 종이 칸이에요', general:'음식물이 묻은 휴지·나무젓가락은 재활용이 안 돼서 일반쓰레기예요' };
+const REC = { items:[], i:0, wrong:0 };
+function recOpen(){
+  if (!EXP.bag) return;
+  const items = EXP.trash.slice();
+  items.push({ n:'휴지·나무젓가락', c:'general', i:'🥢' });
+  if (items.length < 4) items.push({ n:'생수병', c:'plastic', i:'🧴' }, { n:'종이컵', c:'paper', i:'🥤' });
+  REC.items = items.sort(() => Math.random() - .5); REC.i = 0; REC.wrong = 0;
+  $('#xp-rec').hidden = false; EXP.lock = true; recUI();
+}
+function recUI(){
+  const it = REC.items[REC.i];
+  $('#xp-rec-sub').textContent = `쓰레기 봉지 속 ${REC.items.length}개 중 ${Math.min(REC.i + 1, REC.items.length)}번째`;
+  $('#xp-rec-item').innerHTML = it ? `<span class="em">${it.i}</span><b>${it.n}</b>` : '<span class="em">✨</span><b>분리수거 완료!</b>';
+  const bins = $('#xp-rec-bins'); bins.innerHTML = '';
+  if (it) BINS.forEach(b => { const e = document.createElement('button'); e.style.setProperty('--bc', b.color); e.innerHTML = `<i></i>${b.name}`; e.addEventListener('click', () => recPick(b.c, e)); bins.appendChild(e); });
+  else { const e = document.createElement('button'); e.className = 'done'; e.textContent = '체험 마치기 (체크아웃)'; e.addEventListener('click', () => { $('#xp-rec').hidden = true; EXP.lock = false; xpEnd(); }); bins.appendChild(e); }
+}
+function recPick(c, el){
+  const it = REC.items[REC.i]; if (!it) return;
+  if (c === it.c){ sfx('ok'); $('#xp-rec-hint').textContent = `잘했어요! ${it.n} → ${BINS.find(b => b.c === c).name}`; REC.i++;
+    if (REC.i >= REC.items.length){ EXP.recycled = true; EXP.trash = []; EXP.done.recycle = true; xpHud(); toast('<b>분리수거 완료</b> · 이제 체크아웃할 수 있어요'); }
+    recUI();
+  } else { REC.wrong++; sfx('bad'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); $('#xp-rec-hint').textContent = '앗, 다른 칸이에요 · ' + REC_HINT[it.c]; }
+}
+function recLabels(){
+  BINS.forEach((b, i) => {
+    const t = canvasTex(128, 48, (g, w, h) => { g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.fillStyle = b.color; g.fillRect(0, 0, w, 8); g.fillStyle = '#1b1d22'; g.font = '700 22px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(b.name, w/2, h/2 + 4); });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(.5, .19), new THREE.MeshStandardMaterial({ map:t, roughness:.6 }));
+    const z = RECYCLE.z - 1.4 + i*.95; m.position.set(RECYCLE.x + .306, H(RECYCLE.x, z) + .72, z); m.rotation.y = Math.PI/2; scene.add(m);
+  });
+}
+function xpEnd(){
+  if (!EXP.recycled){ toast('먼저 <b>분리수거장</b>에서 분리수거를 마쳐야 체크아웃할 수 있어요'); return; }
+  if (FISH.on) fishStop(); if (GR.on) grillClose(); if (HG.on) hgEnd(true);
+  if (EXP.camp){ if (EXP.fire) xpFireRemove(); xpFriends(false); for (const p of EXP.camp.parts){ for (const o of p.objs) scene.remove(o); for (const c of p.cols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); } } EXP.camp = null; }
+  EXP.ended = true; $('#xp-actions').hidden = true;
+  const S = EXP.stats, mins = Math.max(1, Math.round((performance.now() - EXP.t0)/60000));
+  const fishList = EXP.fish.concat(); const caught = S.caught;
+  $('#xp-end-facts').innerHTML = [
+    ['체험 시간', `${mins}분`], ['텐트', S.tents ? `${S.tents}번 피칭` : '치지 않음'], ['모닥불', S.fires ? `${S.fires}번 피움` : '피우지 않음'],
+    ['고기 굽기', S.grilled ? `${S.grilled}개 구움 (완벽 ${S.perfect} · 탐 ${S.burnt})` : '굽지 않음'], ['물고기', caught ? `${caught}마리 잡음` : '못 잡음'],
+    ['할리갈리', S.hg || '하지 않음'], ['분리수거', '완료 ✓']].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+  $('#xp-end').hidden = false; sfx('ok');
+}
+/* ---------- start, per-frame update, camera ---------- */
+function expStart(){
+  EXP.on = true; EXP.t0 = performance.now(); XP_SITES = xpSiteList(); document.body.classList.add('xp');
+  for (const o of OCC.objs) o.visible = false; for (const o of OCC.extra) o.visible = false;
+  for (const c of OCC.cols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); }
+  fire.pos.set(1e4, 0, 1e4);
+  chiefBuild(); carBuild(); recLabels();
+  $('#xp-hud').hidden = false; xpHud();
+  view = 'drive'; hero.root.visible = false; CAR.auto = 2.4; CAR.v = 3.5;
+  camera.position.set(CAR.x - Math.sin(CAR.h)*9, CAR.g.position.y + 3.5, CAR.z - Math.cos(CAR.h)*9);
+  document.querySelectorAll('#seg-view button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  setTimeout(() => toast('<b>캠핑 체험</b> · 차를 몰고 들어가 매점 앞 캠장님께 체크인하세요'), 400);
+  xpCtx(true);
+}
+function xpCamUpdate(dt){
+  if (!EXP.cam) return;
+  camera.position.lerp(EXP.cam.pos, 1 - Math.exp(-dt*4));
+  EXP.camT = EXP.camT || EXP.cam.tgt.clone(); EXP.camT.lerp(EXP.cam.tgt, 1 - Math.exp(-dt*5)); camera.lookAt(EXP.camT);
+}
+function xpUpdate(dt, t){
+  if (!EXP.on) return;
+  chiefUpdate(dt, t); xpAnimUpdate(dt); xpProgUpdate(); xpFireUpdate(dt, t); grillUpdate(dt, t); fishUpdate(dt, t); hgUpdate(dt); xpFriendsUpdate(dt);
+  if (CAR.light) CAR.light.intensity = nightF*38*(view === 'drive' ? 1 : .0);
+  if (EXP.camp && EXP.camp.tableObj) EXP.camp.tableObj.userData.lamp.intensity = nightF*2.2;
+  EXP.ctxT -= dt; if (EXP.ctxT <= 0){ EXP.ctxT = .15; xpCtx(); document.body.classList.toggle('xp-busy', EXP.mode !== 'free'); document.body.classList.toggle('xp-drive', view === 'drive'); }
+}
+function xpHit(cx, cy){
+  const r = canvas.getBoundingClientRect(), ndc = new THREE.Vector2(((cx - r.left)/r.width)*2 - 1, -((cy - r.top)/r.height)*2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera);
+  const near = (x, z, d) => Math.hypot(player.pos.x - x, player.pos.z - z) < d;
+  if (CHIEF.root && ray.ray.distanceSqToPoint(_cv.set(CHIEF.x, CHIEF.root.position.y + 1, CHIEF.z)) < .5*.5){ if (near(CHIEF.x, CHIEF.z, 5)) xpChief(); else toast('<b>캠장님</b> · 가까이 가서 말을 걸어 보세요'); return true; }
+  if (CAR.g && view !== 'drive' && ray.ray.distanceSqToPoint(_cv.set(CAR.x, CAR.g.position.y + .8, CAR.z)) < 1.3*1.3 && near(CAR.x, CAR.z, 4)){ carEnter(); return true; }
+  return false;
+}
+function xpBindUI(){
+  $('#xp-tent-x').addEventListener('click', () => { $('#xp-tent').hidden = true; EXP.lock = false; });
+  $('#xp-rec-x').addEventListener('click', () => { $('#xp-rec').hidden = true; EXP.lock = false; });
+  document.querySelectorAll('#xp-grill [data-food]').forEach(b => b.addEventListener('click', () => grillAdd(b.dataset.food)));
+  $('#xp-grill-x').addEventListener('click', grillClose);
+  const fm = $('#xp-fish-main');
+  fm.addEventListener('pointerdown', e => { e.preventDefault(); fishDown(); });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) fm.addEventListener(ev, () => { if (FISH.hold) fishUp(); });
+  $('#xp-fish-alt').addEventListener('click', fishLift);
+  $('#xp-fish-x').addEventListener('click', fishStop);
+  $('#xp-hg-flip').addEventListener('click', () => hgFlip(0));
+  $('#xp-hg-ring').addEventListener('click', () => hgRing(0));
+  $('#xp-hg-x').addEventListener('click', () => hgEnd());
+  $('#xp-quest-tg').addEventListener('click', e => { const q = $('#xp-quest'); q.classList.toggle('min'); e.currentTarget.textContent = q.classList.contains('min') ? '펼치기' : '접기'; });
+  $('#xp-end-again').addEventListener('click', () => { location.hash = 'exp'; location.reload(); });
+  $('#xp-end-tour').addEventListener('click', () => { location.hash = ''; location.reload(); });
+  if (isTouch) $('#xp-quest').classList.add('min'), $('#xp-quest-tg').textContent = '펼치기';
+}
+function xpKey(e, down){
+  if (!EXP.on) return false;
+  const c = e.code;
+  if (HG.on){ if (!down) return true; if (c === 'Space'){ hgRing(0); e.preventDefault(); } else if (c === 'KeyF' || c === 'Enter') hgFlip(0); else if (c === 'Escape') hgEnd(); return true; }
+  if (FISH.on){ if (c === 'Space' || c === 'KeyF'){ e.preventDefault(); if (down && !e.repeat) fishDown(); else if (!down) fishUp(); } else if (down && c === 'KeyR') fishLift(); else if (down && c === 'Escape') fishStop(); return true; }
+  if (GR.on){ if (down && c === 'Escape') grillClose(); return true; }
+  if (!down) return false;
+  if (c === 'Escape'){ for (const id of ['#xp-tent', '#xp-rec']) if (!$(id).hidden){ $(id).hidden = true; EXP.lock = false; } return false; }
+  if (c === 'KeyE'){ if (view === 'drive'){ if (Math.abs(CAR.v) < 1.5) carExit(); else toast('속도를 줄인 뒤 내릴 수 있어요'); return true; } if (!EXP.lock && xpPrimary()) return true; return false; }
+  if (view === 'drive' || EXP.lock){ if (['KeyV', 'KeyC', 'Space'].includes(c)) return c !== 'Space' || EXP.lock; }
+  return false;
+}
+function xpMinimap(ctx){
+  if (!EXP.on) return;
+  const dot = (x, z, col, r, txt) => { const [u, v] = w2m(x, z); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(u, v, r, 0, 7); ctx.fill(); if (txt){ ctx.fillStyle = '#1b130a'; ctx.font = `700 ${Math.round(r*1.4)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, u, v + .5); } };
+  if (!EXP.checked) dot(CHIEF.x, CHIEF.z, '#f2b35b', 7, '!');
+  if (CAR.g && view !== 'drive') dot(CAR.x, CAR.z, '#6fb3ff', 5);
+  if (EXP.camp) dot(EXP.camp.site.pad.x - 2, EXP.camp.site.pad.z - 1, '#8fbf98', 6, '⛺'.length > 1 ? '' : '');
+  if (EXP.checked && !EXP.recycled && EXP.trash.length) dot(RECYCLE.x, RECYCLE.z, '#d9b21e', 5);
+}
+
 /* ---------------- HUD: zone, minimap (drawn like the 배치도: mountain on top, entrance on the right), toast ---------------- */
 const zoneEl = $('#zone'), toastEl = $('#toast');
 let lastZone = '', toastTimer = 0;
@@ -4957,6 +6213,7 @@ function drawMapBase(){
 }
 function drawMinimap(){
   mctx.drawImage(mapBase, 0, 0);
+  xpMinimap(mctx);
   const [px,pz] = w2m(player.pos.x, player.pos.z);
   const yaw = view === 'air' ? Math.atan2(camera.position.x - orbit.target.x, camera.position.z - orbit.target.z) : camYaw;
   const rot = Math.PI/2 - yaw;
@@ -5015,6 +6272,7 @@ function bindInput(){
     if (view === 'scope'){ if (e.target && e.target.tagName === 'INPUT' && e.code !== 'Escape') return; scopeKey(e); if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault(); return; }
     if (e.target && e.target.tagName === 'INPUT') return;
     keys.add(e.code);
+    if (xpKey(e, true)) return;
     if (e.code === 'KeyE' && SCOPE.near) scopeOpen();
     if (e.code === 'KeyV') setView(view === 'tp' ? 'fp' : view === 'fp' ? 'air' : 'tp');
     if (e.code === 'KeyC'){ if (view === 'cat') setView('tp'); else catView(); }
@@ -5023,7 +6281,7 @@ function bindInput(){
     if (e.code === 'Space'){ jump(); e.preventDefault(); }
     if (e.code.startsWith('Arrow')) e.preventDefault();
   });
-  addEventListener('keyup', e => keys.delete(e.code));
+  addEventListener('keyup', e => { keys.delete(e.code); if (EXP.on) xpKey(e, false); });
   addEventListener('blur', () => keys.clear());
   let drag = null;
   canvas.addEventListener('pointerdown', e => {
@@ -5036,11 +6294,13 @@ function bindInput(){
     if (!drag || drag.id !== e.pointerId) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; drag.moved += Math.abs(dx)+Math.abs(dy);
     if (view === 'scope'){ scopeDrag(dx, dy); return; }
+    if (view === 'drive'){ CAR.camOff -= dx*.005; return; }
+    if (view === 'xpcam') return;
     const s = e.pointerType === 'touch' ? .0065 : .0045;
     if (view === 'cat'){ catCam.yaw -= dx*s; catCam.pitch = clamp(catCam.pitch - dy*s*.85, -.3, .85); return; }
     camYaw -= dx*s; camPitch = clamp(camPitch - dy*s*.85, view==='fp' ? -1.35 : -1.25, view==='fp' ? 1.3 : .35);
   });
-  const end = e => { if (drag && drag.id === e.pointerId){ if (drag.moved < 6 && (view === 'tp' || view === 'fp') && scopeHit(e.clientX, e.clientY)){ drag = null; if (Math.hypot(player.pos.x - SCOPE.x, player.pos.z - SCOPE.z) < 4.6) scopeOpen(); else toast('<b>망원경</b> · 가까이 가서 클릭(탭)하면 달과 토성을 볼 수 있어요'); return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && catHit(e.clientX, e.clientY)){ catView(); drag = null; return; } if (drag.moved < 4 && view==='fp' && e.pointerType==='mouse') canvas.requestPointerLock?.()?.catch?.(()=>{}); drag = null; } };
+  const end = e => { if (drag && drag.id === e.pointerId){ if (drag.moved < 6 && EXP.on){ if (HG.on && hgClick(e.clientX, e.clientY)){ drag = null; return; } if ((view === 'tp' || view === 'fp') && !EXP.lock && xpHit(e.clientX, e.clientY)){ drag = null; return; } } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && scopeHit(e.clientX, e.clientY)){ drag = null; if (Math.hypot(player.pos.x - SCOPE.x, player.pos.z - SCOPE.z) < 4.6) scopeOpen(); else toast('<b>망원경</b> · 가까이 가서 클릭(탭)하면 달과 토성을 볼 수 있어요'); return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && catHit(e.clientX, e.clientY)){ catView(); drag = null; return; } if (drag.moved < 4 && view==='fp' && e.pointerType==='mouse') canvas.requestPointerLock?.()?.catch?.(()=>{}); drag = null; } };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('wheel', e => { if (view === 'scope'){ scopeFocus(SCOPE.focus - e.deltaY*.0011); e.preventDefault(); return; } if (view === 'cat'){ catCam.dist = clamp(catCam.dist + e.deltaY*.0012, .42, 2.6); e.preventDefault(); return; } if (view === 'tp'){ camDist = clamp(camDist + e.deltaY*.006, 2.2, 14); e.preventDefault(); } }, { passive:false });
   const joyEl = $('#joy'), knob = $('#knob');
@@ -5280,6 +6540,7 @@ function tick(dt, t){
   if (started) updatePlayer(dt); else { hero.update(dt, 0); hero.root.position.copy(player.pos); }
   npcs.forEach(n => n.update(dt, 0));
   scopeUpdate(dt);
+  xpUpdate(dt, t);
   updateCamera(dt);
   const focus = view === 'air' ? orbit.target : view === 'cat' ? CAT.root.position : player.pos;
   const dir = sun.userData.dir || sunDir;
@@ -5311,16 +6572,16 @@ async function boot(){
   setMsg('숲과 풀 심는 중'); makeFoliageMats(); buildForest(); await frame(); buildGrass(); await frame();
   setMsg('계곡과 바위 놓는 중'); buildCreek(); await frame();
   setMsg('배치도대로 사이트와 시설 짓는 중'); await buildCamp(); await frame();
-  setMsg('하늘과 별 띄우는 중'); buildStars(); buildGlows();   // clouds are now drawn procedurally in the sky shader buildWeather(); await frame();
+  setMsg('하늘과 별 띄우는 중'); buildStars(); buildGlows(); occGlow();   // clouds are now drawn procedurally in the sky shader buildWeather(); await frame();
   setMsg('캐릭터 불러오는 중');
   if (await loadAvatar()){ hero = new Avatar(avatarSrc, avatarClips, { Wolf3D_Outfit_Top:0xa7b98a, Wolf3D_Outfit_Bottom:0x7b88a4 }); }
-  addCampers();
+  { const m = occBegin(); addCampers(); occEnd(m); }
   buildRafting();
   catBuild(); npcs.push({ update: dt => catUpdate(dt, U.uTime.value) });
   scene.add(hero.root);
   orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.autoRotateSpeed = .4; orbit.maxPolarAngle = 1.25; orbit.minDistance = 30; orbit.maxDistance = 320; orbit.minAzimuthAngle = AIR.minAz; orbit.maxAzimuthAngle = AIR.maxAz; orbit.enabled = false;
   scopeBuild();
-  drawMapBase(); bindInput(); scopeBindUI();
+  drawMapBase(); bindInput(); scopeBindUI(); xpBindUI();
   player.pos.y = groundAt(player.pos.x, player.pos.z);
   setView('air');
   applySeason(season);
@@ -5334,6 +6595,11 @@ async function boot(){
     teleport(8, -126, Math.PI); setView('tp'); canvas.focus();
     toast('<b>담터 별빛캠핑장</b>에 오신 것을 환영합니다');
   });
+  const bx = $('#btn-exp'); bx.disabled = false;
+  bx.addEventListener('click', () => {
+    $('#intro').hidden = true; started = true;
+    setView('tp'); expStart(); canvas.focus();
+  });
   window.__camp = {
     freeze:()=>renderer.setAnimationLoop(null), resume:()=>{ clock.getDelta(); renderer.setAnimationLoop(loop); },
     step:(n=1,dt=1/30)=>{ for(let i=0;i<n;i++){ simT+=dt; tick(dt, simT); } return renderer.info.render.triangles; },
@@ -5344,6 +6610,7 @@ async function boot(){
     stats:()=>({ fps:Math.round(fps), tris:renderer.info.render.triangles, calls:renderer.info.render.calls, pos:player.pos.toArray().map(v=>+v.toFixed(2)), view, hour, season }),
     setDist:d=>camDist=d, orbit:()=>orbit, camera, keys, zoneAt, H,
     wake: WAKE, cat: CAT, catSet, catView, catCam, catMeow, BF, bfSpawn, catT:(sec)=>{ for (let i=0;i<sec*30;i++){ simT += 1/30; U.uTime.value = simT; catUpdate(1/30, simT); } return CAT.state; }, post: POST, postReset:()=>{ post.w = 0; }, rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ view='air'; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
+    exp: EXP, car: CAR, chief: CHIEF, hg: HG, fishS: FISH, gr: GR, expStart, xpChief, xpCheckIn, xpPitch, xpStrike, xpFireOn, xpFireOff, xpGrillOpen, grillAdd, grillFlip, grillTake, grillClose, fishStart, fishDown, fishUp, fishLift, fishStop, hgStart, hgFlip, hgRing, hgEnd, recOpen, recPick, xpEnd, carEnter, carExit, xpSites:()=>XP_SITES, xpNearWater, xpCtx,
     scope: SCOPE, scopeHit, scopeOpen, scopeClose, scopeSetTarget, scopeSetEyepiece, scopeFocus, scopeLayout,
     raftT:(sec)=>{ for (let i=0;i<sec*30;i++) raftUpdate(1/30); return raft.state; },
     raft:(st, v=0)=>{ raft.state = st; raft.d = v; raft.k = 0; if (st === 'float') raft.z = lerp(RAFT_START, RAFT_END, v); raft.from = [floatX(RAFT_END), RAFT_END, 0]; if (st === 'carry') raft.heading = pathAt(v).h; return st; },
