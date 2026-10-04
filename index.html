@@ -1789,7 +1789,7 @@ async function loadAvatar(){
   } catch (e){ console.warn('avatar fallback', e); return false; }
   try {   // female body (Mixamo rig) driven by the Mixamo idle / walk / run clips, retargeted bone by bone, root motion stripped
     const TL = new THREE.TextureLoader(), tx = u => TL.loadAsync(u).then(t => { t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; });
-    const [f, x, ta] = await Promise.all([ new GLTFLoader().loadAsync('tex/Michelle.glb'), new GLTFLoader().loadAsync('tex/Xbot.glb'), tx('tex/fem_a.jpg') ]);
+    const [f, x, ta] = await Promise.all([ new GLTFLoader().loadAsync('tex/Michelle.gltf.json'), new GLTFLoader().loadAsync('tex/Xbot.gltf.json'), tx('tex/fem_a.jpg') ]);
     // the body's armature is stored rotated +90° with the hips at -90°: fold the two rotations away so it matches the clips' upright armature
     f.scene.traverse(o => { if (o.isMesh) o.material.name = 'Fem_Body'; if (o.name === 'Character') o.quaternion.identity(); if (o.isBone && /Hips$/.test(o.name)){ o.quaternion.identity(); o.position.set(o.position.x, -o.position.z, o.position.y); } });
     femClips = retargetClips(f.scene, x.scene, x.animations.filter(c => /^(idle|walk|run)$/.test(c.name)));
@@ -1944,7 +1944,7 @@ function femAvatar(k, v){
           vec3 inner = uInner; ${V.pat === 1 ? 'if (length(fract(vec2(p.x*80.0, p.y*80.0)) - 0.5) < 0.17) inner = vec3(0.32, 0.45, 0.72);' : ''}
           bool front = p.z > 0.0;
           if (ax > 0.17 && p.y > 1.17 && p.y < 1.35){ if (ax < ${V.sleeve.toFixed(3)}) col = top; else paint = false; }
-          else if (p.y > 1.31){ paint = false; if (p.y < 1.375 && !(col.r > col.g*1.12 && col.g > col.b*1.04)){ col = uSkinC; paint = true; } }
+          else if (p.y > 1.31){ paint = false; if (p.y < 1.405 && !(col.r > col.g*1.12 && col.g > col.b*1.04)){ col = uSkinC; paint = true; } }
           else if (p.y > ${V.topHem.toFixed(3)}){ col = top; if (front && ax < ${V.open.toFixed(3)}) col = p.y > 0.98 ? inner : uShorts;
             if (p.y > 1.255 && front && ax < 0.06 - 0.25*(1.31 - p.y)) paint = false; }
           else if (p.y > ${V.hem.toFixed(3)}){ col = uShorts; ${V.pat === 0 ? 'if (front && abs(ax - 0.062) < 0.0028 && p.y < 0.93) col *= 0.82;' : V.pat === 1 ? 'col *= 0.95 + 0.07*fract(sin(dot(floor(p.xy*400.0), vec2(12.9898, 78.233)))*43758.5);' : ''}

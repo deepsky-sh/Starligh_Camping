@@ -77,7 +77,7 @@ https://deepsky-sh.github.io/Starligh_Camping/
 - `tex/photo*.jpg` — 시작 화면 사진
 - `tex/moon.jpg` — 캠핑장의 90GT 망원경으로 찍은 보름달 사진(원판으로 잘라 색 보정)
 - `tex/hiker.gltf.json`, `tex/hiker_anims.json` — 캐릭터 모델(three.js 예제의 Ready Player Me 샘플 아바타)과 걷기·달리기·대기 애니메이션(three.js 예제 Xbot 애니메이션을 리타깃)
-- `tex/Michelle.glb`, `tex/Xbot.glb`, `tex/fem_a.jpg` — 여성 캐릭터 몸(three.js 예제의 Mixamo 샘플)과 걷기·달리기·대기 애니메이션 소스, 옷·피부를 다시 칠한 텍스처. 가족 캐릭터의 머리·옷·다리는 코드에서 다시 만듭니다
+- `tex/Michelle.gltf.json`, `tex/Xbot.gltf.json`, `tex/fem_a.jpg` — 여성 캐릭터 몸(three.js 예제의 Mixamo 샘플)과 걷기·달리기·대기 애니메이션 소스, 옷·피부를 다시 칠한 텍스처. 가족 캐릭터의 머리·옷·다리는 코드에서 다시 만듭니다
 
 캠핑장 정보 출처: [한국관광공사 고캠핑 · 별빛캠핑장](https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=1499&viewType=read01)
 
