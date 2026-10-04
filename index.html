@@ -103,6 +103,42 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .modal-card .src a{color:var(--pine)}
 .modal-close{margin-top:16px;border:1px solid var(--line);background:transparent;border-radius:9px;padding:8px 16px}
 
+.act{position:fixed;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:9px;border:1px solid rgba(242,179,91,.6);background:var(--glass-strong);border-radius:999px;padding:10px 18px 10px 14px;font-size:14px;font-weight:500;box-shadow:0 6px 24px rgba(0,0,0,.35);white-space:nowrap}
+.act svg{width:20px;height:20px;flex:none;color:var(--amber)}
+.act kbd{font-family:var(--f-ui);font-size:11px;background:rgba(255,255,255,.1);border-radius:4px;padding:1px 6px;color:var(--muted)}
+.act:hover{border-color:var(--amber)}
+.fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .26s ease;z-index:8}
+.fade.on{opacity:1}
+body.scoping .brand,body.scoping #menu-toggle,body.scoping .panel,body.scoping .mapwrap,body.scoping .help,body.scoping .joy,body.scoping .tbtns,body.scoping .act{display:none!important}
+body.scoping #c{cursor:grab}
+.scope{position:fixed;inset:0;z-index:5;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px))}
+.scope > *{pointer-events:auto}
+.scope-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
+.scope-top > *{pointer-events:auto}
+.scope-id{min-width:0}
+.scope-id .eyebrow{font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.scope-id h2{margin:2px 0 0;font-family:var(--f-display);font-size:22px;font-weight:700}
+.scope-id .read{margin-top:3px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.scope-close{flex:none;border:1px solid var(--line);background:var(--glass-strong);border-radius:10px;padding:8px 12px;font-size:13px}
+.scope-close kbd{font-family:var(--f-ui);font-size:10.5px;opacity:.6;margin-left:4px}
+.scope-bar{align-self:center;width:min(660px,100%);display:grid;grid-template-columns:auto 1fr;gap:9px 12px;align-items:center;background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:12px 14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.scope-bar .lbl{font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted);white-space:nowrap}
+.seg.two{grid-template-columns:repeat(2,1fr)}
+.seg button small{display:block;font-size:10.5px;opacity:.75;font-weight:500}
+.scope-bar .range-row{margin:0}
+.scope-bar .range-row output{width:44px}
+.scope-foot{grid-column:1 / -1;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.scope-note{font-size:11.5px;color:var(--muted);line-height:1.5;margin:0}
+.scope-foot button{flex:none;border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:8px;padding:6px 10px;font-size:12px}
+.scope-hint{grid-column:1 / -1;font-size:11px;color:var(--muted);opacity:.8;text-align:center}
+@media (min-width:900px) and (min-aspect-ratio:5/4){
+  .scope-bar{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:292px;grid-template-columns:1fr;gap:6px;padding:14px}
+  .scope-bar .seg{margin-bottom:6px}
+  .scope-bar .range-row{margin-bottom:4px}
+  .scope-foot{flex-direction:column;align-items:stretch;gap:8px}
+  .scope-foot button{align-self:flex-start}
+  .scope-hint{text-align:left;line-height:1.5}
+}
 @media (max-width:760px){
   .brand{padding:9px 12px;max-width:calc(100vw - 120px)}
   .brand h1{font-size:18px;margin:1px 0 4px}
@@ -113,7 +149,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
   .map-cap{display:none}
   .help{display:none}
   .intro-card h2{font-size:24px}
+  .scope-id h2{font-size:19px}
+  .scope-id .eyebrow{font-size:10px}
+  .scope-bar{padding:10px 12px;gap:7px 10px}
+  .scope-note{font-size:11px}
+  .act{bottom:calc(222px + env(safe-area-inset-bottom,0px))}
 }
+@media (pointer:coarse){ .act kbd{display:none} }
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
 </style>
 
@@ -176,8 +218,30 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
   <div class="map-cap">배치도 · 클릭하여 이동 · 오른쪽이 진입로</div>
   <canvas id="minimap" width="552" height="206" aria-label="캠핑장 배치도"></canvas>
 </div>
-<div class="help" id="help"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 · <kbd>Shift</kbd> 달리기 · <kbd>Space</kbd> 점프 · 드래그 둘러보기 · 휠 줌 · <kbd>C</kbd> 봄이 · <kbd>V</kbd> 시점 · <kbd>T</kbd> 시간 · <kbd>Y</kbd> 계절</div>
+<div class="help" id="help"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 · <kbd>Shift</kbd> 달리기 · <kbd>Space</kbd> 점프 · 드래그 둘러보기 · 휠 줌 · <kbd>C</kbd> 봄이 · <kbd>E</kbd> 망원경(밤) · <kbd>V</kbd> 시점 · <kbd>T</kbd> 시간 · <kbd>Y</kbd> 계절</div>
 <div class="toast" id="toast"></div>
+<button class="act" id="act-scope" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5l13-5.2 1.6 4-13 5.2z"/><path d="M18.1 10.3l2.2-.9-1.6-4-2.2.9"/><path d="M10 13.3l-3 7.2M12 12.6l3 7.9M11 13v7.5"/></svg>망원경 들여다보기<kbd>E</kbd></button>
+<div class="fade" id="fade"></div>
+<section class="scope" id="scope" hidden aria-label="망원경 아이피스 시야">
+  <div class="scope-top">
+    <div class="scope-id">
+      <div class="eyebrow">셀레스트론 넥스타 90GT · 구경 90mm · 초점거리 910mm 굴절망원경</div>
+      <h2 id="sc-name">달</h2>
+      <div class="read" id="sc-read"></div>
+    </div>
+    <button class="scope-close" id="sc-close">눈 떼기<kbd>Esc</kbd></button>
+  </div>
+  <div class="scope-bar" id="sc-bar">
+    <span class="lbl">대상</span>
+    <div class="seg two" id="sc-tgt"><button data-t="moon" aria-pressed="true">달</button><button data-t="saturn" aria-pressed="false">토성</button></div>
+    <span class="lbl">아이피스</span>
+    <div class="seg" id="sc-ep"><button data-e="0" aria-pressed="true">20mm<small>46배</small></button><button data-e="1" aria-pressed="false">14mm<small>65배</small></button><button data-e="2" aria-pressed="false">9mm<small>101배</small></button></div>
+    <span class="lbl">초점</span>
+    <div class="range-row"><input id="sc-focus" type="range" min="-1" max="1" step="0.01" value="0" aria-label="초점 조절"><output id="sc-focus-out">맞음</output></div>
+    <div class="scope-foot"><p class="scope-note" id="sc-note"></p><button id="sc-center">다시 겨누기</button></div>
+    <div class="scope-hint" id="sc-hint">드래그·방향키 미동 · 휠·[ ] 초점 · 1·2·3 아이피스 · M 달 · S 토성 · 더블클릭 다시 겨누기</div>
+  </div>
+</section>
 
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
 <div class="tbtns" id="tbtns" hidden><button id="tb-run" aria-pressed="false">달리기</button><button id="tb-jump">점프</button></div>
@@ -213,7 +277,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
       <dt>대피로</dt><dd>중앙 통로를 따라 진입로(북서쪽 다리) 방향으로 이동합니다. 메뉴의 ‘대피로 표시’로 바닥 화살표를 볼 수 있습니다.</dd>
       <dt>입·퇴실</dt><dd>입실 14:00 · 퇴실 11:00 (연중 운영)</dd>
       <dt>마스코트</dt><dd>은빛 스코티시폴드 고양이 ‘봄이’ — 관리동 앞을 돌아다니다 나비를 보면 살금살금 따라가 덮치고, 밤과 겨울엔 매점 문 앞에서 낮잠을 잡니다. <b>C</b> 키나 봄이를 클릭(탭)하면 얼굴을 가까이 볼 수 있고, 다가가면 ‘냥~’ 하고 인사하며 눈을 깜빡여요 (바로가기 ‘고양이 봄이’)</dd>
-      <dt>렌더링</dt><dd>직접 작성한 GLSL 셰이더: 화면공간 앰비언트 오클루전·대기 원근·블룸·필름 톤, 숲 잎 뭉치 노이즈·투과광, 피부 피하산란·머리카락 이방성 하이라이트·옷 주름, 절차적 구름, 지면 범프. 메뉴의 ‘그래픽’에서 단계 조절</dd>
+      <dt>별 관측</dt><dd>밤이 되면 관리동과 C사이트 사이 인조잔디 옆에 셀레스트론 넥스타 90GT(구경 90mm·초점거리 910mm) 굴절망원경이 설치됩니다. 가까이 가서 망원경을 클릭(탭)하거나 <b>E</b> 키를 누르면 달과 토성을 볼 수 있고, 아이피스 20mm(46배)·14mm(65배)·9mm(101배)로 배율을 바꿀 수 있어요 (바로가기 ‘별빛 망원경’)</dd>
+      <dt>렌더링</dt><dd>직접 작성한 GLSL 셰이더: 화면공간 앰비언트 오클루전·대기 원근·블룸·필름 톤, 숲 잎 뭉치 노이즈·투과광, 피부 피하산란·머리카락 이방성 하이라이트·옷 주름, 절차적 구름, 지면 범프, 망원경 시야(시야 조리개·대기 흔들림·초점·색수차, 달은 이 망원경으로 찍은 사진, 토성은 띠·고리·그림자·위성을 계산하는 절차적 셰이더). 메뉴의 ‘그래픽’에서 단계 조절</dd>
     </dl>
     <div class="src">배치는 캠핑장 배치도 및 대피안내도를 따랐고, 운영 정보 출처는 <a href="https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=1499&viewType=read01" target="_blank" rel="noopener">한국관광공사 고캠핑 · 별빛캠핑장</a>입니다. 요금과 운영 정보는 바뀔 수 있으니 예약 전에 확인하세요.</div>
     <button class="modal-close" id="info-close">닫기</button>
@@ -489,11 +554,27 @@ sky.material.fragmentShader = sky.material.fragmentShader
     float cH(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
     float cN(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0 - 2.0*f); return mix(mix(cH(mod(i, 512.0)), cH(mod(i + vec2(1, 0), 512.0)), f.x), mix(cH(mod(i + vec2(0, 1), 512.0)), cH(mod(i + vec2(1, 1), 512.0)), f.x), f.y); }
     float cF(vec2 p){ float s = 0.0, a = 0.5; mat2 r = mat2(0.8, -0.6, 0.6, 0.8); for (int i=0;i<6;i++){ s += a*cN(p); p = r*p*2.03 + 7.1; a *= 0.5; } return s; }
+    uniform vec3 uMoonDir; uniform vec3 uSatDir; uniform sampler2D uMoonTex; uniform float uMoonR; uniform float uMoonVis;
     void main() {`)
   .replace('gl_FragColor = vec4( retColor, 1.0 );', `float lum = dot(retColor, vec3(0.2126, 0.7152, 0.0722));
 			retColor = max(mix(vec3(lum), retColor, uSat), 0.0) * uGain;
 			float up = clamp(direction.y, 0.0, 1.0);
 			retColor = mix(retColor, mix(vec3(0.018, 0.028, 0.06), vec3(0.004, 0.007, 0.018), pow(up, 0.5)), uNight);
+			vec3 mD = normalize(uMoonDir); float mc = dot(direction, mD), mGlow = 0.0;
+			if (uMoonVis > 0.001){
+				float sn = clamp(length(cross(direction, mD)), 0.0, 1.0), ang = mc > 0.0 ? asin(sn) : 3.14159 - asin(sn);
+				mGlow = (exp(-ang*9.0)*0.05 + exp(-ang*60.0)*0.22)*uMoonVis;      // aureole and corona around the moon
+				retColor += vec3(0.55, 0.62, 0.82)*mGlow*0.6;
+				if (mc > 0.99){
+					vec3 mx = normalize(cross(mD, vec3(0.0, 1.0, 0.0))), my = cross(mx, mD);
+					vec2 q = vec2(dot(direction, mx), dot(direction, my))/uMoonR;
+					float r = length(q), aa = fwidth(r)*1.2 + 1e-3;
+					vec3 mt = texture2D(uMoonTex, vec2(0.5 + q.y*0.5, 0.5 + q.x*0.5)).rgb;   // the eyepiece photo turned back to the naked-eye orientation
+					retColor = mix(retColor, mt*1.7, (1.0 - smoothstep(1.0 - aa, 1.0 + aa, r))*uMoonVis);
+				}
+				vec3 sD = normalize(uSatDir); float sa = length(cross(direction, sD)), pa = length(fwidth(direction))*0.85 + 1e-5;
+				if (dot(direction, sD) > 0.0) retColor += vec3(1.0, 0.86, 0.62)*exp(-sa*sa/(pa*pa))*1.5*uMoonVis;   // Saturn, a steady yellowish point
+			}
 			if (direction.y > 0.0){
 				vec2 cp = direction.xz/(direction.y + 0.1)*1.7 + vec2(uTime*0.006, uTime*0.0025);
 				float n = cF(cp);
@@ -504,10 +585,12 @@ sky.material.fragmentShader = sky.material.fragmentShader
 				float edge = 1.0 - smoothstep(uCov, uCov + 0.18, n);
 				float silver = pow(max(dot(direction, vSunDirection), 0.0), 6.0)*edge;
 				vec3 cc = mix(uCloudDark, uCloudLit, lit) + uCloudLit*silver*0.9;
+				cc += vec3(0.6, 0.66, 0.8)*(mGlow*1.8 + pow(max(mc, 0.0), 40.0)*0.06*uMoonVis)*lit;   // moonlit cloud edges
 				cc = mix(cc, retColor, 0.18*smoothstep(0.2, 0.0, direction.y));
 				retColor = mix(retColor, cc, dens*0.96);
 			}
 			gl_FragColor = vec4( retColor, 1.0 );`);
+skyU.uMoonDir = { value: new THREE.Vector3(0, 1, 0) }; skyU.uSatDir = { value: new THREE.Vector3(0, 1, 0) }; skyU.uMoonTex = { value: null }; skyU.uMoonR = { value: THREE.MathUtils.degToRad(.36) }; skyU.uMoonVis = { value: 0 };
 sky.material.needsUpdate = true;
 const envScene = new THREE.Scene(); const envSky = new Sky(); envSky.scale.setScalar(8000); envSky.material = sky.material; envScene.add(envSky);
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -574,7 +657,7 @@ const mat = {
 for (const k of ['roof','roofBrown','roofBlue','wood','woodDark','concrete','stone','log','white','whiteStone']) snowPatch(mat[k], k==='white'||k==='log' ? .6 : 1);
 
 /* ---------------- terrain ---------------- */
-let gravelTex, detailTex, terrainUniforms = null;
+let gravelTex, detailTex, terrainUniforms = null, moonTex = null;
 async function loadTextures(){
   const tl = new THREE.TextureLoader();
   const tryLoad = (url, srgb) => tl.loadAsync(url).then(t => { t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=maxAniso; if (srgb) t.colorSpace=THREE.SRGBColorSpace; return t; }).catch(()=>null);
@@ -582,6 +665,10 @@ async function loadTextures(){
   if (!gravelTex) gravelTex = canvasTex(256,256,(g)=>{ for(let i=0;i<9000;i++){ const v=150+Math.random()*90; g.fillStyle=`rgb(${v},${v},${v+4})`; g.fillRect(Math.random()*256,Math.random()*256,3,3);} });
   if (!detailTex) detailTex = canvasTex(256,256,(g)=>{ for(let i=0;i<4000;i++){ const v=Math.random()*255; g.fillStyle=`rgba(${v},${v},${v},.5)`; g.beginPath(); g.arc(Math.random()*256,Math.random()*256,2+Math.random()*6,0,7); g.fill(); } }, false);
   gravelTex.wrapS=gravelTex.wrapT=detailTex.wrapS=detailTex.wrapT=THREE.RepeatWrapping;
+  moonTex = await tryLoad('tex/moon.jpg', true);
+  if (!moonTex) moonTex = canvasTex(64, 64, (g) => { g.fillStyle = '#000'; g.fillRect(0, 0, 64, 64); g.fillStyle = '#d9d6cc'; g.beginPath(); g.arc(32, 32, 31.5, 0, 7); g.fill(); g.fillStyle = 'rgba(90,96,104,.55)'; for (const [x, y, r] of [[24,22,9],[38,30,7],[30,42,6],[44,18,4]]){ g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } });
+  moonTex.wrapS = moonTex.wrapT = THREE.ClampToEdgeWrapping; moonTex.anisotropy = 4;
+  skyU.uMoonTex.value = moonTex;
 }
 function gridCoords(n, center, extent, k){ const a=[]; const sk=Math.sinh(k); for(let i=0;i<=n;i++){ const u=i/n*2-1; a.push(center + extent*Math.sinh(k*u)/sk); } return a; }
 function buildTerrain(){
@@ -4138,6 +4225,7 @@ function updatePlayer(dt){
   if (joy.active){ ix += joy.x; iz += -joy.y; }
   if (view === 'air') { ix = 0; iz = 0; }
   if (view === 'cat'){ if (Math.hypot(ix, iz) > .2) setView('tp'); ix = 0; iz = 0; }
+  if (view === 'scope'){ ix = 0; iz = 0; }
   const il = Math.hypot(ix,iz); if (il > 1){ ix/=il; iz/=il; }
   const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || (joy.active && Math.hypot(joy.x,joy.y) > .92);
   const maxS = (running ? 5.4 : 2.1) * (season === 'winter' ? .9 : 1);
@@ -4162,6 +4250,7 @@ const camTarget = new THREE.Vector3(), camPos = new THREE.Vector3();
 const AIR = { minAz:.35, maxAz:2.1 };
 function updateCamera(dt){
   if (view === 'cat'){ catCamUpdate(dt); return; }
+  if (view === 'scope') return;
   if (view === 'air'){ if (!orbit.enabled) return; const az = orbit.getAzimuthalAngle(); if (az > AIR.maxAz - .05) orbit.autoRotateSpeed = -Math.abs(orbit.autoRotateSpeed); if (az < AIR.minAz + .05) orbit.autoRotateSpeed = Math.abs(orbit.autoRotateSpeed); orbit.update(); return; }
   const p = player.pos;
   if (view === 'fp'){
@@ -4223,6 +4312,7 @@ function applyTime(h){
   skyU.sunPosition.value.copy(sunDir);
   const day = smooth(-4, 12, el), dusk = smooth(22, 3, el)*smooth(-7, 1, el);
   dayF = day; nightF = smooth(3, -8, el);
+  skyU.uMoonVis.value = nightF; skyU.uMoonDir.value.copy(moonDir); if (!SCOPE.satDir.lengthSq()) bearingDir(128, 36, SCOPE.satDir); skyU.uSatDir.value.copy(SCOPE.satDir);
   skyU.rayleigh.value = lerp(2.6, 3.0, dusk); skyU.turbidity.value = lerp(season==='winter'?2.2:1.8, 5, dusk);
   skyU.uGain.value = lerp(1, .72, day); skyU.uSat.value = lerp(1.1, season==='winter'?1.45:1.7, day); skyU.uNight.value = smooth(-2, -12, el);
   const sunI = 3.6*smooth(-1, 10, el), moonI = .55*nightF*(season==='winter'?1.25:1);
@@ -4283,6 +4373,515 @@ function applySeason(s, announce=false){
   document.querySelectorAll('#seg-season button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === s)));
   setHour(wasDusk ? presetHour('dusk') : hourTarget, true);
   if (announce) toast('<b>' + S.label + '</b>의 담터 별빛캠핑장');
+}
+
+/* ---------------- 별 관측 망원경 (night only): Celestron NexStar 90GT-type 90 mm f/10 achromatic refractor on a single-arm GoTo mount,
+   set up on the gravel beside a turf mat between 관리동 and the C sites. Click it (or E) up close to look through the eyepiece:
+   the view is a full-screen GLSL pass — field stop, seeing, focus, achromat colour fringe — showing the full moon (a real photo through
+   this telescope) or Saturn (procedural globe bands, rings with Cassini division, globe/ring shadows, moons). Eyepieces 20/14/9 mm. ---------------- */
+const SCOPE_F = 910, SCOPE_D = 90, SAT_BOOST = 10, SAT_RE = 9.6/3600;           // focal length & aperture (mm); Saturn eq. radius (deg)
+const EYEPIECES = [{ f:20, afov:50, len:.06 }, { f:14, afov:50, len:.054 }, { f:9, afov:50, len:.048 }];
+const SCOPE = { x:-9.2, z:15.4, matX:-9.3, matZ:13.55, yT:.93, yH:.38, built:false, on:false, prev:'tp', tgt:'moon', ep:0, epShown:0, focus:0,
+  az:0, alt:.8, slewing:false, slewDark:0, show:0, off:new THREE.Vector2(), offGoal:null, shake:0, swapT:1, swapEp:null, fade:0, near:false,
+  satDir:new THREE.Vector3(), motor:null, col:null };
+const scopeMag = i => SCOPE_F/EYEPIECES[i].f;
+const scopeTF = i => EYEPIECES[i].afov/scopeMag(i);                                   // true field (deg)
+function ledTex(){
+  return canvasTex(128, 48, (g, w, h) => {
+    g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#ff2a14'; g.font = '700 34px "IBM Plex Sans KR", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('12.6V', w/2, h/2 + 2);
+  });
+}
+function scopeBuild(){
+  const S = SCOPE, V = (x, y, z) => new THREE.Vector3(x, y, z);
+  bearingDir(128, 36, S.satDir);
+  const cyl = (r, h, seg = 24, r2 = r) => new THREE.CylinderGeometry(r, r2, h, seg);
+  const zAx = g => g.rotateX(Math.PI/2), xAx = g => g.rotateZ(Math.PI/2);
+  // y axis of g along a→b, x axis along `side`
+  const orient = (g, a, b, side) => {
+    const d = b.clone().sub(a).normalize(), xA = side.clone().addScaledVector(d, -side.dot(d)).normalize(), zA = new THREE.Vector3().crossVectors(xA, d);
+    return g.applyMatrix4(new THREE.Matrix4().makeBasis(xA, d, zA).setPosition((a.x + b.x)/2, (a.y + b.y)/2, (a.z + b.z)/2));
+  };
+  const mOta = new THREE.MeshPhysicalMaterial({ color:0x08090b, roughness:.38, metalness:.1, clearcoat:.7, clearcoatRoughness:.14, envMapIntensity:.55 });
+  const mSatin = M(0x141518, { roughness:.5, metalness:.25 }), mBody = M(0x1c1d20, { roughness:.42, metalness:.2 });
+  const mAlu = M(0x1c1d20, { roughness:.34, metalness:.75 }), mLeg = M(0xb4b8bd, { roughness:.28, metalness:.9 });
+  const mSilver = M(0xc8ccd0, { roughness:.22, metalness:1 }), mChrome = M(0xe8eaec, { roughness:.07, metalness:1 });
+  const mRed = M(0x9b1d1d, { roughness:.3, metalness:.55 }), mCopper = M(0xc26a33, { roughness:.28, metalness:.9 });
+  const mRubber = M(0x0d0d0e, { roughness:.92 }), mPlastic = M(0x202226, { roughness:.6, metalness:.05 });
+  const mGlass = new THREE.MeshPhysicalMaterial({ color:0x040506, roughness:.03, metalness:0, clearcoat:1, clearcoatRoughness:.02, iridescence:1, iridescenceIOR:1.45, iridescenceThicknessRange:[240, 520], envMapIntensity:2.2 });
+  const mInner = M(0x040404, { roughness:.97, side:THREE.BackSide });
+  const mWhite = snowPatch(M(0xe9e7e0, { roughness:.5 }), .6), mCable = M(0xb31a16, { roughness:.5 });
+  S.led = new THREE.MeshStandardMaterial({ color:0x080101, emissive:0xffffff, emissiveMap:ledTex(), emissiveIntensity:0, roughness:.35 });
+  S.keyMat = new THREE.MeshStandardMaterial({ color:0x240707, emissive:0xff2a14, emissiveIntensity:0, roughness:.55 });
+  S.lcdMat = new THREE.MeshStandardMaterial({ color:0x150604, emissive:0xff5a1e, emissiveIntensity:0, roughness:.3 });
+  const knurl = (r, h, n = 20) => { const g = cyl(r, h, n).toNonIndexed(); g.computeVertexNormals(); return g; };
+  const yT = S.yT, yH = S.yH, yTray = .43;
+  const root = new THREE.Group(); S.root = root;
+
+  // ---- tripod: twin-rail upper legs, silver extensions, leg locks, spreader with eyepiece tray, centre tension knob
+  const T = makeBuilder();
+  T.geo(mAlu, cyl(.088, .03, 40), 0, yT - .015, 0); T.geo(mSilver, cyl(.0885, .004, 40), 0, yT - .002, 0);
+  const legA = [0, 2*Math.PI/3, 4*Math.PI/3];
+  S.legs = [];
+  for (const a of legA){
+    const u = V(Math.sin(a), 0, Math.cos(a)), t = V(Math.cos(a), 0, -Math.sin(a));
+    const P0 = u.clone().multiplyScalar(.078).setY(yT - .04), P1 = u.clone().multiplyScalar(.5).setY(.012);
+    const dir = P1.clone().sub(P0).normalize(), out = new THREE.Vector3().crossVectors(t, dir).normalize();
+    if (out.dot(u) < 0) out.negate();
+    const Pm = P0.clone().lerp(P1, .56), Pl = P0.clone().lerp(P1, .5);
+    T.add(mPlastic, orient(new THREE.BoxGeometry(.052, .07, .034), P0.clone().addScaledVector(dir, -.02), P0.clone().addScaledVector(dir, .05), t));
+    T.add(mSilver, orient(cyl(.0055, .07, 10), P0.clone().addScaledVector(t, -.035), P0.clone().addScaledVector(t, .035), dir));
+    for (const sd of [-1, 1]){
+      const off = t.clone().multiplyScalar(sd*.02), a0 = P0.clone().addScaledVector(dir, .045).add(off), a1 = Pm.clone().add(off);
+      T.add(mAlu, orient(new THREE.BoxGeometry(.012, a0.distanceTo(a1), .026), a0, a1, t));
+    }
+    T.add(mPlastic, orient(new THREE.BoxGeometry(.062, .056, .036), Pm.clone().addScaledVector(dir, -.028), Pm.clone().addScaledVector(dir, .028), t));
+    T.add(mPlastic, orient(knurl(.012, .026, 12), Pm.clone().addScaledVector(out, .017), Pm.clone().addScaledVector(out, .043), t));
+    const lowEnd = P1.clone().addScaledVector(dir, -.03);
+    T.add(mLeg, orient(cyl(.0105, Pl.distanceTo(lowEnd), 16), Pl, lowEnd, t));
+    T.add(mRubber, orient(cyl(.016, .036, 14, .013), lowEnd, P1.clone().addScaledVector(dir, .006), t));
+    const s = (P0.y - yTray)/(P0.y - P1.y), Pt = P0.clone().lerp(P1, s);
+    T.add(mPlastic, orient(new THREE.BoxGeometry(.03, .03, .03), Pt.clone().addScaledVector(dir, -.015), Pt.clone().addScaledVector(dir, .015), t));
+    const C = V(0, yTray - .006, 0), Pe = Pt.clone().addScaledVector(u, -.012).setY(yTray - .006);
+    T.add(mPlastic, orient(new THREE.BoxGeometry(.016, C.distanceTo(Pe), .01), C, Pe, V(0, 1, 0)));
+    S.legs.push({ P0, P1, dir, t, out, u });
+  }
+  T.geo(mSilver, cyl(.007, yT - .05 - yTray, 10), 0, (yT - .05 + yTray)/2, 0);
+  T.geo(mPlastic, knurl(.027, .022, 18), 0, yTray - .035, 0);
+  // accessory tray (rounded triangle with three 1.25" eyepiece holes)
+  const tsh = new THREE.Shape(), cs = legA.map(a => new THREE.Vector2(Math.sin(a)*.2, -Math.cos(a)*.2));
+  for (let i=0;i<3;i++){ const c = cs[i], pa = c.clone().lerp(cs[(i + 2)%3], .2), pb = c.clone().lerp(cs[(i + 1)%3], .2); if (i === 0) tsh.moveTo(pa.x, pa.y); else tsh.lineTo(pa.x, pa.y); tsh.quadraticCurveTo(c.x, c.y, pb.x, pb.y); }
+  tsh.closePath();
+  S.trayPos = legA.map(a => { const b = a + Math.PI/3; return V(Math.sin(b)*.088, yTray + .012, Math.cos(b)*.088); });
+  for (const p of S.trayPos){ const h = new THREE.Path(); h.absarc(p.x, -p.z, .0172, 0, Math.PI*2, true); tsh.holes.push(h); }
+  const trayG = new THREE.ExtrudeGeometry(tsh, { depth:.01, bevelEnabled:true, bevelThickness:.003, bevelSize:.003, bevelSegments:2, curveSegments:12 });
+  trayG.rotateX(-Math.PI/2); trayG.translate(0, yTray, 0); T.add(mPlastic, trayG);
+  T.flush(root);
+
+  // ---- hand controller clipped to the back-left leg: red-lit keypad, orange LCD, coiled cable to the mount
+  { const L = S.legs[2], at = L.P0.clone().lerp(L.P1, .36).addScaledVector(L.out, .03);
+    const hc = new THREE.Group(), B = makeBuilder();
+    const rr = new THREE.Shape(), w = .036, hh = .085, r = .014;
+    rr.moveTo(-w + r, -hh); rr.lineTo(w - r, -hh); rr.quadraticCurveTo(w, -hh, w, -hh + r); rr.lineTo(w, hh - r); rr.quadraticCurveTo(w, hh, w - r, hh); rr.lineTo(-w + r, hh); rr.quadraticCurveTo(-w, hh, -w, hh - r); rr.lineTo(-w, -hh + r); rr.quadraticCurveTo(-w, -hh, -w + r, -hh);
+    const body = new THREE.ExtrudeGeometry(rr, { depth:.02, bevelEnabled:true, bevelThickness:.005, bevelSize:.005, bevelSegments:2, curveSegments:6 });
+    B.add(mPlastic, body);
+    B.geo(S.lcdMat, new THREE.PlaneGeometry(.05, .019), 0, .052, .0256);
+    B.geo(mRubber, new THREE.BoxGeometry(.056, .025, .002), 0, .052, .0248);
+    for (let row=0; row<4; row++) for (let col=0; col<3; col++) B.geo(S.keyMat, new THREE.BoxGeometry(.013, .0085, .004), (col - 1)*.019, -.02 - row*.014, .0265);
+    for (const [dx, dy] of [[0,.032],[0,.008],[-.014,.02],[.014,.02]]) B.geo(S.keyMat, new THREE.BoxGeometry(.011, .009, .004), dx, dy, .0265);
+    B.flush(hc);
+    hc.matrixAutoUpdate = false;
+    const xA = L.t.clone().negate(), yA = L.dir.clone().negate(), zA = new THREE.Vector3().crossVectors(xA, yA); if (zA.dot(L.u) < 0){ xA.negate(); zA.negate(); }
+    hc.matrix.makeBasis(xA, yA, zA).setPosition(at); root.add(hc);
+    T.add(mPlastic, orient(new THREE.BoxGeometry(.05, .03, .02), at.clone().addScaledVector(L.dir, -.015).addScaledVector(L.out, -.018), at.clone().addScaledVector(L.dir, .015).addScaledVector(L.out, -.018), L.t));
+    // coiled cord from the controller's bottom end to the port on the arm
+    const p0 = at.clone().addScaledVector(L.dir, .09), p1 = V(-.12, .22, -.2), p2 = V(.06, yT + .05, -.06);
+    const base = new THREE.QuadraticBezierCurve3(p0, p1, p2), pts = [];
+    for (let i=0;i<=360;i++){
+      const tt = i/360, c = base.getPoint(tt), tg = base.getTangent(tt).normalize();
+      const n1 = new THREE.Vector3().crossVectors(tg, V(0, 1, 0)); if (n1.lengthSq() < 1e-4) n1.set(1, 0, 0); n1.normalize(); const n2 = new THREE.Vector3().crossVectors(tg, n1);
+      const coil = smooth(0, .12, tt)*smooth(1, .85, tt), ph = tt*Math.PI*2*34;
+      pts.push(c.addScaledVector(n1, Math.cos(ph)*.011*coil).addScaledVector(n2, Math.sin(ph)*.011*coil));
+    }
+    T.add(mRubber, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 720, .0022, 5, false));
+    T.flush(root);
+  }
+
+  // ---- mount: base with copper ring, curved single arm, altitude hub and clutch knob (rotates in azimuth)
+  const gAz = new THREE.Group(); gAz.position.y = yT; root.add(gAz); S.gAz = gAz;
+  const A = makeBuilder();
+  A.geo(mBody, cyl(.084, .055, 44), 0, .0275, 0);
+  A.geo(mCopper, cyl(.0856, .009, 44), 0, .058, 0);
+  A.geo(mSatin, cyl(.079, .022, 44), 0, .073, 0);
+  const ash = new THREE.Shape();
+  ash.moveTo(-.07, .075); ash.lineTo(.072, .075); ash.bezierCurveTo(.088, .16, .078, .26, .0678, yH - .005);
+  ash.absarc(0, yH, .068, -.07, Math.PI + .25, false); ash.bezierCurveTo(-.082, .26, -.092, .16, -.07, .075);
+  const ag = new THREE.ExtrudeGeometry(ash, { depth:.046, bevelEnabled:true, bevelThickness:.008, bevelSize:.008, bevelSegments:3, curveSegments:28 });
+  ag.rotateY(-Math.PI/2); ag.translate(.145, 0, 0); A.add(mBody, ag);
+  A.geo(mSatin, xAx(cyl(.056, .016, 40)), .083, yH, 0); A.geo(mSilver, xAx(cyl(.0572, .004, 40)), .0755, yH, 0);
+  A.geo(mPlastic, xAx(knurl(.026, .02, 18)), .163, yH, 0); A.geo(mSilver, xAx(cyl(.012, .004, 16)), .175, yH, 0);
+  A.geo(mRubber, new THREE.BoxGeometry(.004, .016, .026), .154, .17, -.03); A.geo(mRed, new THREE.BoxGeometry(.004, .01, .012), .154, .2, .03);
+  A.flush(gAz);
+
+  // ---- optical tube on the altitude axis: red dovetail, glossy tube, dew shield, multi-coated objective, rack-and-pinion focuser, star diagonal, 5x24 finder
+  const gAlt = new THREE.Group(); gAlt.position.y = yH; gAz.add(gAlt); S.gAlt = gAlt;
+  const O = makeBuilder();
+  O.geo(mRed, new THREE.BoxGeometry(.014, .036, .3), .061, 0, -.02);
+  for (const zz of [-.15, -.1, .07, .12]) for (const yy of [-.009, .009]) O.geo(mSilver, xAx(cyl(.0034, .003, 8)), .0685, yy, zz);
+  O.geo(mSatin, new THREE.BoxGeometry(.008, .07, .13), .071, 0, 0);
+  O.geo(mOta, zAx(cyl(.051, .69, 48)), 0, 0, .015);
+  O.geo(mRed, zAx(cyl(.0525, .012, 48)), 0, 0, .354);
+  O.geo(mSatin, zAx(new THREE.CylinderGeometry(.057, .057, .22, 48, 1, true)), 0, 0, .47);
+  O.geo(mInner, zAx(new THREE.CylinderGeometry(.0548, .0548, .22, 40, 1, true)), 0, 0, .47);
+  O.add(mSatin, new THREE.RingGeometry(.05, .057, 48).rotateY(Math.PI).translate(0, 0, .36));
+  O.geo(mSatin, new THREE.TorusGeometry(.0558, .0022, 8, 48), 0, 0, .58);
+  O.geo(mSatin, zAx(cyl(.052, .012, 40)), 0, 0, .372);
+  O.add(mGlass, new THREE.CircleGeometry(.046, 48).translate(0, 0, .3785));
+  O.geo(mRubber, new THREE.TorusGeometry(.0462, .0016, 6, 48), 0, 0, .379);
+  O.geo(mSatin, zAx(cyl(.0535, .03, 40)), 0, 0, -.345);
+  O.geo(mSilver, zAx(cyl(.054, .004, 40)), 0, 0, -.331);
+  O.geo(mSatin, zAx(cyl(.036, .07, 32)), 0, 0, -.395);
+  O.geo(mSatin, new THREE.BoxGeometry(.05, .03, .056), 0, -.042, -.39);
+  for (const sx of [-1, 1]){ O.geo(mRubber, xAx(knurl(.018, .02, 20)), sx*.037, -.046, -.39); O.geo(mSilver, xAx(cyl(.009, .003, 16)), sx*.0485, -.046, -.39); }
+  O.geo(mSilver, zAx(cyl(.006, .012, 10)), 0, .036, -.38);
+  O.geo(mChrome, zAx(cyl(.026, .045, 32)), 0, 0, -.452);
+  O.geo(mChrome, zAx(cyl(.0158, .03, 28)), 0, 0, -.485);
+  O.geo(mSatin, zAx(cyl(.022, .028, 32)), 0, 0, -.5);
+  O.geo(mSatin, new THREE.BoxGeometry(.046, .046, .044), 0, 0, -.536);
+  O.geo(mSatin, new THREE.BoxGeometry(.044, .02, .062), 0, -.016, -.548, Math.PI/4);
+  O.geo(mSatin, cyl(.022, .03, 32), 0, .036, -.536);
+  O.geo(mSilver, cyl(.0225, .006, 32), 0, .049, -.536);
+  O.geo(mSilver, zAx(cyl(.0042, .014, 10)), 0, .044, -.512);
+  O.flush(gAlt);
+  const fg = new THREE.Group(), F_ = makeBuilder();
+  F_.geo(mSatin, new THREE.BoxGeometry(.02, .01, .075), 0, .056, -.19);
+  for (const zz of [-.222, -.156]){ F_.geo(mSatin, new THREE.BoxGeometry(.008, .026, .012), 0, .07, zz); F_.geo(mSatin, new THREE.TorusGeometry(.0168, .0034, 8, 24), 0, .086, zz); }
+  for (const a of [.6, -.6]) F_.geo(mSilver, cyl(.0024, .012, 6), Math.sin(a)*.021, .086 + Math.cos(a)*.021, -.156, 0, 0, -a);
+  F_.geo(mOta, zAx(cyl(.0125, .15, 24)), 0, .086, -.19);
+  F_.geo(mSatin, zAx(cyl(.0155, .035, 24, .014)), 0, .086, -.1);
+  F_.add(mGlass, new THREE.CircleGeometry(.0125, 24).translate(0, .086, -.0822));
+  F_.geo(mRubber, zAx(cyl(.0085, .03, 16, .01)), 0, .086, -.282);
+  F_.flush(fg); fg.rotation.z = .75; gAlt.add(fg);
+
+  // ---- eyepieces: one in the diagonal, the others waiting in the tray
+  S.eps = EYEPIECES.map(e => {
+    const g = new THREE.Group(), B = makeBuilder(), Lb = e.len*.55, Lc = e.len*.45;
+    B.geo(mChrome, cyl(.0159, .028, 28), 0, -.014, 0);
+    B.geo(mSatin, cyl(.0186, .006, 28), 0, .003, 0);
+    B.geo(mSatin, cyl(.0192, Lb, 32), 0, .006 + Lb/2, 0);
+    for (let k=0;k<4;k++) B.geo(mRubber, cyl(.0199, .0028, 28), 0, .012 + k*.0055, 0);
+    B.geo(mSilver, cyl(.0195, .003, 32), 0, .006 + Lb + .0015, 0);
+    B.geo(mRubber, cyl(.0206, Lc, 32, .0196), 0, .009 + Lb + Lc/2, 0);
+    B.add(mGlass, new THREE.CircleGeometry(.0085, 24).rotateX(-Math.PI/2).translate(0, .0092 + Lb + Lc, 0));
+    B.flush(g); shadowAll(g); return g;
+  });
+  scopeSeatEyepieces();
+
+  // ---- 12 V power box on the gravel with a red LED read-out, red cable up the leg
+  const pb = new THREE.Group(), P = makeBuilder();
+  const prr = new THREE.Shape(), pw = .2, ph = .1, pr = .018;
+  prr.moveTo(-pw + pr, -ph); prr.lineTo(pw - pr, -ph); prr.quadraticCurveTo(pw, -ph, pw, -ph + pr); prr.lineTo(pw, ph - pr); prr.quadraticCurveTo(pw, ph, pw - pr, ph); prr.lineTo(-pw + pr, ph); prr.quadraticCurveTo(-pw, ph, -pw, ph - pr); prr.lineTo(-pw, -ph + pr); prr.quadraticCurveTo(-pw, -ph, -pw + pr, -ph);
+  const pbg = new THREE.ExtrudeGeometry(prr, { depth:.24, bevelEnabled:true, bevelThickness:.012, bevelSize:.01, bevelSegments:3, curveSegments:6 }); pbg.translate(0, ph + .012, -.12); P.add(mWhite, pbg);
+  P.geo(mWhite, new THREE.BoxGeometry(.43, .05, .27), 0, .2, 0); P.geo(mPlastic, new THREE.BoxGeometry(.432, .004, .272), 0, .175, 0);
+  for (const sx of [-.11, .11]){ const hd = new THREE.TorusGeometry(.032, .006, 8, 18, Math.PI); hd.rotateY(Math.PI/2); hd.translate(sx, .225, 0); P.add(mWhite, hd); for (const sz of [-.032, .032]) P.geo(mWhite, new THREE.BoxGeometry(.018, .012, .012), sx, .228, sz); }
+  for (const sx of [-.14, .14]) P.geo(mWhite, new THREE.BoxGeometry(.04, .05, .01), sx, .16, -.138);
+  P.geo(mPlastic, new THREE.BoxGeometry(.11, .05, .006), 0, .1, -.137);
+  P.add(S.led, new THREE.PlaneGeometry(.085, .032).rotateY(Math.PI).translate(0, .1, -.1405));
+  P.geo(mRed, cyl(.008, .012, 12), .15, .06, -.138, Math.PI/2);
+  P.flush(pb); pb.position.set(.66, 0, -.56); pb.rotation.y = .28; root.add(pb);
+  S.ledLight = new THREE.PointLight(0xff2010, 0, 1.6, 2); S.ledLight.position.set(.58, .06, -.86); root.add(S.ledLight);
+  { const L = S.legs[1], cp = [V(.6, .08, -.42), V(.52, .012, -.33), V(.46, .02, -.26)];
+    for (const k of [.05, .3, .55, .8]) cp.push(L.P1.clone().lerp(L.P0, k).addScaledVector(L.out, .016));
+    cp.push(V(.05, yT + .03, -.06));
+    const W = makeBuilder(); W.add(mCable, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(cp), 80, .0035, 6, false)); W.flush(root); }
+
+  shadowAll(root);
+  root.position.set(S.x, groundAt(S.x, S.z), S.z); scene.add(root);
+  // turf mat where observers stand (photos: a square of artificial turf under the telescope)
+  officeTextures();
+  const tm = new THREE.Group(), tw = 1.9, td = 2.1;
+  const tg = new THREE.BoxGeometry(tw, .024, td), tuv = tg.attributes.uv; for (let i=0;i<tuv.count;i++) tuv.setXY(i, tuv.getX(i)*tw/1.4, tuv.getY(i)*td/1.4);
+  const turfMat = snowPatch(new THREE.MeshStandardMaterial({ map:turfTex, color:0xc9d6c4, roughness:.96 }), 1);
+  const tmesh = new THREE.Mesh(tg, turfMat); tmesh.position.y = .012; tmesh.receiveShadow = true; tm.add(tmesh);
+  const edgeM = M(0x1f4a24, { roughness:.9 });
+  for (const [w, d, x, z] of [[tw + .03, .03, 0, td/2], [tw + .03, .03, 0, -td/2], [.03, td, tw/2, 0], [.03, td, -tw/2, 0]]){ const e = box(w, .026, d, edgeM); e.position.set(x, .013, z); e.receiveShadow = true; tm.add(e); }
+  // a warm LED lantern on the corner of the mat lights the telescope softly
+  { const Lg = new THREE.Group(), B = makeBuilder();
+    S.lanternMat = new THREE.MeshStandardMaterial({ color:0xfff1d6, emissive:0xffc27a, emissiveIntensity:0, roughness:.25, transparent:true, opacity:.92 });
+    B.geo(mPlastic, cyl(.055, .03, 20), 0, .015, 0); B.geo(S.lanternMat, cyl(.042, .11, 20), 0, .085, 0); B.geo(mPlastic, cyl(.05, .022, 20, .056), 0, .151, 0);
+    for (let k=0;k<4;k++) B.geo(mPlastic, new THREE.BoxGeometry(.008, .11, .008), Math.cos(k*Math.PI/2)*.046, .085, Math.sin(k*Math.PI/2)*.046);
+    const hd = new THREE.TorusGeometry(.035, .004, 6, 16, Math.PI); hd.translate(0, .162, 0); B.add(mSilver, hd);
+    B.flush(Lg); Lg.position.set(-.72, .024, .82); tm.add(Lg);
+    S.lanternLight = new THREE.PointLight(0xffc98a, 0, 7, 2); S.lanternLight.position.set(-.72, .32, .82); tm.add(S.lanternLight); }
+  tm.position.set(S.matX, groundAt(S.matX, S.matZ), S.matZ); tm.rotation.y = .04; scene.add(tm); S.mat = tm;
+  S.col = { x:S.x, z:S.z, r:.5 }; S.colOn = false;
+
+  // aim at the moon right away
+  const [az, alt] = scopeAzAlt(moonDir); S.az = az; S.alt = alt; scopeApplyPose();
+  scopeInitView();
+  S.built = true;
+}
+function scopeAzAlt(d){ return [Math.atan2(d.x, d.z), Math.asin(clamp(d.y, -1, 1))]; }
+function scopeApplyPose(){ SCOPE.gAz.rotation.y = SCOPE.az; SCOPE.gAlt.rotation.x = -SCOPE.alt; }
+function scopeSeatEyepieces(){
+  const S = SCOPE;
+  S.eps.forEach((g, i) => {
+    if (i === S.epShown){ S.gAlt.add(g); g.position.set(0, .052, -.536); g.rotation.set(0, 0, 0); }
+    else { S.root.add(g); g.position.copy(S.trayPos[i]).setY(S.trayPos[i].y + .012); g.rotation.set(0, i*1.3, 0); }
+  });
+}
+
+/* ---- eyepiece view: one full-screen fragment shader ---- */
+const SCOPE_FS = `
+uniform vec2 uRes, uCen; uniform float uRad;
+uniform float uTime, uTF, uTgt, uBlur, uFade, uSee, uScale, uExp, uSB, uPA;
+uniform vec2 uOff; uniform vec3 uSats[4];
+uniform sampler2D uMoon;
+varying vec2 vUv;
+const float MOON_R = 0.2575;                       // full moon angular radius (deg)
+float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
+float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0 - 2.0*f); return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
+// the moon: a real eyepiece photo through this telescope, with the limb's colour fringe of an f/10 achromat
+vec3 moonAt(vec2 s, float pd){
+  vec2 q = s/MOON_R; float r = length(q), aa = pd/MOON_R*1.1;
+  vec3 sky = vec3(0.0014, 0.0018, 0.0034)*(1.0 + 3.0*exp(-max(r - 1.0, 0.0)*1.8));
+  vec3 violet = vec3(0.17, 0.08, 0.36)*exp(-max(r - 1.0, 0.0)/0.016)*0.42;
+  if (r > 1.0 + 4.0*aa) return sky + violet;
+  vec3 t = texture2D(uMoon, q*0.5 + 0.5).rgb*1.06;
+  vec3 lim = 1.0 - smoothstep(vec3(1.0 - aa), vec3(1.0 + aa), r*vec3(0.9982, 1.0, 1.004));
+  return mix(sky + violet, t, lim);
+}
+// Saturn: oblate banded globe, C/B/A rings with Cassini division, globe shadow on the rings and ring shadow on the globe
+float band(float r, float a, float b, float w){ return smoothstep(a - w, a + w, r)*(1.0 - smoothstep(b - w, b + w, r)); }
+float ringOp(float r, float w){
+  return band(r, 1.239, 1.526, w)*0.12 + band(r, 1.526, 1.95, w)*mix(0.7, 0.97, smoothstep(1.53, 1.76, r))
+       + band(r, 1.95, 2.025, w)*0.06 + band(r, 2.025, 2.27, w)*(0.68 - 0.22*band(r, 2.206, 2.222, w*0.7));
+}
+vec3 ringCol(float r){ return mix(vec3(0.6, 0.58, 0.55), vec3(0.95, 0.89, 0.76), smoothstep(1.45, 1.72, r))*(0.92 + 0.08*n2(vec2(r*70.0, 0.5))); }
+vec3 satBand(float lat, float lon){
+  float L = degrees(lat), a = abs(L);
+  vec3 ez = vec3(0.97, 0.89, 0.7), belt = vec3(0.68, 0.53, 0.34), zone = vec3(0.9, 0.81, 0.61), pol = vec3(0.6, 0.64, 0.66);
+  vec3 c = ez;
+  c = mix(c, belt, smoothstep(8.0, 12.0, a)*(1.0 - smoothstep(19.0, 25.0, a)));
+  c = mix(c, zone, smoothstep(19.0, 25.0, a));
+  c = mix(c, belt*1.06, smoothstep(32.0, 36.0, a)*(1.0 - smoothstep(41.0, 46.0, a))*0.65);
+  c = mix(c, pol, smoothstep(55.0, 72.0, a));
+  if (L < -12.0 && L > -21.0) c *= 0.94;
+  return c*(0.96 + 0.06*n2(vec2(lon*2.5, L*0.7)));
+}
+vec3 saturnAt(vec2 s, float pd){
+  vec2 p = s/uScale; float w = pd/uScale*1.2;
+  float cp = cos(uPA), sp = sin(uPA); p = vec2(cp*p.x + sp*p.y, -sp*p.x + cp*p.y);
+  float sB = uSB, cB = sqrt(1.0 - sB*sB);
+  vec3 n = vec3(0.0, cB, sB), Ls = normalize(vec3(-0.095, 0.03, 1.0));
+  // ring point under this pixel (plane basis e1 = x, e2 = (0, -sB, cB))
+  float rr = length(vec2(p.x, p.y/sB));
+  vec3 Q = vec3(p.x, p.y, -p.y/sB*cB);
+  float gr = length(vec2(p.x, p.y/(sB*sB)))/max(rr, 1e-3);           // |grad rr| for analytic anti-aliasing
+  float op = ringOp(rr, w*max(gr, 1.0));
+  float qL = dot(Q, Ls), disc = qL*qL - (dot(Q, Q) - 1.0);
+  float gsh = qL < 0.0 ? smoothstep(-0.03, 0.03, disc) : 0.0;
+  vec3 rc = ringCol(rr)*op*(1.0 - 0.92*gsh);
+  float bp = sqrt(0.8136*cB*cB + sB*sB);
+  float e = length(vec2(p.x, p.y/bp));
+  float ga = 1.0 - smoothstep(1.0 - w, 1.0 + w, e);
+  vec3 gc = vec3(0.0);
+  if (e < 1.0 + 2.0*w){
+    float z = sqrt(max(1.0 - e*e, 0.0));
+    vec3 P = vec3(p.x, p.y/bp, z);
+    float lat = asin(clamp(dot(P, n), -1.0, 1.0)), lon = atan(P.x, dot(P, vec3(0.0, -sB, cB)));
+    float mu = max(dot(P, Ls), 0.0);
+    gc = satBand(lat, lon)*(0.15 + 0.85*pow(mu, 0.55))*(0.45 + 0.55*pow(z, 0.45));
+    float t = -dot(P, n)/dot(Ls, n);
+    if (t > 0.0) gc *= 1.0 - 0.85*ringOp(length(P + t*Ls), 0.01);
+  }
+  vec3 col = vec3(0.0012, 0.0017, 0.0036);
+  bool nearHalf = p.y < 0.0;
+  if (!nearHalf) col = col*(1.0 - op) + rc;
+  col = mix(col, gc, ga);
+  if (nearHalf) col = col*(1.0 - op) + rc;
+  return col;
+}
+vec3 sceneAt(vec2 s, float pd){ return uTgt < 0.5 ? moonAt(s, pd) : saturnAt(s, pd); }
+void main(){
+  vec2 fc = vUv*uRes, d = fc - uCen;
+  float rr = length(d)/uRad, pd = uTF/uRad, t = uTime;
+  vec2 s0 = d*pd;
+  // seeing: slow image wander plus fast local boil
+  vec2 wob = (vec2(n2(vec2(t*1.3, 3.1)), n2(vec2(5.7, t*1.1))) - 0.5)*uSee*1.6;
+  vec2 bq = s0/(uSee*36.0);
+  vec2 boil = (vec2(n2(bq + vec2(t*5.0, 0.0)), n2(bq + vec2(9.2, -t*4.3))) - 0.5)*uSee;
+  vec2 s = s0 + uOff + wob + boil;
+  float blur = uBlur + uSee*0.5*n2(vec2(t*3.0, 1.7));
+  vec3 col;
+  if (blur < pd*0.75) col = sceneAt(s, pd);
+  else {
+    col = vec3(0.0); float rot = h21(fc)*6.2831853;              // per-pixel rotated disc kernel: smooth defocus without ghost copies
+    for (int i = 0; i < 16; i++){ float a = float(i)*2.39996323 + rot, r = sqrt((float(i) + 0.5)/16.0); col += sceneAt(s + vec2(cos(a), sin(a))*r*blur, pd); }
+    col /= 16.0;
+  }
+  if (uTgt > 0.5){
+    // point sources (moons of Saturn, field stars): diffraction-limited spots spread by seeing and defocus
+    float sig = 0.85*pd + blur*0.55 + uSee*0.35, k = (pd*pd)/(sig*sig);
+    vec2 sw = s;
+    for (int i = 0; i < 4; i++){ vec2 dd = sw - uSats[i].xy; col += vec3(0.95, 0.9, 0.82)*uSats[i].z*k*exp(-dot(dd, dd)/(2.0*sig*sig)); }
+    vec2 g = floor(sw/0.035);
+    for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++){
+      vec2 cell = g + vec2(float(i), float(j)); float h = h21(cell*1.37 + 11.0);
+      if (h < 0.028){ vec2 sp = (cell + vec2(h21(cell + 3.1), h21(cell + 7.7)))*0.035; float m = pow(h21(cell + 5.3), 5.0)*0.4 + 0.01; vec2 dd = sw - sp; col += vec3(0.88, 0.92, 1.0)*m*k*exp(-dot(dd, dd)/(2.0*sig*sig)); }
+    }
+  }
+  col *= 1.0 - 0.16*pow(rr, 4.0);
+  col *= vec3(1.0, 1.0, 1.0 + 0.3*smoothstep(0.95, 1.0, rr));
+  col = (1.0 - exp(-col*uExp))*uFade;
+  float stop = 1.0 - smoothstep(1.0 - 1.2/uRad, 1.0 + 1.2/uRad, rr);
+  vec3 outside = vec3(0.0007, 0.0007, 0.0008)*exp(-max(rr - 1.0, 0.0)*10.0)*uFade;
+  col = mix(outside, col, stop);
+  col = pow(max(col, 0.0), vec3(1.0/2.2)) + (h21(fc + fract(t*7.0)*91.0) - 0.5)/255.0*1.5;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+function scopeInitView(){
+  const S = SCOPE;
+  S.u = { uRes:{ value:new THREE.Vector2(1, 1) }, uCen:{ value:new THREE.Vector2() }, uRad:{ value:100 }, uTime:U.uTime, uTF:{ value:1 }, uTgt:{ value:0 }, uBlur:{ value:0 }, uFade:{ value:0 },
+    uSee:{ value:.0004 }, uScale:{ value:SAT_RE*SAT_BOOST }, uExp:{ value:1.6 }, uSB:{ value:Math.sin(THREE.MathUtils.degToRad(15)) }, uPA:{ value:-.3 }, uOff:{ value:new THREE.Vector2() },
+    uSats:{ value:[new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()] }, uMoon:{ value:moonTex } };
+  S.quad = new FullScreenQuad(new THREE.ShaderMaterial({ uniforms:S.u, vertexShader:FSQ_VS, fragmentShader:SCOPE_FS, depthTest:false, depthWrite:false }));
+  // Saturn's brighter moons in the ring plane (orbit radius in Saturn radii, orbital phase, relative brightness)
+  const sB = S.u.uSB.value, pa = S.u.uPA.value, sc = S.u.uScale.value;
+  [[20.27, .58, .55], [8.74, 2.6, .22], [6.26, -.62, .16], [4.89, 2.35, .15]].forEach(([a, ph, b], i) => {
+    const x = a*Math.cos(ph), y = -a*Math.sin(ph)*sB;                       // ring-plane frame
+    const cx = Math.cos(pa)*x - Math.sin(pa)*y, cy = Math.sin(pa)*x + Math.cos(pa)*y; // back to the sky frame
+    S.u.uSats.value[i].set(cx*sc, cy*sc, b);
+  });
+}
+function scopeLayout(){
+  const S = SCOPE; if (!S.u) return;
+  const sz = renderer.getDrawingBufferSize(new THREE.Vector2()), k = sz.x/innerWidth;
+  const bar = $('#sc-bar').getBoundingClientRect();
+  let cx, cy, r;
+  if (bar.left > innerWidth*.55){                                        // controls on the right: the field uses the full height
+    r = Math.min(innerHeight/2 - 26, (bar.left - 48)/2); cy = innerHeight/2 + 8;
+    cx = innerWidth/2 + r <= bar.left - 24 ? innerWidth/2 : Math.max(r + 16, (bar.left - 8)/2);
+  } else {                                                               // controls below (phones, portrait)
+    const top = 84, bottom = Math.max(bar.top - 12, innerHeight*.45), availH = Math.max(160, bottom - top);
+    r = Math.min(availH/2, innerWidth*.46); cx = innerWidth/2; cy = top + availH/2;
+  }
+  S.u.uRes.value.set(sz.x, sz.y); S.u.uRad.value = r*k; S.u.uCen.value.set(cx*k, (innerHeight - cy)*k);
+  S.cssRad = r;
+}
+function scopeReadout(){
+  const S = SCOPE, i = S.ep, m = scopeMag(i);
+  $('#sc-name').textContent = S.slewing ? (S.tgt === 'moon' ? '달' : '토성') + ' · 고투 이동 중…' : S.tgt === 'moon' ? '달 · 보름달' : '토성';
+  $('#sc-read').textContent = `${EYEPIECES[i].f}mm 아이피스 · ${Math.round(m)}배 · 실시야 ${scopeTF(i).toFixed(2)}° · 사출동공 ${(SCOPE_D/m).toFixed(1)}mm`;
+  $('#sc-note').textContent = S.tgt === 'moon' ? '이 망원경으로 직접 찍은 보름달 사진을 그대로 띄웠어요. 9mm에서는 달이 시야를 거의 채웁니다.' : '고리 기울기 15°로 표현했고, 실제 90mm에서는 이보다 작게 보여 약 10배 크게 보정했어요. 주변의 작은 점은 타이탄·레아·디오네·테티스예요.';
+  document.querySelectorAll('#sc-tgt button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === S.tgt)));
+  document.querySelectorAll('#sc-ep button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.e === S.ep)));
+}
+function scopeHit(cx, cy){
+  const S = SCOPE; if (!S.built || !S.root.visible) return false;
+  const r = canvas.getBoundingClientRect(), ndc = new THREE.Vector2(((cx - r.left)/r.width)*2 - 1, -((cy - r.top)/r.height)*2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera);
+  const c = _cv.set(S.x, S.root.position.y + .75, S.z);
+  return ray.ray.distanceSqToPoint(c) < .55*.55 && ray.ray.origin.distanceTo(c) < 40;
+}
+function scopeOpen(){
+  const S = SCOPE;
+  if (!S.built || !S.root.visible || S.on) return;
+  const fade = $('#fade'); fade.classList.add('on');
+  setTimeout(() => {
+    S.prev = view === 'fp' ? 'fp' : 'tp';
+    teleport(S.x - .05, S.z - .98, Math.PI);
+    view = 'scope'; S.on = true; S.fade = 0; S.off.set(0, 0); S.offGoal = null; S.shake = .4;
+    if (document.pointerLockElement) document.exitPointerLock?.();
+    document.body.classList.add('scoping'); $('#scope').hidden = false; $('#act-scope').hidden = true;
+    scopeLayout(); scopeReadout(); fade.classList.remove('on');
+    toast(isTouch ? '<b>망원경</b> · 아이피스로 배율, 슬라이더로 초점' : '<b>망원경</b> · 아이피스로 배율, 휠로 초점, 드래그로 미동');
+  }, 280);
+}
+function scopeClose(){
+  const S = SCOPE; if (!S.on) return;
+  const fade = $('#fade'); fade.classList.add('on');
+  setTimeout(() => {
+    S.on = false; document.body.classList.remove('scoping'); $('#scope').hidden = true;
+    view = S.prev; setView(S.prev); const px = S.x + .6, pz = S.z - 1.3; teleport(px, pz, Math.atan2(px - S.x, pz - S.z) - .3); camPitch = -.14;
+    scopeMotor(false); fade.classList.remove('on');
+  }, 240);
+}
+function scopeSetTarget(t){
+  const S = SCOPE; if (t === S.tgt) return;
+  S.tgt = t; S.off.set(0, 0); S.offGoal = null; scopeReadout();
+}
+function scopeSetEyepiece(i){
+  const S = SCOPE; if (i === S.ep && S.swapEp === null) return;
+  S.swapEp = i; S.swapT = 0;
+}
+function scopeMotor(on){
+  const S = SCOPE;
+  if (on && !S.motor && actx && actx.state === 'running'){
+    const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = 150; o2.type = 'square'; o2.frequency.value = 302; lp.type = 'lowpass'; lp.frequency.value = 900; g.gain.value = 0;
+    o.connect(lp); o2.connect(lp); lp.connect(g).connect(actx.destination); o.start(); o2.start();
+    g.gain.setTargetAtTime(.035, actx.currentTime, .05); S.motor = { o, o2, g };
+  } else if (!on && S.motor){
+    const m = S.motor, t = actx.currentTime; m.g.gain.setTargetAtTime(0, t, .06); m.o.stop(t + .4); m.o2.stop(t + .4); S.motor = null;
+  }
+}
+function scopeUpdate(dt){
+  const S = SCOPE; if (!S.built) return;
+  const night = nightF > .32 || S.on || !!S.force;
+  if (night !== S.root.visible){ S.root.visible = S.mat.visible = night; }
+  if (night !== S.colOn){ S.colOn = night; const k = colliders.indexOf(S.col); if (night && k < 0) colliders.push(S.col); else if (!night && k >= 0) colliders.splice(k, 1); }
+  S.led.emissiveIntensity = nightF*1.5; S.keyMat.emissiveIntensity = nightF*1.4; S.lcdMat.emissiveIntensity = nightF*.8; S.ledLight.intensity = nightF*.1;
+  S.lanternMat.emissiveIntensity = nightF*2.4; S.lanternLight.intensity = nightF*4.2;
+  // GoTo: slew both axes toward the chosen target
+  const [azT, altT] = scopeAzAlt(S.tgt === 'moon' ? moonDir : S.satDir);
+  let da = Math.atan2(Math.sin(azT - S.az), Math.cos(azT - S.az)), dl = altT - S.alt;
+  const sp = .55*dt, moving = Math.abs(da) > .002 || Math.abs(dl) > .002;
+  if (moving){ S.az += clamp(da, -sp, sp); S.alt += clamp(dl, -sp*.8, sp*.8); scopeApplyPose(); }
+  if (moving !== S.slewing){ S.slewing = moving; scopeMotor(moving && S.root.visible); if (S.on) scopeReadout(); if (!moving) S.shake = .7; }
+  S.slewDark = lerp(S.slewDark, S.slewing ? 1 : 0, 1 - Math.exp(-dt*(S.slewing ? 10 : 3)));
+  if (S.motor) S.motor.o.frequency.setTargetAtTime(140 + 60*Math.min(1, Math.hypot(da, dl)*4), actx.currentTime, .1);
+  // eyepiece swap: the field goes dark while the eyepiece is pulled, then the new one comes to focus
+  if (S.swapEp !== null){
+    S.swapT += dt/.75;
+    if (S.swapT >= .32 && S.ep !== S.swapEp){ S.ep = S.swapEp; S.epShown = S.ep; scopeSeatEyepieces(); S.shake = 1; scopeReadout(); }
+    if (S.swapT >= 1){ S.swapT = 1; S.swapEp = null; }
+  }
+  // in-world prompt
+  const d = Math.hypot(player.pos.x - S.x, player.pos.z - (S.z - .6));
+  const near = started && S.root.visible && !S.on && (view === 'tp' || view === 'fp') && d < 2.7;
+  if (near !== S.near){ S.near = near; $('#act-scope').hidden = !near; }
+  if (!S.on) return;
+  // eyepiece view uniforms
+  const u = S.u, i = S.ep, tf = scopeTF(i), m = scopeMag(i);
+  S.fade = Math.min(1, S.fade + dt/.7);
+  const sw = S.swapT, swapDark = sw < .32 ? sw/.32 : 1 - smooth(.32, 1, sw), swapBlur = sw < 1 ? 1 - smooth(.32, 1, sw) : 0;
+  if (S.offGoal){ S.off.lerp(S.offGoal, 1 - Math.exp(-dt*5)); if (S.off.distanceTo(S.offGoal) < 1e-4) S.offGoal = null; }
+  S.shake *= Math.exp(-dt*2.6);
+  const tt = U.uTime.value, shk = S.shake*tf*.012;
+  u.uOff.value.set(S.off.x + Math.sin(tt*21)*shk, S.off.y + Math.cos(tt*17.3)*shk);
+  u.uTF.value = tf/2;                                                   // shader takes the field radius
+  u.uTgt.value = S.tgt === 'moon' ? 0 : 1;
+  const moon = S.tgt === 'moon';
+  u.uSee.value = moon ? .00038 : .0011;
+  u.uBlur.value = Math.abs(S.focus)*tf*.045 + swapBlur*tf*.05 + S.slewDark*tf*.04;
+  u.uFade.value = S.fade*(1 - swapDark)*(1 - S.slewDark*.97);
+  u.uExp.value = moon ? 1.6*Math.pow(45.5/m, .4) : 1.75*Math.pow(45.5/m, .3);
+}
+function scopeKey(e){
+  const S = SCOPE;
+  if (e.code === 'Escape'){ scopeClose(); return true; }
+  if (e.code === 'Digit1' || e.code === 'Numpad1') scopeSetEyepiece(0);
+  else if (e.code === 'Digit2' || e.code === 'Numpad2') scopeSetEyepiece(1);
+  else if (e.code === 'Digit3' || e.code === 'Numpad3') scopeSetEyepiece(2);
+  else if (e.code === 'KeyM') scopeSetTarget('moon');
+  else if (e.code === 'KeyS') scopeSetTarget('saturn');
+  else if (e.code === 'BracketLeft' || e.code === 'Minus') scopeFocus(S.focus - .06);
+  else if (e.code === 'BracketRight' || e.code === 'Equal') scopeFocus(S.focus + .06);
+  else if (e.code.startsWith('Arrow')){
+    const st = scopeTF(S.ep)*.06; S.offGoal = null;
+    if (e.code === 'ArrowLeft') S.off.x += st; if (e.code === 'ArrowRight') S.off.x -= st; if (e.code === 'ArrowUp') S.off.y -= st; if (e.code === 'ArrowDown') S.off.y += st;
+    S.shake = Math.max(S.shake, .25);
+  }
+  return true;
+}
+function scopeFocus(v){ const S = SCOPE; S.focus = clamp(v, -1, 1); $('#sc-focus').value = S.focus; $('#sc-focus-out').textContent = Math.abs(S.focus) < .05 ? '맞음' : (S.focus > 0 ? '+' : '−') + Math.abs(S.focus*10).toFixed(1); S.shake = Math.max(S.shake, .15); }
+function scopeDrag(dx, dy){
+  const S = SCOPE, pdc = scopeTF(S.ep)/2/(S.cssRad || 300);
+  S.offGoal = null; S.off.x -= dx*pdc; S.off.y += dy*pdc;
+  const lim = 1.4, l = S.off.length(); if (l > lim) S.off.multiplyScalar(lim/l);
+}
+function scopeBindUI(){
+  const S = SCOPE;
+  $('#act-scope').addEventListener('click', scopeOpen);
+  $('#sc-close').addEventListener('click', scopeClose);
+  document.querySelectorAll('#sc-tgt button').forEach(b => b.addEventListener('click', () => scopeSetTarget(b.dataset.t)));
+  document.querySelectorAll('#sc-ep button').forEach(b => b.addEventListener('click', () => scopeSetEyepiece(+b.dataset.e)));
+  $('#sc-focus').addEventListener('input', e => scopeFocus(parseFloat(e.target.value)));
+  $('#sc-center').addEventListener('click', () => { S.offGoal = new THREE.Vector2(); });
+  canvas.addEventListener('dblclick', () => { if (S.on) S.offGoal = new THREE.Vector2(); });
+  if (isTouch) $('#sc-hint').textContent = '드래그로 미동 · 두 번 탭해 다시 겨누기 · 초점 슬라이더로 선명하게';
+  addEventListener('resize', () => { if (S.on) scopeLayout(); });
 }
 
 /* ---------------- HUD: zone, minimap (drawn like the 배치도: mountain on top, entrance on the right), toast ---------------- */
@@ -4413,8 +5012,10 @@ function updateAudio(){
 /* ---------------- input ---------------- */
 function bindInput(){
   addEventListener('keydown', e => {
+    if (view === 'scope'){ if (e.target && e.target.tagName === 'INPUT' && e.code !== 'Escape') return; scopeKey(e); if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault(); return; }
     if (e.target && e.target.tagName === 'INPUT') return;
     keys.add(e.code);
+    if (e.code === 'KeyE' && SCOPE.near) scopeOpen();
     if (e.code === 'KeyV') setView(view === 'tp' ? 'fp' : view === 'fp' ? 'air' : 'tp');
     if (e.code === 'KeyC'){ if (view === 'cat') setView('tp'); else catView(); }
     if (e.code === 'KeyT'){ const ks=['day','dusk','night']; const i=ks.findIndex(k=>Math.abs(presetHour(k)-hourTarget)<.05); setHour(presetHour(ks[(i+1)%3])); }
@@ -4434,13 +5035,14 @@ function bindInput(){
     if (document.pointerLockElement === canvas){ camYaw -= e.movementX*.0024; camPitch = clamp(camPitch - e.movementY*.002, -1.35, 1.3); return; }
     if (!drag || drag.id !== e.pointerId) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; drag.moved += Math.abs(dx)+Math.abs(dy);
+    if (view === 'scope'){ scopeDrag(dx, dy); return; }
     const s = e.pointerType === 'touch' ? .0065 : .0045;
     if (view === 'cat'){ catCam.yaw -= dx*s; catCam.pitch = clamp(catCam.pitch - dy*s*.85, -.3, .85); return; }
     camYaw -= dx*s; camPitch = clamp(camPitch - dy*s*.85, view==='fp' ? -1.35 : -1.25, view==='fp' ? 1.3 : .35);
   });
-  const end = e => { if (drag && drag.id === e.pointerId){ if (drag.moved < 6 && (view === 'tp' || view === 'fp') && catHit(e.clientX, e.clientY)){ catView(); drag = null; return; } if (drag.moved < 4 && view==='fp' && e.pointerType==='mouse') canvas.requestPointerLock?.()?.catch?.(()=>{}); drag = null; } };
+  const end = e => { if (drag && drag.id === e.pointerId){ if (drag.moved < 6 && (view === 'tp' || view === 'fp') && scopeHit(e.clientX, e.clientY)){ drag = null; if (Math.hypot(player.pos.x - SCOPE.x, player.pos.z - SCOPE.z) < 4.6) scopeOpen(); else toast('<b>망원경</b> · 가까이 가서 클릭(탭)하면 달과 토성을 볼 수 있어요'); return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && catHit(e.clientX, e.clientY)){ catView(); drag = null; return; } if (drag.moved < 4 && view==='fp' && e.pointerType==='mouse') canvas.requestPointerLock?.()?.catch?.(()=>{}); drag = null; } };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
-  canvas.addEventListener('wheel', e => { if (view === 'cat'){ catCam.dist = clamp(catCam.dist + e.deltaY*.0012, .42, 2.6); e.preventDefault(); return; } if (view === 'tp'){ camDist = clamp(camDist + e.deltaY*.006, 2.2, 14); e.preventDefault(); } }, { passive:false });
+  canvas.addEventListener('wheel', e => { if (view === 'scope'){ scopeFocus(SCOPE.focus - e.deltaY*.0011); e.preventDefault(); return; } if (view === 'cat'){ catCam.dist = clamp(catCam.dist + e.deltaY*.0012, .42, 2.6); e.preventDefault(); return; } if (view === 'tp'){ camDist = clamp(camDist + e.deltaY*.006, 2.2, 14); e.preventDefault(); } }, { passive:false });
   const joyEl = $('#joy'), knob = $('#knob');
   if (isTouch){ joyEl.hidden = false; $('#tbtns').hidden = false; }
   let jid = null;
@@ -4476,7 +5078,7 @@ function bindInput(){
   const places = [
     ['진입로', 9, -128, Math.PI], ['멀티존', 4, -104, -Math.PI/2], ['A1', 4, -88, -Math.PI/2], ['별빛존 ★1', -26, -78, -Math.PI/2],
     ['피크닉존', 4, -35, -Math.PI/2], ['관리동·매점', -7, -1, Math.PI/2], ['불멍 B3', 6.2, -12.5, -2.45], ['C1·C2', -9.5, 38, Math.PI/2],
-    ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['여름 래프팅', 'raft'], ['고양이 봄이', 'cat'], ['항공 전경', null]
+    ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['여름 래프팅', 'raft'], ['고양이 봄이', 'cat'], ['별빛 망원경', 'scope'], ['항공 전경', null]
   ];
   const pl = $('#places');
   for (const [name, x, z, yaw] of places){
@@ -4484,6 +5086,7 @@ function bindInput(){
     b.addEventListener('click', () => {
       if (x === null) setView('air');
       else if (x === 'cat'){ catView(); }
+      else if (x === 'scope'){ if (nightF < .5) setHour(presetHour('night'), true); { const px = SCOPE.x + 1.8, pz = SCOPE.z - 2.0; teleport(px, pz, Math.atan2(px - SCOPE.x, pz - SCOPE.z) - .5); camPitch = -.12; } toast('<b>별빛 망원경</b> · 망원경을 클릭(탭)하거나 E 키로 달과 토성을 보세요'); }
       else if (x === 'raft'){
         if (season !== 'summer') applySeason('summer', true);
         if (nightF > .4) setHour(13, true);
@@ -4623,6 +5226,7 @@ function setGfx(g, note = false){
 }
 function renderFrame(){
   renderer.info.reset();
+  if (SCOPE.on && SCOPE.quad){ renderer.setRenderTarget(null); SCOPE.quad.render(renderer); return; }
   if (!post || !POST.on){ renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
   sizePost();
   const P = post, q = P.quad;
@@ -4675,6 +5279,7 @@ function tick(dt, t){
   if (Math.abs(hour - hourTarget) > .001){ hour = lerp(hour, hourTarget, 1 - Math.exp(-dt*2.2)); if (Math.abs(hour-hourTarget) < .005) hour = hourTarget; applyTime(hour); }
   if (started) updatePlayer(dt); else { hero.update(dt, 0); hero.root.position.copy(player.pos); }
   npcs.forEach(n => n.update(dt, 0));
+  scopeUpdate(dt);
   updateCamera(dt);
   const focus = view === 'air' ? orbit.target : view === 'cat' ? CAT.root.position : player.pos;
   const dir = sun.userData.dir || sunDir;
@@ -4714,7 +5319,8 @@ async function boot(){
   catBuild(); npcs.push({ update: dt => catUpdate(dt, U.uTime.value) });
   scene.add(hero.root);
   orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true; orbit.autoRotateSpeed = .4; orbit.maxPolarAngle = 1.25; orbit.minDistance = 30; orbit.maxDistance = 320; orbit.minAzimuthAngle = AIR.minAz; orbit.maxAzimuthAngle = AIR.maxAz; orbit.enabled = false;
-  drawMapBase(); bindInput();
+  scopeBuild();
+  drawMapBase(); bindInput(); scopeBindUI();
   player.pos.y = groundAt(player.pos.x, player.pos.z);
   setView('air');
   applySeason(season);
@@ -4738,6 +5344,7 @@ async function boot(){
     stats:()=>({ fps:Math.round(fps), tris:renderer.info.render.triangles, calls:renderer.info.render.calls, pos:player.pos.toArray().map(v=>+v.toFixed(2)), view, hour, season }),
     setDist:d=>camDist=d, orbit:()=>orbit, camera, keys, zoneAt, H,
     wake: WAKE, cat: CAT, catSet, catView, catCam, catMeow, BF, bfSpawn, catT:(sec)=>{ for (let i=0;i<sec*30;i++){ simT += 1/30; U.uTime.value = simT; catUpdate(1/30, simT); } return CAT.state; }, post: POST, postReset:()=>{ post.w = 0; }, rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ view='air'; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
+    scope: SCOPE, scopeHit, scopeOpen, scopeClose, scopeSetTarget, scopeSetEyepiece, scopeFocus, scopeLayout,
     raftT:(sec)=>{ for (let i=0;i<sec*30;i++) raftUpdate(1/30); return raft.state; },
     raft:(st, v=0)=>{ raft.state = st; raft.d = v; raft.k = 0; if (st === 'float') raft.z = lerp(RAFT_START, RAFT_END, v); raft.from = [floatX(RAFT_END), RAFT_END, 0]; if (st === 'carry') raft.heading = pathAt(v).h; return st; },
     showroom:()=>{ Object.keys(CAR_SPECS).forEach((k,i)=>addCar(k, [0xe9e9e6,0x0e0f11,0x3a3d42,0x24372f,0x1c2638,0xa9adb2][i], 92, -125 + i*8, Math.PI/2)); ['tunnel','air','bell','teepee','dome','cabin','hexa'].forEach((k,i)=>pitch(k, 108, -150 + i*12, -Math.PI/2, {}, i%2===0)); }
