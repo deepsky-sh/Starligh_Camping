@@ -212,6 +212,7 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 .xp-panel .foot{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted)}
 .xp-catch{position:fixed;left:min(38%,calc(100% - 520px));top:18%;transform:translateX(-50%);z-index:6;background:var(--glass-strong);border:1px solid rgba(242,179,91,.6);border-radius:16px;padding:12px 18px;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
 .xp-catch img{width:220px;height:110px}
+@media (max-width:760px){.xp-catch{left:50%;top:auto;bottom:calc(206px + env(safe-area-inset-bottom,0px));z-index:7;max-width:calc(100vw - 32px);padding:10px 14px}.xp-catch img{width:180px;height:90px}}
 .xp-catch b{font-family:var(--f-display);font-size:20px;color:var(--amber)}
 .xp-catch span{font-size:12.5px;color:var(--muted);text-align:center;max-width:300px}
 .xp-hg{position:fixed;inset:auto 0 calc(14px + env(safe-area-inset-bottom,0px)) 0;margin:0 auto;width:min(640px,calc(100vw - 24px));z-index:5;background:var(--glass-strong);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
@@ -4503,7 +4504,8 @@ async function buildCamp(){
     const cx = (c.x0 + c.x1)/2, cz = (c.z0 + c.z1)/2, w = c.x1 - c.x0, d = c.z1 - c.z0;
     zoneBoard(c.id === 'C-2' ? 'C-2 두가족' : c.id, c.x1 + .5, c.z0 + .9, Math.PI/2, { w:c.id === 'C-2' ? 1.25 : .8, h:.45, post:1.0, bg:'#a8361f' });
     brickPad(c.x1 - 1.4, c.z0 + 6.4, Math.PI/2); if (c.id === 'C-2') brickPad(c.x1 - 1.4, c.z1 - 1.4, Math.PI/2);
-    powerBox(c.x1 + .3, c.z1 - .8, Math.PI/2);
+    powerBox(c.x0 + .5, c.z0 + .7, Math.PI/2);   // at the back, against the stone wall
+    for (let z = c.z0 + 1.0; z < c.z1; z += 8.4) bollard(c.x1 - .25, z);   // site light on the lane side, like every other site
     sites.push({ id:c.id, x:cx, z:cz, zone:'C존' });
   }
   await frame();
@@ -6454,8 +6456,9 @@ function poseTube(f, paddle, bob){
     if (B[s + 'UpLeg']){ boneRot(B[s + 'UpLeg'], right, -1.42 - .1*paddle*sg); boneRot(B[s + 'UpLeg'], UP, sg*.08); }
     if (B[s + 'Leg']) boneRot(B[s + 'Leg'], right, .5 + .25*Math.max(0, paddle*sg));
     if (B[s + 'Foot']) boneRot(B[s + 'Foot'], right, -.5);
-    if (B[s + 'Arm']){ boneRot(B[s + 'Arm'], fwd, -sg*.75); boneRot(B[s + 'Arm'], right, .55); }
-    if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -1.25);
+    if (B[s + 'Arm']){ boneRot(B[s + 'Arm'], fwd, sg*1.25); boneRot(B[s + 'Arm'], right, .3); }   // upper arms out and back onto the rim
+    if (B[s + 'ForeArm']){ boneRot(B[s + 'ForeArm'], UP, sg*.9); boneRot(B[s + 'ForeArm'], right, -.25); }   // forearms lying along the rim
+    if (B[s + 'Hand']) boneRot(B[s + 'Hand'], fwd, sg*.3);
   }
   // put the seat in the middle of the ring, just below the surface
   if (B.Hips){ const hp = B.Hips.getWorldPosition(new THREE.Vector3()); f.root.position.x += TUBE.g.position.x - hp.x; f.root.position.z += TUBE.g.position.z - hp.z; f.root.position.y += WATER_Y + .15 + bob - hp.y; f.root.updateMatrixWorld(true); }
@@ -6483,10 +6486,15 @@ function tubeUpdate(dt){
   TUBE.t += dt; const t = U.uTime.value, wv = typeof waveAt === 'function' ? waveAt(p.x, p.z, t) : 0;
   p.y = WATER_Y;
   const sp = Math.hypot(player.vel.x, player.vel.z); if (sp > .2){ const want = Math.atan2(player.vel.x, player.vel.z); let d = want - player.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); player.heading += d*(1 - Math.exp(-dt*3)); }
-  TUBE.g.position.set(p.x, WATER_Y + .04 + wv + Math.sin(t*1.7)*.02, p.z); TUBE.g.rotation.set(Math.sin(t*1.3)*.06, player.heading, Math.cos(t*1.1)*.06);
-  hero.root.position.set(p.x, WATER_Y - .5 + wv + Math.sin(t*1.7)*.02, p.z); hero.root.rotation.y = player.heading;
-  hero.update(dt, 0);
-  if (hero.model) poseTube(TUBE.f, il > .2 ? Math.sin(t*5) : 0, wv + Math.sin(t*1.7)*.02);
+  const bob = wv*.5 + Math.sin(t*1.1)*.008;   // floating quietly: a slow, small bob, no rocking
+  TUBE.g.position.set(p.x, WATER_Y + .04 + bob, p.z); TUBE.g.rotation.set(0, player.heading, 0);
+  hero.root.position.set(p.x, WATER_Y - .5 + bob, p.z); hero.root.rotation.y = player.heading;
+  // hold one relaxed frame while lounging (no idle sway): snapshot the bones once, restore them every frame before posing
+  const F = TUBE.f;
+  if (!hero.model) hero.update(dt, 0);
+  else if (!F.base){ hero.update(.35, 0); F.base = []; hero.model.traverse(o => { if (o.isBone) F.base.push([o, o.quaternion.clone()]); }); }
+  else for (const [o, q] of F.base) o.quaternion.copy(q);
+  if (hero.model) poseTube(TUBE.f, 0, bob);
   TUBE.rip -= dt; if (TUBE.rip <= 0){ TUBE.rip = sp > .3 ? .35 : 1.2; fishRipple(p.x, p.z, sp > .3 ? .5 : .3); if (sp > .4 && Math.random() < .3) sfx('splash'); }
   player.speed = sp;
 }
