@@ -409,7 +409,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
     <div class="sub">경기 포천시 관인면 담터길 307-2 · 담터계곡을 따라 길게 놓인 파쇄석 캠핑장</div>
     <dl class="facts">
       <dt>계곡 쪽 사이트</dt><dd>A1–A5 (진입로 쪽), B1–B15 (안쪽), 사이트마다 차량 1대 주차와 화로 자리</dd>
-      <dt>산 쪽 사이트</dt><dd>별빛존 1–6 (소나무 길, 전기), C1–C2, 진입로 옆 멀티존</dd>
+      <dt>산 쪽 사이트</dt><dd>별빛존 1–6 (소나무 길, 전기), 돌담 앞 C-1·C-2(C-2는 두가족석), 진입로 옆 멀티존</dd>
       <dt>편의시설</dt><dd>관리동·매점, 화장실, 샤워실, 개수대, 분리수거장, 주차장 2곳, 흡연구역 2곳, 소화기·구급상자</dd>
       <dt>피크닉존</dt><dd>A5와 B1 사이, 계곡으로 내려가는 계단 옆</dd>
       <dt>대피로</dt><dd>중앙 통로를 따라 진입로(북서쪽 다리) 방향으로 이동합니다. 메뉴의 ‘대피로 표시’로 바닥 화살표를 볼 수 있습니다.</dd>
@@ -469,7 +469,9 @@ const inRect = (x,z,r,m=0) => x > r.x0-m && x < r.x1+m && z > r.z0-m && z < r.z1
    follows the 배치도: the illustration is drawn from the road side, so its right edge is the NW entrance */
 const STRIP = { x0:-24, x1:17.2, z0:-118, z1:116 };   // gravel campground
 const BYUL  = { x0:-31.5, x1:-18.8, z0:-84, z1:-23, h:1.2 };   // 별빛존 terrace with the pine row
-const CZONE = { x0:-28, x1:-14.6, z0:25, z1:52, h:0.7 };       // C1·C2 raised platform
+const CZONE = { x0:-28, x1:-14.6, z0:25, z1:52, h:0.7 };       // C zone: gravel from the lane back to the slope
+const CWALL_X = -23.2;                                           // dry-stone wall at the foot of the raised strip, C-1·C-2 sit in front of it
+const CSITES = [{ id:'C-1', x0:-22.6, x1:-15.6, z0:26.4, z1:34 }, { id:'C-2', x0:-22.6, x1:-15.6, z0:36, z1:50 }];   // C-2: two-family site, double length
 const LAWN  = { x0:57, x1:126, z0:-175, z1:-12 };              // 담터수양관 lawn across the road
 const ENTRY = { z:-150 };                                      // entrance bridge over the creek
 const vShift = z => 30*Math.sin(z/260)*smooth(160,420,Math.abs(z));
@@ -496,7 +498,7 @@ function mountainH(x,z){
   return h;
 }
 const byulMask = (x,z) => smooth(-18.2,-19.6,x) * smooth(BYUL.z0-6,BYUL.z0,z) * smooth(BYUL.z1+6,BYUL.z1,z);
-const cMask = (x,z) => smooth(-14.0,-15.4,x) * smooth(CZONE.z0-5,CZONE.z0,z) * smooth(CZONE.z1+5,CZONE.z1,z);
+const cMask = (x,z) => smooth(CWALL_X + .5, CWALL_X - .9, x) * smooth(CZONE.z0-5,CZONE.z0,z) * smooth(CZONE.z1+5,CZONE.z1,z);
 const CREEK_BARS = [[17, 10, 2.9, 2.0, .8], [-74, 9, 3.0, 1.9, .76], [118, 8, 2.6, 1.7, .7]];
 function floorH(x,z){
   let h = Math.max(BYUL.h*byulMask(x,z), CZONE.h*cMask(x,z));
@@ -3158,11 +3160,14 @@ function buildOffice(){
   // picture window (single pane, black frame)
   B.box(M_.frame, .09, 1.74, 2.36, xF + .045, 1.75, -1.95);
   B.add(mat.glassWarm, (() => { const p = new THREE.PlaneGeometry(2.22, 1.6); p.rotateY(Math.PI/2); p.translate(xF + .095, 1.75, -1.95); return p; })());
-  // glass shop door with notices
-  B.box(M_.frame, .09, 2.36, 1.2, xF + .045, 1.18, .95);
+  // 매점: glass double door with notices on the left leaf
+  const SD = 1.55;
+  B.box(M_.frame, .09, 2.36, 2.0, xF + .045, 1.18, SD);
   const dg = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 2.2), new THREE.MeshStandardMaterial({ map:doorGlassTex(), roughness:.12, metalness:.3, emissive:0xffc27a, emissiveMap:canvasTex(8, 8, (c) => { c.fillStyle = '#ffffff'; c.fillRect(0, 0, 8, 8); }), emissiveIntensity:0 }));
-  tentMats.push(dg.material); dg.rotation.y = Math.PI/2; dg.position.set(xF + .095, 1.18, .95); g.add(dg);
-  B.box(M_.chrome, .04, .9, .03, xF + .14, 1.15, .55);
+  tentMats.push(dg.material); dg.rotation.y = Math.PI/2; dg.position.set(xF + .095, 1.18, SD + .46); dg.scale.x = .88; g.add(dg);
+  const dg2 = new THREE.Mesh(new THREE.PlaneGeometry(.9, 2.2), mat.glassWarm); dg2.rotation.y = Math.PI/2; dg2.position.set(xF + .095, 1.18, SD - .46); g.add(dg2);
+  B.box(M_.frame, .1, 2.3, .06, xF + .1, 1.18, SD);   // meeting stiles
+  for (const dz of [.08, -.08]) B.box(M_.chrome, .04, .9, .03, xF + .14, 1.15, SD + dz);
   // logo disc between the upper windows, notice board by the 화장실 wing
   const logo = new THREE.Mesh(new THREE.CircleGeometry(.62, 48), new THREE.MeshStandardMaterial({ map:logoTex(), roughness:.5 })); logo.rotation.y = Math.PI/2; logo.position.set(xF + .07, 4.5, 0); g.add(logo);
   B.geo(M_.trim, new THREE.CylinderGeometry(.64, .64, .05, 48), xF + .03, 4.5, 0, 0, 0, Math.PI/2);
@@ -3183,9 +3188,19 @@ function buildOffice(){
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(.24, .24), new THREE.MeshStandardMaterial({ map:pictoTex(label, col), roughness:.6 })); pl.rotation.y = Math.PI/2; pl.position.set(xF + .075, 1.62, z); g.add(pl);
     lampAt(z, 2.45);
   };
-  wDoor(7.9, '남', '#2a62b5'); wDoor(10.6, '여', '#c43b3b'); wDoor(-5.4, '샤워 남', '#2a62b5'); wDoor(-8.8, '샤워 여', '#c43b3b');
-  lampAt(.95, 2.62); lampAt(-1.95, 2.85);
-  win(6.0, 1.65, .95, .75); win(9.25, 2.25, .6, .42); win(-7.1, 1.85, .8, .6); win(-10.4, 1.85, .8, .6);
+  wDoor(10.3, '여', '#c43b3b'); wDoor(6.7, '샤워 여', '#c43b3b'); wDoor(-7.9, '샤워 남', '#2a62b5'); wDoor(-10.3, '남', '#2a62b5');
+  // 개수대: open doorway to the indoor sink room (steel counter, taps, dish rack)
+  { const z = -5.2, w = 1.3;
+    B.box(M_.frame, .06, 2.24, w + .12, xF + .025, 1.1, z);
+    const inside = new THREE.Mesh(new THREE.PlaneGeometry(w, 2.12), new THREE.MeshStandardMaterial({ color:0x2c3136, roughness:.9 })); inside.rotation.y = Math.PI/2; inside.position.set(xF - .9, 1.06, z); g.add(inside);
+    for (const s of [-1, 1]) B.box(M_.siding, .9, 2.12, .03, xF - .45, 1.06, z + s*w/2);
+    B.box(M_.chrome, .55, .08, w - .1, xF - .55, .86, z); B.box(M_.chrome, .5, .8, .04, xF - .55, .43, z + w/2 - .08);
+    for (const dz of [-.3, .3]){ B.geo(M_.chrome, new THREE.CylinderGeometry(.015, .015, .3, 8), xF - .74, 1.05, z + dz); B.box(M_.chrome, .16, .02, .02, xF - .67, 1.2, z + dz); }
+    B.box(M_.trim, .02, .02, w, xF - .02, 2.2, z);
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(.6, .2), new THREE.MeshStandardMaterial({ map:signTex('개수대', { w:256, h:80, bg:'#1b1d22', fg:'#fff', font:'600 44px "IBM Plex Sans KR", sans-serif', grain:false }), roughness:.6 }));
+    pl.rotation.y = Math.PI/2; pl.position.set(xF + .07, 2.42, z); g.add(pl); lampAt(z, 2.62); }
+  lampAt(SD, 2.62); lampAt(-1.95, 2.85);
+  win(8.5, 2.25, .6, .42); win(-9.1, 2.25, .6, .42);
   // back and end windows so the hillside view is not blank
   for (const z of [-7.5, -2, 2, 8]) win(z, z === -2 || z === 2 ? 4.1 : 2.1, .9, .7, xB, -1);
   // front turf strip on a timber edge, flower pots
@@ -3194,7 +3209,7 @@ function buildOffice(){
   B.box(M_.deck, .08, .14, tl, xF + 1.58, .07, tz);
   const flowers = [0xe34b6c, 0xf2c94c, 0xb04fd0, 0xffffff, 0xe8743b];
   for (let z = zA + .7, k = 0; z < zB - .5; z += 1.15, k++){
-    if ([7.9, 10.6, -5.4, -8.8, .95].some(dz => Math.abs(z - dz) < .65)) continue;
+    if ([10.3, 6.7, SD, -5.2, -7.9, -10.3].some(dz => Math.abs(z - dz) < (dz === SD ? 1.05 : .75))) continue;
     B.geo(M_.pot, new THREE.CylinderGeometry(.11, .085, .2, 12), xF + 1.3, .18, z);
     B.geo(M_.leaf, new THREE.SphereGeometry(.11, 8, 6), xF + 1.3, .34, z);
     const fm = officeMats['f' + k%5] || (officeMats['f' + k%5] = new THREE.MeshStandardMaterial({ color:flowers[k%5], roughness:.6 }));
@@ -3213,7 +3228,6 @@ function buildOffice(){
     stringLights(new THREE.Vector3(px, H(px,pz) + 3.3, pz), new THREE.Vector3(xF + .25, y0 + 4.0, pz - 2.4*Math.sign(pz)), .4);
   }
   redMaple(-9.3, 7.4, 4.2); redMaple(-9.6, -13.6, 3.8); redMaple(-12.6, 18.0, 3.4);
-  pergolaSwing(-12.7, 14.4);
   parasolTable(-12.0, -1.75, 0xf3f1ea); parasolTable(-12.0, 7.6, 0xf2c6cf);
   return { xF, xB, y0 };
 }
@@ -3566,7 +3580,7 @@ function bbqScene(x, z){
 /* ---------------- 봄이: the campground mascot — a silver-white Scottish Fold modelled on her photos and video. An SDF-sculpted round
    head carries her photo-projected face; glossy 3D eyes with dilating pupils, eyelids, nose leather, an opening mouth and whiskers sit in it,
    all under GLSL shell fur. She wanders in front of 관리동, naps in the shop doorway, meows at visitors and hunts butterflies ---------------- */
-const CAT = { S:1.3, home:[-13.55, .95], area:{ x0:-13.8, x1:-6.4, z0:-3.4, z1:12.4 } };
+const CAT = { S:1.3, home:[-13.55, 1.55], area:{ x0:-13.8, x1:-6.4, z0:-3.4, z1:12.4 } };
 // face layout in head space (skull centre at the origin, +z forward), measured from her photo: eye spacing and height, nose and mouth lines
 const CF = { ex:.033, ey:.003, ez:.0425, er:.0175, eo:.0128, noseY:-.0262, mouthY:-.0472 };
 // photo projection: u = x*FM + .5, v = y*FM + FV (the photo crop is 722 px wide, eyes 263 px apart = 66 mm)
@@ -4473,7 +4487,7 @@ async function buildCamp(){
   const stones = new THREE.InstancedMesh(stoneG, mat.stone, 900); let si=0;
   const edge = (x, z) => { const s=R(.6,1.2); tmpM.compose(tmpV.set(x, H(x,z)+.05, z), tmpQ.setFromEuler(new THREE.Euler(rng()*3,rng()*3,rng()*3)), tmpS.set(s,s*.7,s)); stones.setMatrixAt(si++, tmpM); };
   for (let z = BYUL.z0; z < BYUL.z1; z += .42) edge(-18.8 + R(-.08,.08), z);
-  for (let z = CZONE.z0; z < CZONE.z1; z += .42) edge(-14.7 + R(-.08,.08), z);
+  for (let z = CZONE.z0; z < CZONE.z1; z += .42){ edge(CWALL_X - .05 + R(-.08,.08), z); if (rng() < .7) edge(CWALL_X - .25 + R(-.08,.08), z + .2); }   // two courses of dry stone
   stones.count = si; stones.castShadow = stones.receiveShadow = true; scene.add(stones);
   BYUL_Z.forEach((z, i) => {
     const n = i + 1;
@@ -4485,12 +4499,15 @@ async function buildCamp(){
     sites.push({ id:'별빛존 '+n, x:-25, z, zone:'별빛존' });
   });
   zoneBoard('별빛존', -22.5, BYUL.z0 - 3, Math.PI/2, { w:2.0, h:.6, post:1.2 });
-  // C1·C2 on a raised timber-edged platform with parking at both ends
-  deck(-21.5, 32.5, 4.2, 4.2); deck(-21.5, 43.5, 4.2, 4.2);
-  zoneBoard('C1', -16, 30, Math.PI/2, { w:.8, h:.45, post:1.0, bg:'#a8361f' }); zoneBoard('C2', -16, 41, Math.PI/2, { w:.8, h:.45, post:1.0, bg:'#a8361f' });
-  sites.push({ id:'C1', x:-21.5, z:32.5, zone:'C존' }, { id:'C2', x:-21.5, z:43.5, zone:'C존' });
-  canopy(-21.5, 32.5, 0x3a86c4, false); canopy(-21.5, 43.5, 0x3a86c4, false);
-  powerBox(-15.6, 37.5, Math.PI/2);
+  // C-1 · C-2 (two-family, double length): gravel sites in front of the dry-stone wall, timber-edged like the other sites, with a brick fire pad
+  for (const c of CSITES){
+    const cx = (c.x0 + c.x1)/2, cz = (c.z0 + c.z1)/2, w = c.x1 - c.x0, d = c.z1 - c.z0;
+    for (const [x, z, l, ry] of [[c.x0, cz, d, 0], [c.x1, cz, d, 0], [cx, c.z0, w, Math.PI/2], [cx, c.z1, w, Math.PI/2]]){ const t = box(.1, .08, l, mat.woodDark); t.receiveShadow = true; place(t, x, H(x, z) + .02, z, ry); }
+    zoneBoard(c.id === 'C-2' ? 'C-2 두가족' : c.id, c.x1 + .5, c.z0 + .9, Math.PI/2, { w:c.id === 'C-2' ? 1.25 : .8, h:.45, post:1.0, bg:'#a8361f' });
+    brickPad(c.x1 - 1.6, c.z0 + 6.4, Math.PI/2); if (c.id === 'C-2') brickPad(c.x1 - 1.6, c.z1 - 1.4, Math.PI/2);
+    powerBox(c.x1 + .3, c.z1 - .8, Math.PI/2);
+    sites.push({ id:c.id, x:cx, z:cz, zone:'C존' });
+  }
   await frame();
 
   // buildings: 관리동·매점 with 화장실·샤워실, 개수대 (blue roof in the satellite photo), 분리수거장
@@ -4559,6 +4576,9 @@ async function buildCamp(){
   zoneBoard('P 주차장', -9.4, -83.6, Math.PI/2, { w:1.3, h:.5, post:1.4, bg:'#1d4f9a' });
   reverseRow(-107, -90.5, -17.6, [0,1,3,4,6]);                             // NW lot by the entrance
   reverseRow(60.5, 80, -17.6, [0,2,3,5,6]);                                // SE lot by the B end
+  pitch('dome', -20.4, 30.6, Math.PI/2, { base:'#7d8a6a', skirt:'#3d4436' });   // C-1
+  pitch('tunnel', -20.2, 40.2, Math.PI, { base:'#cfc8b6', sleeve:'#55595e', skirt:'#45484c' });   // C-2: two families
+  pitch('bell', -20.0, 46.6, Math.PI/2, { base:'#efe6d2' }, false);
   addCar('midSUV', 0x0e0f11, -11.8, 22.6, Math.PI/2); addCar('fullSedan', 0xe9e9e6, -11.8, 56.4, -Math.PI/2);
   batchCars();
   occEnd(occM);
@@ -4678,9 +4698,12 @@ function updatePlayer(dt){
   const tx = (fx*iz + rx*ix)*maxS, tz = (fz*iz + rz*ix)*maxS;
   const k = 1 - Math.exp(-dt*(il>0 ? 9 : 12));
   player.vel.x = lerp(player.vel.x, tx, k); player.vel.z = lerp(player.vel.z, tz, k);
-  const p = player.pos;
+  const p = player.pos, ox = p.x, oz = p.z;
+  const wade = EXP.on ? Math.max(0, WATER_Y - groundAt(p.x, p.z)) : 0;   // knee-deep in the creek: slower steps
+  if (wade > .12){ player.vel.x *= 1 - .45*Math.min(1, wade/.5)*k; player.vel.z *= 1 - .45*Math.min(1, wade/.5)*k; }
   p.x += player.vel.x*dt; p.z += player.vel.z*dt;
   resolveCollisions(p);
+  if (EXP.on && SEASONS[season].water !== 'ice' && WATER_Y - groundAt(p.x, p.z) > .85){ p.x = ox; p.z = oz; }   // no deeper than the thighs
   const g = groundAt(p.x, p.z);
   if (player.air){ player.vy -= 18*dt; p.y += player.vy*dt; if (p.y <= g){ p.y = g; player.air=false; player.vy=0; } }
   else { p.y = lerp(p.y, g, 1 - Math.exp(-dt*25)); if (Math.abs(p.y-g) > .6) p.y = g; }
@@ -5362,9 +5385,9 @@ const TENTS = [
   { id:'cabin', name:'캐빈 텐트', desc:'굴뚝이 달린 캔버스 오두막형' }];
 const xpRand = (a, b) => a + (b - a)*Math.random();
 function xpSiteList(){
-  return sites.filter(s => /^A\d|^B\d|별빛존/.test(s.id)).map(s => {
-    const creek = s.x > 0;
-    return { id:s.id, creek, x:s.x, z:s.z, pad: creek ? { x:14.6, z:s.z + 1.5 } : { x:-21.2, z:s.z - 2.4 } };
+  return sites.filter(s => /^A\d|^B\d|별빛존|^C-/.test(s.id)).map(s => {
+    const creek = s.x > 0, C = CSITES.find(c => c.id === s.id);
+    return { id:s.id, creek, x:s.x, z:s.z, pad: creek ? { x:14.6, z:s.z + 1.5 } : C ? { x:C.x1 - 1.6, z:C.z0 + 6.4 } : { x:-21.2, z:s.z - 2.4 } };
   });
 }
 let XP_SITES = null;
@@ -5575,7 +5598,7 @@ function xpHud(){
 function xpNearWater(){
   if (SEASONS[season].water === 'ice') return null;
   const p = player.pos, g = groundAt(p.x, p.z);
-  if (g < WATER_Y - .35) return null;
+  if (g < WATER_Y - .05) return { a:player.heading, d:0, x:p.x, z:p.z, inside:true };   // standing in the creek
   let best = null;
   for (let k = 0; k < 16; k++){
     const a = k/16*Math.PI*2, sx = Math.sin(a), sz = Math.cos(a);
@@ -5613,7 +5636,8 @@ function xpCtx(force){
       }
       const w = xpNearWater();
       if (w && EXP.mode === 'free') acts.push({ id:'tube', label:'튜브 타고 놀기', fn:() => tubeStart(w) });
-      if (w){ acts.push({ id:'rod', label:'낚시하기', fn:() => fishStart('rod', w) }); acts.push({ id:'net', label:'어망(족대) 치기', fn:() => fishStart('net', w) }); }
+      if (w && !w.inside) acts.push({ id:'rod', label:'낚시하기', fn:() => fishStart('rod', w) });   // fishing from the bank only
+      if (w) acts.push({ id:'net', label:'어망(족대) 치기', fn:() => fishStart('net', w) });   // net and tube also from inside the creek
       if (dist(RECYCLE.x + .9, RECYCLE.z) < 3.4) acts.push(EXP.recycled ? { id:'end', label:'체험 마치기 (체크아웃)', fn:xpEnd } : { id:'rec', label:'분리수거하기', fn:recOpen });
     } else if (dist(RECYCLE.x + .9, RECYCLE.z) < 3.4 || xpNearestSite(6.5)){
       acts.push({ id:'need', label:'먼저 매점 앞 캠장님께 체크인하세요', fn:null, dim:true });
@@ -6257,6 +6281,7 @@ function hgStart(){
   deck.forEach((card, i) => HG.P[i % 3].deck.push(card));
   hgStackUpdate();
   c.friends.forEach(f => f.sitting = true);
+  if (c.parts && c.parts[1]) c.parts[1].objs.forEach(o => o.visible = false);   // the tarp would hide the table from the game camera
   const s = c.seats[0]; player.pos.set(s.x, groundAt(s.x, s.z), s.z); hero.root.visible = false;
   const fx = Math.sin(s.ry), fz = Math.cos(s.ry);
   hgCam();
@@ -6277,7 +6302,7 @@ function hgEnd(silent){
   for (const p of HG.P){ scene.remove(p.deckStack); scene.remove(p.upStack); if (p.top) scene.remove(p.top); }
   for (const a of HG.anims) scene.remove(a.m); HG.anims = [];
   scene.remove(HG.bell);
-  const c = EXP.camp; if (c){ if (c.tableObj) c.tableObj.children.forEach(o => { if (o.isGroup) o.visible = true; }); }
+  const c = EXP.camp; if (c){ if (c.parts && c.parts[1]) c.parts[1].objs.forEach(o => o.visible = true); if (c.tableObj) c.tableObj.children.forEach(o => { if (o.isGroup) o.visible = true; }); }
   $('#xp-hg').hidden = true; hero.root.visible = true;
   const s = c ? c.seats[0] : null; if (s){ const px = s.x - Math.sin(s.ry)*.7, pz = s.z - Math.cos(s.ry)*.7; player.pos.set(px, groundAt(px, pz), pz); camYaw = s.ry + Math.PI; }
   view = 'tp'; setView('tp'); xpCtx(true);
@@ -6405,6 +6430,24 @@ function tubeStop(){
   scene.remove(TUBE.g); EXP.mode = 'free'; hero.root.position.y = 0;
   player.pos.set(best.x, groundAt(best.x, best.z), best.z); sfx('splash'); xpCtx(true);
 }
+/* in the ring: seat in the hole just under the water, back against the rear rim, legs over the front rim with the calves in the water, arms along the sides of the ring */
+function poseTube(f, paddle, bob){
+  const av = f.av, B = f.bones || (f.bones = boneMap(av.model));
+  av.root.updateMatrixWorld(true);
+  const ry = f.root.rotation.y, right = new THREE.Vector3(Math.cos(ry), 0, -Math.sin(ry)), fwd = new THREE.Vector3(Math.sin(ry), 0, Math.cos(ry));
+  if (B.Hips) boneRot(B.Hips, right, -.85);
+  if (B.Spine) boneRot(B.Spine, right, .05);
+  if (B.Neck) boneRot(B.Neck, right, .3); if (B.Head) boneRot(B.Head, right, .22);
+  for (const s of ['Left', 'Right']){
+    if (B[s + 'UpLeg']) boneRot(B[s + "UpLeg"], right, -1.25);
+    if (B[s + 'Leg']) boneRot(B[s + "Leg"], right, 2.05 + .15*paddle*(s === 'Left' ? 1 : -1));
+    const sg = s === 'Left' ? 1 : -1;
+    if (B[s + 'Arm']){ boneRot(B[s + 'Arm'], fwd, -sg*1.05); boneRot(B[s + 'Arm'], right, .35 + .25*paddle*sg); }
+    if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -.35);
+  }
+  // put the seat in the middle of the ring, just below the surface
+  if (B.Hips){ const hp = B.Hips.getWorldPosition(new THREE.Vector3()); f.root.position.x += TUBE.g.position.x - hp.x; f.root.position.z += TUBE.g.position.z - hp.z; f.root.position.y += WATER_Y + .08 + bob - hp.y; f.root.updateMatrixWorld(true); }
+}
 function tubeUpdate(dt){
   let ix = 0, iz = 0;
   if (keys.has('KeyW') || keys.has('ArrowUp')) iz += 1; if (keys.has('KeyS') || keys.has('ArrowDown')) iz -= 1;
@@ -6424,7 +6467,7 @@ function tubeUpdate(dt){
   TUBE.g.position.set(p.x, WATER_Y + .04 + wv + Math.sin(t*1.7)*.02, p.z); TUBE.g.rotation.set(Math.sin(t*1.3)*.06, player.heading, Math.cos(t*1.1)*.06);
   hero.root.position.set(p.x, WATER_Y - .5 + wv + Math.sin(t*1.7)*.02, p.z); hero.root.rotation.y = player.heading;
   hero.update(dt, 0);
-  if (hero.model) poseSit(TUBE.f, 1, il > .2 ? .4 + .3*Math.sin(t*5) : 0, 1, true);
+  if (hero.model) poseTube(TUBE.f, il > .2 ? Math.sin(t*5) : 0, wv + Math.sin(t*1.7)*.02);
   TUBE.rip -= dt; if (TUBE.rip <= 0){ TUBE.rip = sp > .3 ? .35 : 1.2; fishRipple(p.x, p.z, sp > .3 ? .5 : .3); if (sp > .4 && Math.random() < .3) sfx('splash'); }
   player.speed = sp;
 }
@@ -6576,7 +6619,8 @@ function zoneAt(x,z){
   if (onRoad(x,z,2)) return '담터길';
   if (inRect(x,z,LAWN)) return '담터수양관 잔디밭';
   if (x < -18.6 && inRect(x,z,BYUL,1)){ const s = sites.filter(s=>s.zone==='별빛존').reduce((b,s)=>Math.abs(s.z-z)<Math.abs(b.z-z)?s:b); return s.id; }
-  if (x < -14.5 && inRect(x,z,CZONE,1)) return z < 38 ? 'C1' : 'C2';
+  for (const c of CSITES) if (inRect(x, z, c, .6)) return c.id === 'C-2' ? 'C-2 (두가족)' : c.id;
+  if (x < CWALL_X && inRect(x,z,CZONE,1)) return 'C존 돌담';
   if (inRect(x,z,STRIP,1)){
     if (Math.hypot(x-9.2, z+8.6) < 4) return '불멍 · B3 앞 화로대';
     if (x > 7 && z > -42 && z < -25) return '피크닉존';
@@ -6609,7 +6653,7 @@ function drawMapBase(){
   line(creekC, 16, '#4c8db0'); line(creekC, 6, '#7fbcd6');
   line(roadX, 6, '#5d6166');
   rect(STRIP.x0, STRIP.z0, STRIP.x1, STRIP.z1, '#d9d2bd');
-  rect(BYUL.x0, BYUL.z0, -18.6, BYUL.z1, '#c9c1a9'); rect(CZONE.x0, CZONE.z0, -14.6, CZONE.z1, '#b98b5a');
+  rect(BYUL.x0, BYUL.z0, -18.6, BYUL.z1, '#c9c1a9'); rect(CZONE.x0, CZONE.z0, CWALL_X, CZONE.z1, '#a89270'); for (const c of CSITES) rect(c.x0, c.z0, c.x1, c.z1, '#cdb48b');
   poly([[4,-118],[8,-118],[15,ENTRY.z+3],[11,ENTRY.z-3]], '#d9d2bd');
   rect(15, ENTRY.z-3.2, roadX(ENTRY.z), ENTRY.z+3.2, '#6c7076');
   rect(LAWN.x0, MAP.z0, MAP.x1, LAWN.z1, '#3d5a35');
@@ -6771,7 +6815,7 @@ function bindInput(){
   });
   const places = [
     ['진입로', 9, -128, Math.PI], ['멀티존', 4, -104, -Math.PI/2], ['A1', 4, -88, -Math.PI/2], ['별빛존 ★1', -26, -78, -Math.PI/2],
-    ['피크닉존', 4, -35, -Math.PI/2], ['관리동·매점', -7, -1, Math.PI/2], ['불멍 B3', 6.2, -12.5, -2.45], ['C1·C2', -9.5, 38, Math.PI/2],
+    ['피크닉존', 4, -35, -Math.PI/2], ['관리동·매점', -7, -1, Math.PI/2], ['불멍 B3', 6.2, -12.5, -2.45], ['C-1·C-2', -9.5, 38, Math.PI/2],
     ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['여름 래프팅', 'raft'], ['고양이 봄이', 'cat'], ['별빛 망원경', 'scope'], ['항공 전경', null]
   ];
   const pl = $('#places');
@@ -7046,7 +7090,7 @@ async function boot(){
     stats:()=>({ fps:Math.round(fps), tris:renderer.info.render.triangles, calls:renderer.info.render.calls, pos:player.pos.toArray().map(v=>+v.toFixed(2)), view, hour, season }),
     setDist:d=>camDist=d, orbit:()=>orbit, camera, keys, zoneAt, H,
     wake: WAKE, cat: CAT, catSet, catView, catCam, catMeow, BF, bfSpawn, catT:(sec)=>{ for (let i=0;i<sec*30;i++){ simT += 1/30; U.uTime.value = simT; catUpdate(1/30, simT); } return CAT.state; }, post: POST, postReset:()=>{ post.w = 0; }, rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ window.__camHold = true; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
-    exp: EXP, car: CAR, chief: CHIEF, hg: HG, fishS: FISH, gr: GR, expStart, xpChief, xpCheckIn, xpPitch, xpStrike, xpFireOn, xpFireOff, xpGrillOpen, grillAdd, grillFlip, grillTake, grillClose, fishStart, fishDown, fishUp, fishLift, fishStop, hgStart, hgFlip, hgRing, hgEnd, recOpen, recPick, xpEnd, carEnter, carExit, xpSites:()=>XP_SITES, xpNearWater, xpCtx,
+    exp: EXP, car: CAR, chief: CHIEF, hg: HG, fishS: FISH, gr: GR, expStart, xpChief, xpCheckIn, xpPitch, xpStrike, xpFireOn, xpFireOff, xpGrillOpen, grillAdd, grillFlip, grillTake, grillClose, fishStart, fishDown, fishUp, fishLift, fishStop, hgStart, hgFlip, hgRing, hgEnd, recOpen, recPick, xpEnd, carEnter, carExit, xpSites:()=>XP_SITES, xpNearWater, xpCtx, tube:TUBE,
     scope: SCOPE, scopeHit, scopeOpen, scopeClose, scopeSetTarget, scopeSetEyepiece, scopeFocus, scopeLayout,
     raftT:(sec)=>{ for (let i=0;i<sec*30;i++) raftUpdate(1/30); return raft.state; },
     raft:(st, v=0)=>{ raft.state = st; raft.d = v; raft.k = 0; if (st === 'float') raft.z = lerp(RAFT_START, RAFT_END, v); raft.from = [floatX(RAFT_END), RAFT_END, 0]; if (st === 'carry') raft.heading = pathAt(v).h; return st; },
