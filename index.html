@@ -6301,7 +6301,7 @@ function hgCam(){
 addEventListener('resize', () => { if (HG.on) hgCam(); });
 function hgEnd(silent){
   if (!HG.on) return;
-  if (!HG.over && HG.P.some(p => p.up.length)){ EXP.stats.hg = EXP.stats.hg || `중간에 끝냄 (내 카드 ${HG.P[0].deck.length + HG.P[0].up.length}장)`; EXP.done.hg = true; xpHud(); }
+  if (!HG.over && (EXP.done.hg || HG.P.some(p => p.up.length))){ EXP.stats.hg = EXP.stats.hg || `함께 플레이 ✓ (중간에 끝냄 · 내 카드 ${HG.P[0].deck.length + HG.P[0].up.length}장)`; EXP.done.hg = true; xpHud(); }
   HG.on = false; EXP.mode = 'free'; EXP.lock = false;
   for (const p of HG.P){ scene.remove(p.deckStack); scene.remove(p.upStack); if (p.top) scene.remove(p.top); }
   for (const a of HG.anims) scene.remove(a.m); HG.anims = [];
@@ -6547,7 +6547,7 @@ function xpEnd(){
   $('#xp-end-facts').innerHTML = [
     ['체험 시간', `${mins}분`], ['텐트', S.tents ? `${S.tents}번 피칭` : '치지 않음'], ['모닥불', S.fires ? `${S.fires}번 피움` : '피우지 않음'],
     ['고기 굽기', S.grilled ? `${S.grilled}개 구움 (완벽 ${S.perfect} · 탐 ${S.burnt})` : '굽지 않음'], ['물고기', caught ? `${caught}마리 잡음` : '못 잡음'],
-    ['할리갈리', S.hg || '하지 않음'], ['분리수거', '완료 ✓']].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+    ['할리갈리', S.hg || (EXP.done.hg ? '함께 플레이 ✓' : '하지 않음')], ['튜브 물놀이', EXP.done.tube ? '함 ✓' : '하지 않음'], ['분리수거', '완료 ✓']].map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
   $('#xp-end').hidden = false; sfx('ok');
 }
 /* ---------- start, per-frame update, camera ---------- */
