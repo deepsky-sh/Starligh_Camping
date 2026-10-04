@@ -213,6 +213,11 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 .xp-hg .players{display:flex;gap:6px;flex:1}
 .xp-hg .hp{flex:1;border:1px solid var(--line);border-radius:10px;padding:6px 8px;display:flex;flex-direction:column;font-size:12px}
 .xp-hg .hp b{font-size:13px}
+.xp-hg .hp{flex-direction:row;align-items:center;gap:7px}
+.xp-hg .hp div{display:flex;flex-direction:column;min-width:0}
+.xp-hg .hp img,.xp-hg .hp .empty{flex:none;width:30px;height:45px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.4);background:rgba(255,255,255,.06);border:1px dashed var(--line)}
+.xp-hg .hp img{border:0}
+@media (max-width:520px){.xp-hg .hp{flex-direction:column;align-items:flex-start;gap:4px}.xp-hg .hp img,.xp-hg .hp .empty{width:36px;height:54px}}
 .xp-hg .hp span{color:var(--muted);font-variant-numeric:tabular-nums}
 .xp-hg .hp.turn{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
 .xp-hg .hp.out{opacity:.45}
@@ -235,6 +240,7 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 .shake{animation:shake .35s}
 @keyframes shake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 body.xp .help{display:none}
+body.scoping #xp-hud,body.scoping .xp-quest{display:none!important}
 body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .tbtns,body.xp-drive .tbtns{display:none!important}
 @media (max-width:760px){
   .xp-quest{top:calc(104px + env(safe-area-inset-top,0px));width:calc(100vw - 228px);padding:9px 11px}
@@ -4341,6 +4347,7 @@ function resolveCollisions(p){
 }
 function updatePlayer(dt){
   if (view === 'drive'){ carDrive(dt); return; }
+  if (EXP.mode === 'tube'){ tubeUpdate(dt); return; }
   let ix = 0, iz = 0;
   if (keys.has('KeyW') || keys.has('ArrowUp')) iz += 1;
   if (keys.has('KeyS') || keys.has('ArrowDown')) iz -= 1;
@@ -4957,7 +4964,7 @@ function scopeUpdate(dt){
   }
   // in-world prompt
   const d = Math.hypot(player.pos.x - S.x, player.pos.z - (S.z - .6));
-  const near = started && S.root.visible && !S.on && (view === 'tp' || view === 'fp') && d < 2.7;
+  const near = started && S.root.visible && !S.on && (view === 'tp' || view === 'fp') && d < 2.7 && !(EXP.on && EXP.mode !== 'free');
   if (near !== S.near){ S.near = near; $('#act-scope').hidden = !near; }
   if (!S.on) return;
   // eyepiece view uniforms
@@ -5220,7 +5227,7 @@ function xpChief(){
   } else if (EXP.recycled){
     xpSay(N, '분리수거까지 깔끔하게 해 주셨네요. 감사합니다! 조심히 가시고 또 오세요 ★', [{ label:'체험 마치기', primary:true, fn:xpEnd }, { label:'조금 더 있을게요', fn:null }]);
   } else {
-    const tips = ['계곡 쪽 사이트는 물소리가 좋아요. 밤엔 별도 잘 보이고요.', '계곡에선 낚시나 족대(어망)로 피라미를 잡을 수 있어요. 겨울엔 얼어서 안 돼요.', '고기는 빨간 벽돌 위 화로에 굽거나, 테이블의 버너로 구우면 돼요.', '퇴실 전에 분리수거장에서 분리수거 꼭 부탁드려요!', '밤에는 관리동 옆 망원경으로 달이랑 토성도 볼 수 있어요.'];
+    const tips = ['계곡 쪽 사이트는 물소리가 좋아요. 밤엔 별도 잘 보이고요.', '계곡에선 낚시나 족대(어망)로 피라미를 잡을 수 있어요. 겨울엔 얼어서 안 돼요.', '고기는 빨간 벽돌 위 화로에 불을 피우고 석쇠에 구우면 돼요.', '퇴실 전에 분리수거장에서 분리수거 꼭 부탁드려요!', '밤에는 관리동 옆 망원경으로 달이랑 토성도 볼 수 있어요.'];
     xpSay(N, tips[Math.floor(Math.random()*tips.length)], [{ label:'고맙습니다', primary:true, fn:null }]);
   }
 }
@@ -5238,6 +5245,7 @@ function xpHud(){
     ['grill', '고기 굽기'],
     ['fish', '계곡에서 물고기 잡기'],
     ['hg', '친구들과 할리갈리 한 판'],
+    ['tube', '튜브 타고 계곡 물놀이'],
     ['recycle', '분리수거장에서 분리수거 → 체험 마치기', true]];
   $('#xp-quest-list').innerHTML = q.map(([k, t, req]) => `<li class="${EXP.done[k] ? 'ok' : ''}"><span class="ck">${EXP.done[k] ? '✓' : ''}</span>${t}${req ? ' <em>필수</em>' : ''}</li>`).join('');
   const inv = [];
@@ -5268,21 +5276,25 @@ function xpCtx(force){
   const acts = [];
   if (view === 'drive'){
     if (Math.abs(CAR.v) < 1.2) acts.push({ id:'exit', label:'차에서 내리기 · 주차', fn:() => carExit() });
+  } else if (EXP.mode === 'tube'){
+    acts.push({ id:'tubeoff', label:'튜브에서 내리기', fn:tubeStop });
   } else if (!EXP.lock && EXP.mode === 'free'){
     const p = player.pos, dist = (x, z) => Math.hypot(p.x - x, p.z - z);
     if (dist(CHIEF.x, CHIEF.z) < 2.8) acts.push({ id:'chief', label:EXP.checked ? '캠장님과 대화' : '캠장님께 체크인', fn:xpChief });
     if (CAR.g && dist(CAR.x, CAR.z) < 3.2) acts.push({ id:'car', label:'차 타기', fn:carEnter });
+    if (SCOPE.near) acts.unshift({ id:'scope', label:'망원경으로 달·토성 보기', fn:scopeOpen });
     if (EXP.checked){
       const c = EXP.camp;
       if (!c){ const s = xpNearestSite(6.5); if (s) acts.push({ id:'pitch', label:`${s.id}에 텐트 치기`, fn:() => xpTentPicker(s) }); }
       else {
         const dPad = dist(c.site.pad.x, c.site.pad.z), dSeat = dist(c.seats[0].x, c.seats[0].z), dTbl = dist(c.table.x, c.table.z);
         if (dPad < 2.6) acts.push(EXP.fire && EXP.fire.on ? { id:'fireoff', label:'모닥불 끄기', fn:xpFireOff } : { id:'fire', label:'모닥불 피우기', fn:xpFireOn });
-        if ((EXP.fire && EXP.fire.on && dPad < 2.8) || dTbl < 2.2) acts.push({ id:'grill', label:EXP.fire && EXP.fire.on && dPad < 2.8 ? '화로에 고기 굽기' : '버너로 고기 굽기', fn:() => xpGrillOpen(EXP.fire && EXP.fire.on && dPad < 2.8 ? 'fire' : 'burner') });
+        if (EXP.fire && EXP.fire.on && dPad < 2.8) acts.push({ id:'grill', label:'화로에 고기 굽기', fn:() => xpGrillOpen('fire') });
         if (dSeat < 1.9 && c.friends.length) acts.push({ id:'hg', label:'의자에 앉아 할리갈리 시작', fn:hgStart });
         if (dist(c.anchor.x, c.anchor.z) < 7.5) acts.push({ id:'strike', label:'텐트 철수하기', fn:xpStrike });
       }
       const w = xpNearWater();
+      if (w && EXP.mode === 'free') acts.push({ id:'tube', label:'튜브 타고 놀기', fn:() => tubeStart(w) });
       if (w){ acts.push({ id:'rod', label:'낚시하기', fn:() => fishStart('rod', w) }); acts.push({ id:'net', label:'어망(족대) 치기', fn:() => fishStart('net', w) }); }
       if (dist(RECYCLE.x + .9, RECYCLE.z) < 3.4) acts.push(EXP.recycled ? { id:'end', label:'체험 마치기 (체크아웃)', fn:xpEnd } : { id:'rec', label:'분리수거하기', fn:recOpen });
     } else if (dist(RECYCLE.x + .9, RECYCLE.z) < 3.4 || xpNearestSite(6.5)){
@@ -5421,17 +5433,17 @@ function boneRot(bone, axis, ang){
   bone.quaternion.premultiply(_bq2.clone().invert().multiply(_bq).multiply(_bq2));
   bone.updateMatrixWorld(true);
 }
-function poseSit(f, sit, reach, side){
+function poseSit(f, sit, reach, side, keepRoot){
   const av = f.av; if (!av.model) return;
   const B = f.bones || (f.bones = boneMap(av.model));
   av.root.updateMatrixWorld(true);
   const ry = f.root.rotation.y, right = _bax.set(Math.cos(ry), 0, -Math.sin(ry)).clone(), up = new THREE.Vector3(0, 1, 0);
   if (sit > 0){
-    av.root.position.set(0, -.42*sit, -.12*sit);
+    if (!keepRoot) av.root.position.set(0, -.42*sit, -.12*sit);
     for (const s of ['Left', 'Right']){ if (B[s + 'UpLeg']) boneRot(B[s + 'UpLeg'], right, -1.45*sit); if (B[s + 'Leg']) boneRot(B[s + 'Leg'], right, 1.5*sit); }
     if (B.Spine) boneRot(B.Spine, right, .08*sit);
     for (const s of ['Left', 'Right']){ if (B[s + 'Arm']) boneRot(B[s + 'Arm'], right, -.55*sit); if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -.7*sit); }
-  } else av.root.position.set(0, 0, 0);
+  } else if (!keepRoot) av.root.position.set(0, 0, 0);
   if (reach > 0){ const s = side > 0 ? 'Right' : 'Left'; if (B[s + 'Arm']) boneRot(B[s + 'Arm'], right, -.95*reach); if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, .5*reach); if (B[s + 'Arm']) boneRot(B[s + 'Arm'], up, (side > 0 ? .45 : -.45)*reach); }
 }
 function xpFriendsUpdate(dt){
@@ -5675,7 +5687,7 @@ function fishBuildGear(){
   for (const s of [-1, 1]){ const p = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, 1.6, 8), poleM); p.position.set(s*.62, .8, 0); p.rotation.z = -s*.25; net.add(p); }
   const ng = new THREE.PlaneGeometry(1.4, .9, 14, 9), np = ng.attributes.position; for (let i = 0; i < np.count; i++){ const x = np.getX(i), y = np.getY(i); np.setZ(i, -.25*Math.cos(x/1.4*Math.PI)*(1 - Math.abs(y)/.45*.3)); }
   ng.computeVertexNormals();
-  const nt = canvasTex(64, 64, (g) => { g.clearRect(0, 0, 64, 64); g.strokeStyle = 'rgba(40,110,60,.95)'; g.lineWidth = 2; for (let i = 0; i <= 64; i += 8){ g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 64); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(64, i); g.stroke(); } });
+  const nt = canvasTex(64, 64, (g) => { g.clearRect(0, 0, 64, 64); g.strokeStyle = 'rgba(70,200,110,1)'; g.lineWidth = 3; for (let i = 0; i <= 64; i += 8){ g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 64); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(64, i); g.stroke(); } });
   nt.wrapS = nt.wrapT = THREE.RepeatWrapping; nt.repeat.set(6, 4);
   const nm = new THREE.Mesh(ng, new THREE.MeshStandardMaterial({ map:nt, transparent:true, alphaTest:.3, side:THREE.DoubleSide, roughness:.8 })); nm.position.y = .55; net.add(nm);
   shadowAll(net); FISH.net = net;
@@ -5697,7 +5709,8 @@ function fishStart(mode, w){
     scene.add(FISH.rod); scene.add(FISH.line); FISH.bob.visible = false; scene.add(FISH.bob);
     if (!EXP.rodBag){ EXP.rodBag = true; xpAddTrash({ n:'떡밥·미끼 봉지', c:'plastic', i:'🛍️' }); }
   } else {
-    const nx = p.x + sx*1.7, nz = p.z + sz*1.7; FISH.net.position.set(nx, WATER_Y - .55, nz); FISH.net.rotation.set(0, w.a + Math.PI, 0); FISH.net.userData.y0 = WATER_Y - .55; scene.add(FISH.net);
+    const nx = p.x + sx*1.7, nz = p.z + sz*1.7; FISH.net.position.set(nx, WATER_Y - .32, nz); FISH.net.rotation.set(0, w.a + Math.PI, 0); FISH.net.userData.y0 = WATER_Y - .32;
+    EXP.cam = { pos:new THREE.Vector3(p.x - sx*1.6 + (-sz)*2.2, p.y + 2.3, p.z - sz*1.6 + sx*2.2), tgt:new THREE.Vector3(nx, WATER_Y + .25, nz) }; FISH.netCam = { pos:EXP.cam.pos.clone(), tgt:EXP.cam.tgt.clone() }; scene.add(FISH.net);
     FISH.st = 'netset'; FISH.t = 0;
   }
   $('#xp-fish').hidden = false; fishUI();
@@ -5709,7 +5722,7 @@ function fishStop(){
 }
 function fishUI(){
   const st = FISH.st, m = FISH.mode;
-  const T = { idle:'낚싯대를 들고 계곡을 봐요. 버튼을 꾹 눌렀다 떼면 찌를 던져요.', power:'힘 조절 중… 손을 떼면 던져요', flight:'휘익—', wait:'찌를 지켜보세요… 입질이 오면 바로 챔질!', bite:'찌가 쑥 들어갔어요! 지금 챔질!', reel:'꾹 누르면 릴을 감아요. 줄이 너무 팽팽하면 끊어지고, 느슨하면 놓쳐요!', lost:'', netset:'족대를 물살 아래쪽에 대 놓았어요. ‘고기 몰기’를 연타해 돌을 밟아 고기를 몰아요!', drive:'첨벙첨벙! 고기를 족대 쪽으로 몰고 있어요…', lift:'족대를 들어 올리는 중…' };
+  const T = { idle:'낚싯대를 들고 계곡을 봐요. 버튼을 꾹 눌렀다 떼면 찌를 던져요.', power:'힘 조절 중… 손을 떼면 던져요', flight:'휘익—', wait:'찌를 지켜보세요… 입질이 오면 바로 챔질!', bite:'찌가 쑥 들어갔어요! 지금 챔질!', reel:'꾹 누르면 릴을 감아요. 줄이 너무 팽팽하면 끊어지고, 느슨하면 놓쳐요!', lost:'', netset:'족대를 물살 아래쪽에 대 놓았어요. ‘고기 몰기’를 연타해 돌을 밟아 고기를 몰아요!', drive:'첨벙첨벙! 고기를 족대 쪽으로 몰고 있어요…', lift:'족대를 들어 올리는 중…', show:'족대 안을 보세요!' };
   $('#xp-fish-title').textContent = m === 'rod' ? '찌낚시' : '족대(어망) 고기잡이';
   $('#xp-fish-text').textContent = T[st] || '';
   const btn = $('#xp-fish-main');
@@ -5744,6 +5757,17 @@ function fishLift(){
   if (FISH.mode !== 'net' || !(FISH.st === 'drive' || FISH.st === 'netset')) return;
   FISH.st = 'lift'; FISH.t = 0; fishUI();
 }
+/* fish flapping in the lifted net; little dark fish darting toward it while you drive them */
+function netFlap(list){
+  for (const m of FISH.flap || []) FISH.net.remove(m);
+  FISH.flap = list.map((f, i) => { const tex = drawFish(f); const m = new THREE.Mesh(new THREE.PlaneGeometry(f.snail ? .14 : Math.max(.24, f.cm/100*2.2), f.snail ? .1 : Math.max(.12, f.cm/100*1.1)), new THREE.MeshBasicMaterial({ map:tex, transparent:true, side:THREE.DoubleSide, alphaTest:.1 })); m.position.set(-.4 + i*.27, .5, .16); m.userData.p = Math.random()*6; FISH.net.add(m); return m; });
+}
+function netFlapUpdate(dt, t){ for (const m of FISH.flap || []){ const p = m.userData.p; m.position.y = .45 + Math.abs(Math.sin(t*9 + p))*.12; m.rotation.z = Math.sin(t*14 + p)*.6; m.rotation.y = Math.sin(t*5 + p); } if (Math.random() < dt*6) fishRipple(FISH.net.position.x + xpRand(-.5, .5), FISH.net.position.z + xpRand(-.4, .4), .3); }
+function netDart(){
+  const n = FISH.net, a = FISH.dir + Math.PI + xpRand(-.6, .6), d = xpRand(1.2, 2.4);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(.14, .05), new THREE.MeshBasicMaterial({ color:0x1d2a28, transparent:true, opacity:.7, depthWrite:false }));
+  m.rotation.x = -Math.PI/2; m.position.set(n.position.x + Math.sin(a)*d, WATER_Y - .06, n.position.z + Math.cos(a)*d); m.userData = { t:0, to:n.position.clone() }; scene.add(m); (FISH.darts || (FISH.darts = [])).push(m);
+}
 function fishRipple(x, z, s = .5){
   const m = new THREE.Mesh(new THREE.RingGeometry(.12, .16, 32), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:.6, depthWrite:false }));
   m.rotation.x = -Math.PI/2; m.position.set(x, WATER_Y + .03, z); m.userData = { t:0, s }; scene.add(m); FISH.ripples.push(m);
@@ -5760,6 +5784,7 @@ function fishCatch(list){
   c.hidden = false; sfx('ok'); clearTimeout(FISH.ct); FISH.ct = setTimeout(() => c.hidden = true, 3200);
 }
 function fishUpdate(dt, t){
+  for (let i = (FISH.darts || []).length - 1; i >= 0; i--){ const m = FISH.darts[i]; m.userData.t += dt/.9; const q = Math.min(1, m.userData.t); m.position.x = lerp(m.position.x, m.userData.to.x, q*.2); m.position.z = lerp(m.position.z, m.userData.to.z, q*.2); m.rotation.z = Math.atan2(m.userData.to.x - m.position.x, m.userData.to.z - m.position.z) + Math.PI/2; m.material.opacity = .7*(1 - q*q); if (q >= 1){ scene.remove(m); FISH.darts.splice(i, 1); } }
   for (let i = FISH.ripples.length - 1; i >= 0; i--){ const r = FISH.ripples[i]; r.userData.t += dt; const q = r.userData.t/1.4; const sc = 1 + q*6*r.userData.s; r.scale.set(sc, sc, sc); r.material.opacity = .55*(1 - q); if (q >= 1){ scene.remove(r); FISH.ripples.splice(i, 1); } }
   if (!FISH.on) return;
   const p = player.pos, sx = Math.sin(FISH.dir), sz = Math.cos(FISH.dir);
@@ -5797,13 +5822,16 @@ function fishUpdate(dt, t){
     pos.needsUpdate = true;
   } else {
     const n = FISH.net;
+    if (FISH.st === 'drive' && Math.random() < dt*6){ const k = Math.random(); fishRipple(n.position.x + xpRand(-.5, .5), n.position.z + xpRand(-.5, .5), .45); if (k < .3) netDart(); }
     if (FISH.st === 'drive' && Math.random() < dt*2) fishRipple(n.position.x + xpRand(-.6, .6), n.position.z + xpRand(-.6, .6), .3);
+    if (FISH.st === 'lift' || FISH.st === 'show'){ n.updateMatrixWorld(true); const c = n.localToWorld(new THREE.Vector3(0, .5, 0)); EXP.cam.tgt.copy(c); const sx = Math.sin(FISH.dir), sz = Math.cos(FISH.dir); EXP.cam.pos.set(c.x - sx*1.5 - sz*.9, c.y + .55, c.z - sz*1.5 + sx*.9); }
+    if (FISH.st === 'show'){ FISH.t += dt; netFlapUpdate(dt, t); if (FISH.t > 2.6){ netFlap([]); EXP.cam = { pos:FISH.netCam.pos.clone(), tgt:FISH.netCam.tgt.clone() }; FISH.st = 'netset'; FISH.stomps = 0; n.position.y = n.userData.y0; n.rotation.x = 0; fishUI(); } }
     if (FISH.st === 'lift'){
       FISH.t += dt/1.4; const q = Math.min(1, FISH.t); n.position.y = n.userData.y0 + Math.sin(q*Math.PI/2)*1.1; n.rotation.x = -q*.5;
       if (q >= 1){
         const k = FISH.stomps, cnt = k < 4 ? (Math.random() < .3 ? 1 : 0) : Math.min(4, Math.floor(k/4 + Math.random()*1.6));
         const list = []; for (let i = 0; i < cnt; i++) list.push(fishPick(true));
-        fishCatch(list); FISH.st = 'netset'; FISH.stomps = 0; n.position.y = n.userData.y0; n.rotation.x = 0; fishUI();
+        fishCatch(list); FISH.st = 'show'; FISH.t = 0; netFlap(list); fishUI();
       }
     }
   }
@@ -5905,11 +5933,17 @@ function hgStart(){
   c.friends.forEach(f => f.sitting = true);
   const s = c.seats[0]; player.pos.set(s.x, groundAt(s.x, s.z), s.z); hero.root.visible = false;
   const fx = Math.sin(s.ry), fz = Math.cos(s.ry);
-  EXP.cam = { pos:new THREE.Vector3(s.x - fx*.12, HG.C.y + .78, s.z - fz*.12), tgt:new THREE.Vector3(HG.C.x - fx*.2, HG.C.y - .02, HG.C.z - fz*.2) };
+  hgCam();
   view = 'xpcam'; HG.turn = 0; HG.wait = 0;
   $('#xp-hg').hidden = false; xpAddTrash({ n:'과자 봉지', c:'plastic', i:'🍿' }, { n:'생수병', c:'plastic', i:'🧴' });
   hgMsg('내 차례부터! ‘카드 뒤집기’(F)로 한 장씩 뒤집고, 같은 과일이 정확히 5개가 되면 ‘종 치기’(Space)!'); hgUI();
 }
+function hgCam(){
+  const s = EXP.camp.seats[0], fx = Math.sin(s.ry), fz = Math.cos(s.ry);
+  if (innerHeight > innerWidth*1.1) EXP.cam = { pos:new THREE.Vector3(HG.C.x - fx*.42, HG.C.y + 1.55, HG.C.z - fz*.42), tgt:new THREE.Vector3(HG.C.x + fx*.08, HG.C.y, HG.C.z + fz*.08) };   // portrait: almost straight down so every pile fits
+  else EXP.cam = { pos:new THREE.Vector3(s.x - fx*.12, HG.C.y + .78, s.z - fz*.12), tgt:new THREE.Vector3(HG.C.x - fx*.2, HG.C.y - .02, HG.C.z - fz*.2) };
+}
+addEventListener('resize', () => { if (HG.on) hgCam(); });
 function hgEnd(silent){
   if (!HG.on) return;
   if (!HG.over && HG.P.some(p => p.up.length)){ EXP.stats.hg = EXP.stats.hg || `중간에 끝냄 (내 카드 ${HG.P[0].deck.length + HG.P[0].up.length}장)`; EXP.done.hg = true; xpHud(); }
@@ -5927,8 +5961,9 @@ function hgValid(){ const c = hgCounts(); return Object.values(c).some(v => v ==
 function hgActive(){ return HG.P.filter(p => !p.out); }
 function hgNext(from){ for (let k = 1; k <= 3; k++){ const i = (from + k) % 3; if (!HG.P[i].out && HG.P[i].deck.length) return i; } return -1; }
 function hgMsg(t){ $('#xp-hg-msg').innerHTML = t; HG.msgT = 4; }
+function hgCardURL(c){ const k = 'u' + c.f + c.n; return HG.tex[k] || (HG.tex[k] = hgCardTex(c.f, c.n).image.toDataURL('image/png')); }
 function hgUI(){
-  $('#xp-hg-players').innerHTML = HG.P.map((p, i) => `<div class="hp ${i === HG.turn && !HG.over ? 'turn' : ''} ${p.out ? 'out' : ''}"><b>${p.name}</b><span>카드 ${p.deck.length}${p.up.length ? ` · 바닥 ${p.up.length}` : ''}</span></div>`).join('');
+  $('#xp-hg-players').innerHTML = HG.P.map((p, i) => { const t = p.up[p.up.length - 1]; return `<div class="hp ${i === HG.turn && !HG.over ? 'turn' : ''} ${p.out ? 'out' : ''}">${t ? `<img src="${hgCardURL(t)}" alt="${HG_FRUIT_KO[t.f]} ${t.n}개">` : '<i class="empty"></i>'}<div><b>${p.name}</b><span>카드 ${p.deck.length}${p.up.length ? ` · 바닥 ${p.up.length}` : ''}</span></div></div>`; }).join('');
   const myTurn = HG.turn === 0 && !HG.busy && !HG.over && HG.P[0].deck.length > 0;
   $('#xp-hg-flip').disabled = !myTurn; $('#xp-hg-flip').classList.toggle('pri', myTurn);
   $('#xp-hg-ring').disabled = HG.over || HG.P[0].out;
@@ -6020,6 +6055,53 @@ function hgUpdate(dt){
   HG.uiT = (HG.uiT || 0) - dt; if (HG.uiT <= 0){ HG.uiT = .25; hgUI(); }
 }
 
+/* ---------- tube floating: sit in a striped inflatable ring, paddle around the creek and drift with the current ---------- */
+const TUBE = { g:null, t:0, f:null, rip:0 };
+function tubeStart(w){
+  if (!TUBE.g){
+    const tex = canvasTex(256, 32, (g, W, Hh) => { const c = ['#ff5a4a', '#ffffff', '#ffc93a', '#ffffff', '#3aa8ff', '#ffffff']; for (let i = 0; i < 12; i++){ g.fillStyle = c[i % 6]; g.fillRect(i*W/12, 0, W/12 + 1, Hh); } });
+    tex.wrapS = THREE.RepeatWrapping;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.5, .21, 18, 40), new THREE.MeshPhysicalMaterial({ map:tex, roughness:.25, clearcoat:1, clearcoatRoughness:.1 }));
+    ring.rotation.x = -Math.PI/2; ring.castShadow = true; TUBE.g = new THREE.Group(); TUBE.g.add(ring);
+    const valve = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .05, 8), M(0xffffff)); valve.position.set(.5, .2, 0); TUBE.g.add(valve);
+  }
+  scene.add(TUBE.g);
+  player.pos.set(w.x, WATER_Y, w.z); player.vel.set(0, 0, 0); EXP.mode = 'tube'; TUBE.t = 0;
+  TUBE.f = { av:hero, root:hero.root, bones:null };
+  sfx('splash'); fishRipple(w.x, w.z, 1); EXP.done.tube = true; xpHud();
+  toast(SEASONS[season].water === 'ice' ? '' : season === 'summer' ? '<b>튜브 물놀이</b> · 이동키로 저어 다니고, 물살 따라 천천히 떠내려가요' : '<b>튜브 물놀이</b> · 물이 꽤 차가워요! 이동키로 저어 다녀요');
+  xpCtx(true);
+}
+function tubeStop(){
+  const p = player.pos; let best = null;
+  for (let k = 0; k < 24 && !best; k++){ for (const d of [1.5, 2.5, 3.5, 5, 7]){ const a = k/24*Math.PI*2, x = p.x + Math.sin(a)*d, z = p.z + Math.cos(a)*d; if (H(x, z) > WATER_Y + .05){ best = { x, z }; break; } } }
+  if (!best) best = { x:p.x - 8, z:p.z };
+  scene.remove(TUBE.g); EXP.mode = 'free'; hero.root.position.y = 0;
+  player.pos.set(best.x, groundAt(best.x, best.z), best.z); sfx('splash'); xpCtx(true);
+}
+function tubeUpdate(dt){
+  let ix = 0, iz = 0;
+  if (keys.has('KeyW') || keys.has('ArrowUp')) iz += 1; if (keys.has('KeyS') || keys.has('ArrowDown')) iz -= 1;
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) ix -= 1; if (keys.has('KeyD') || keys.has('ArrowRight')) ix += 1;
+  if (joy.active){ ix += joy.x; iz += -joy.y; }
+  if (EXP.lock){ ix = iz = 0; }
+  const il = Math.hypot(ix, iz); if (il > 1){ ix /= il; iz /= il; }
+  const fx = -Math.sin(camYaw), fz = -Math.cos(camYaw), rx = Math.cos(camYaw), rz = -Math.sin(camYaw);
+  const k = 1 - Math.exp(-dt*2.2);
+  player.vel.x = lerp(player.vel.x, (fx*iz + rx*ix)*1.35, k); player.vel.z = lerp(player.vel.z, (fz*iz + rz*ix)*1.35 + .3, k);   // the creek flows toward +z
+  const p = player.pos, nx = p.x + player.vel.x*dt, nz = p.z + player.vel.z*dt;
+  if (H(nx, nz) < WATER_Y - .2){ p.x = nx; p.z = nz; } else { player.vel.multiplyScalar(-.3); }
+  if (nz > RAFT_END + 20 || nz < -140){ player.vel.z = 0; }
+  TUBE.t += dt; const t = U.uTime.value, wv = typeof waveAt === 'function' ? waveAt(p.x, p.z, t) : 0;
+  p.y = WATER_Y;
+  const sp = Math.hypot(player.vel.x, player.vel.z); if (sp > .2){ const want = Math.atan2(player.vel.x, player.vel.z); let d = want - player.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); player.heading += d*(1 - Math.exp(-dt*3)); }
+  TUBE.g.position.set(p.x, WATER_Y + .04 + wv + Math.sin(t*1.7)*.02, p.z); TUBE.g.rotation.set(Math.sin(t*1.3)*.06, player.heading, Math.cos(t*1.1)*.06);
+  hero.root.position.set(p.x, WATER_Y - .5 + wv + Math.sin(t*1.7)*.02, p.z); hero.root.rotation.y = player.heading;
+  hero.update(dt, 0);
+  if (hero.model) poseSit(TUBE.f, 1, il > .2 ? .4 + .3*Math.sin(t*5) : 0, 1, true);
+  TUBE.rip -= dt; if (TUBE.rip <= 0){ TUBE.rip = sp > .3 ? .35 : 1.2; fishRipple(p.x, p.z, sp > .3 ? .5 : .3); if (sp > .4 && Math.random() < .3) sfx('splash'); }
+  player.speed = sp;
+}
 /* ---------- recycling station: sort every item in the trash bag before check-out ---------- */
 const BINS = [{ c:'can', name:'캔·병', color:'#d9b21e' }, { c:'plastic', name:'플라스틱·비닐', color:'#2f6db5' }, { c:'paper', name:'종이', color:'#3d9a4c' }, { c:'general', name:'일반쓰레기', color:'#8b8f94' }];
 const REC_HINT = { can:'캔·병·부탄가스는 노란 캔·병 칸이에요 (부탄가스는 구멍을 뚫어 비워서!)', plastic:'페트병·포장 트레이·과자 봉지 같은 비닐류는 파란 플라스틱·비닐 칸이에요', paper:'깨끗한 종이·종이상자·종이컵은 초록 종이 칸이에요', general:'음식물이 묻은 휴지·나무젓가락은 재활용이 안 돼서 일반쓰레기예요' };
@@ -6091,7 +6173,7 @@ function xpUpdate(dt, t){
   chiefUpdate(dt, t); xpAnimUpdate(dt); xpProgUpdate(); xpFireUpdate(dt, t); grillUpdate(dt, t); fishUpdate(dt, t); hgUpdate(dt); xpFriendsUpdate(dt);
   if (CAR.light) CAR.light.intensity = nightF*38*(view === 'drive' ? 1 : .0);
   if (EXP.camp && EXP.camp.tableObj) EXP.camp.tableObj.userData.lamp.intensity = nightF*2.2;
-  EXP.ctxT -= dt; if (EXP.ctxT <= 0){ EXP.ctxT = .15; xpCtx(); document.body.classList.toggle('xp-busy', EXP.mode !== 'free'); document.body.classList.toggle('xp-drive', view === 'drive'); }
+  EXP.ctxT -= dt; if (EXP.ctxT <= 0){ EXP.ctxT = .15; xpCtx(); document.body.classList.toggle('xp-busy', ['grill', 'fish', 'hg'].includes(EXP.mode)); document.body.classList.toggle('xp-drive', view === 'drive' || EXP.mode === 'tube'); }
 }
 function xpHit(cx, cy){
   const r = canvas.getBoundingClientRect(), ndc = new THREE.Vector2(((cx - r.left)/r.width)*2 - 1, -((cy - r.top)/r.height)*2 + 1);
