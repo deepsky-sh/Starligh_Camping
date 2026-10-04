@@ -1758,7 +1758,7 @@ class Avatar {
         o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false;
         const nm = o.material && o.material.name, t = tint[nm];
         if (t !== undefined){ o.material = o.material.clone(); o.material.userData = {}; o.material.color.set(t); }
-        if (/Skin|Body/.test(nm)) skinPatch(o.material); else if (/Outfit|Headwear/.test(nm)) clothPatch(o.material, .6); else if (/Beard|Hair/.test(nm)) hairPatch(o.material);
+        if (/Skin|Body/.test(nm)){ skinPatch(o.material); if (nm !== 'Fem_Body') lightSkin(o.material); } else if (/Outfit|Headwear/.test(nm)) clothPatch(o.material, .6); else if (/Beard|Hair/.test(nm)) hairPatch(o.material);
       }
     });
     this.root.add(this.model);
@@ -1929,15 +1929,20 @@ function femHair(v, col){
   }
   return g;
 }
-function attachAtBind(model, boneRe, obj, at){   // place obj at a bind-pose model-space point, then parent it to the bone
-  let bone = null; model.traverse(o => { if (o.isBone && boneRe.test(o.name)) bone = o; }); if (!bone) return;
+function attachAtBind(model, boneRe, obj, at, useBind = true){   // place obj at a bind-pose model-space point (taken from the skin's inverse bind matrices), parented to the bone
+  let bone = null, sm = null, bi = -1; model.traverse(o => { if (o.isBone && boneRe.test(o.name)) bone = o; });
+  if (!bone) return;
+  if (useBind) model.traverse(o => { if (!sm && o.isSkinnedMesh){ const i = o.skeleton.bones.indexOf(bone); if (i >= 0){ sm = o; bi = i; } } });
   model.updateMatrixWorld(true);
-  const m = new THREE.Matrix4().copy(bone.matrixWorld).invert().multiply(model.matrixWorld).multiply(new THREE.Matrix4().makeTranslation(at.x, at.y, at.z));
+  const toModel = new THREE.Matrix4().copy(model.matrixWorld).invert(), bindBone = new THREE.Matrix4();
+  if (sm){ const meshInModel = new THREE.Matrix4().multiplyMatrices(toModel, sm.matrixWorld); bindBone.copy(sm.skeleton.boneInverses[bi]).invert().premultiply(meshInModel); }
+  else bindBone.multiplyMatrices(toModel, bone.matrixWorld);
+  const m = bindBone.invert().multiply(new THREE.Matrix4().makeTranslation(at.x, at.y, at.z));
   m.decompose(obj.position, obj.quaternion, obj.scale); bone.add(obj);
 }
 function femAvatar(k, v){
   const V = FEM_V[v] || FEM_V.mom, av = new Avatar(femSrc, femClips, {}); av.model.scale.multiplyScalar(k); av.k = k;
-  const C = c => new THREE.Color(c), U2 = { uTop:{ value:C(V.top) }, uInner:{ value:C(V.inner) }, uShorts:{ value:C(V.shorts) }, uSkinC:{ value:C(0xd6a383) } };
+  const C = c => new THREE.Color(c), U2 = { uTop:{ value:C(V.top) }, uInner:{ value:C(V.inner) }, uShorts:{ value:C(V.shorts) }, uSkinC:{ value:C(0xf5d3bb) } };
   av.model.traverse(o => {
     if (!o.isMesh) return;
     o.geometry = femGeom(o.geometry, V);
@@ -1961,13 +1966,106 @@ function femAvatar(k, v){
           else paint = false;
           if (paint) diffuseColor.rgb = col; }`); });
   });
-  attachAtBind(av.model, /Head$/, femHair(v, V.hair), new THREE.Vector3(0, 1.468, -.01));
+  attachAtBind(av.model, /Head$/, femHair(v, V.hair), new THREE.Vector3(0, 1.468, -.01), false);
   av.fem = true; return av;
+}
+/* light skin for the stock avatar: keep the texture's shading and the relative tint of lips/cheeks, move the tone */
+function lightSkin(m){
+  if (m.userData.light) return m; m.userData.light = true;
+  return patchMat(m, 'lightSkin', sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+    { vec3 c = diffuseColor.rgb, avg = vec3(0.42, 0.19, 0.168); float l = dot(c, vec3(0.3, 0.59, 0.11)), la = 0.256;
+      vec3 tint = pow(max(c/max(l, 1e-4), 1e-4)/(avg/la), vec3(0.7));
+      diffuseColor.rgb = min(vec3(0.76, 0.5, 0.38)*pow(max(l/la, 0.0), 0.65)*tint, vec3(1.0)); }`); });
+}
+/* the man: 178 cm, layered black hair with soft bangs, an open ivory short-sleeve shirt with a red paisley print over a white crew-neck tee,
+   indigo jeans, white trainers. Painted in the avatar's bind pose (metres), so the print and the sleeves stay put while it moves */
+function styleMale(av){
+  const k = 1.78/1.835; av.model.scale.multiplyScalar(k); av.k = k;
+  av.model.updateMatrixWorld(true);
+  const toModel = new THREE.Matrix4().copy(av.model.matrixWorld).invert(), skin = new THREE.Color(0xf3cfb6);
+  av.model.traverse(o => {
+    if (!o.isMesh) return; const nm = o.material.name;
+    if (nm === 'Wolf3D_Headwear' || nm === 'Wolf3D_Beard'){ o.visible = false; return; }
+    if (!/Outfit/.test(nm)) return;
+    const m = o.material = o.material.clone(); m.userData = {}; m.name = nm; m.map = null; m.color.set(0xffffff);
+    const U = { uBind:{ value:new THREE.Matrix4().multiplyMatrices(toModel, o.matrixWorld) }, uSkinM:{ value:skin } };
+    clothPatch(m, .55);
+    let body = '';
+    if (nm === 'Wolf3D_Outfit_Top'){ m.roughness = .82; m.normalMap = null; body = `
+      float ax = abs(p.x); bool front = p.z > 0.035;
+      if (p.y < 0.9) discard;
+      if (abs(p.x) < 0.065 && p.y > 1.49 && p.y < 1.6 && p.z > 0.068) discard;   // the stock bow tie
+      vec3 col = vec3(0.92, 0.87, 0.76);
+      vec2 uv = vec2(p.x + p.z*0.8, p.y)*26.0; vec2 id = floor(uv); float h = fract(sin(dot(id, vec2(12.9898, 78.233)))*43758.5453);
+      vec2 q = fract(uv) - 0.5 + (vec2(h, fract(h*7.13)) - 0.5)*0.25; float a = h*6.283; q = mat2(cos(a), -sin(a), sin(a), cos(a))*q;
+      float d = length(q*vec2(1.0, 1.5) + vec2(0.0, 0.25*q.x*q.x)) - 0.25;
+      float ring = smoothstep(0.06, 0.0, abs(d)), curl = smoothstep(0.035, 0.0, abs(length(q - vec2(0.06, 0.04)) - 0.08));
+      col = mix(col, vec3(0.72, 0.3, 0.34), max(ring*0.8, curl*0.55));
+      if (fract(h*31.7) > 0.6 && length(fract(uv*2.0) - 0.5) < 0.09) col = mix(col, vec3(0.5, 0.62, 0.7), 0.6);
+      if (ax > 0.262 && p.y < 1.42) col = uSkinM*0.8;
+      else if (ax > 0.248 && p.y < 1.45) col *= 0.82;
+      if (front && ax < 0.075 && p.y < 1.5) col = vec3(0.95, 0.94, 0.91);
+      if (front && abs(ax - 0.077) < 0.005 && p.y < 1.5) col *= 0.78;
+      if (p.y < 0.925) col *= 0.88;
+      diffuseColor.rgb = col;`; }
+    else if (nm === 'Wolf3D_Outfit_Bottom'){ m.roughness = .9; body = `
+      vec3 col = vec3(0.16, 0.22, 0.34)*(0.9 + 0.12*fract(sin(dot(floor(p.xy*350.0), vec2(12.9898, 78.233)))*43758.5));
+      float sx = abs(abs(p.x) - 0.1) - 0.06; if (abs(sx) < 0.003 && p.y < 0.95) col *= 1.35;
+      if (p.y < 0.13) col *= 0.82;
+      diffuseColor.rgb = col;`; }
+    else if (nm === 'Wolf3D_Outfit_Footwear'){ m.roughness = .65; body = `
+      diffuseColor.rgb = p.y < 0.025 ? vec3(0.55) : vec3(0.93, 0.93, 0.91);`; }
+    patchMat(m, 'male_' + nm + '_' + o.id, sh => { Object.assign(sh.uniforms, U);
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vB; uniform mat4 uBind;').replace('#include <begin_vertex>', `#include <begin_vertex>
+        vB = (uBind*vec4(position, 1.0)).xyz;
+        ${nm === 'Wolf3D_Outfit_Top' ? `{ // slim the bare forearm (the stock sleeve is a thick coat sleeve) toward the elbow-wrist line
+          vec3 s = vec3(sign(vB.x), 1.0, 1.0), E = vec3(0.31, 1.258, -0.06)*s, W = vec3(0.45, 1.069, 0.031)*s, d = W - E;
+          float t = clamp(dot(vB - E, d)/dot(d, d), 0.0, 1.2), f = smoothstep(0.262, 0.3, abs(vB.x));
+          vec3 c = E + d*t, nb = c + (vB - c)*mix(1.0, 0.62, f);
+          transformed = (inverse(uBind)*vec4(nb, 1.0)).xyz; }` : ''}`);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vB; uniform vec3 uSkinM;').replace('#include <map_fragment>', `#include <map_fragment>
+        { vec3 p = vB; ${body} }`); });
+  });
+  attachAtBind(av.model, /Head$/, maleHair(), new THREE.Vector3(0, 1.735, .018));
+  return av;
+}
+let hairTexC = null;
+function hairTex(){   // dark strands with soft highlights running crown → tips (sphere u = around, v = down)
+  return hairTexC || (hairTexC = canvasTex(256, 128, g => { g.fillStyle = '#1a1512'; g.fillRect(0, 0, 256, 128);
+    for (let i = 0; i < 900; i++){ const x = Math.random()*256, w = .6 + Math.random()*1.4, l = .35 + Math.random()*.6; g.strokeStyle = `rgba(${90 + Math.random()*50},${75 + Math.random()*40},${62 + Math.random()*30},${.08 + Math.random()*.22})`; g.lineWidth = w; g.beginPath(); g.moveTo(x, 0); g.quadraticCurveTo(x + (Math.random() - .5)*8, 64, x + (Math.random() - .5)*10, 128*l); g.stroke(); }
+    for (let i = 0; i < 300; i++){ const x = Math.random()*256; g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, Math.random()*30); g.lineTo(x + (Math.random() - .5)*6, 128); g.stroke(); } }));
+}
+function maleHair(){
+  const t = hairTex(); t.wrapS = THREE.RepeatWrapping;
+  const hm = new THREE.MeshStandardMaterial({ color:0xffffff, map:t, roughness:.45, metalness:0, side:THREE.DoubleSide }), g = new THREE.Group();
+  const add = (geo, f) => { const m = new THREE.Mesh(geo, hm); f && f(m); m.castShadow = true; g.add(m); return m; };
+  const R = .108, rnd = (i, k) => { const v = Math.sin(i*12.9898 + k*78.233)*43758.5453; return v - Math.floor(v); };
+  add(new THREE.SphereGeometry(R, 36, 14, 0, Math.PI*2, 0, Math.PI*.4), m => { m.scale.set(.97, 1.06, 1.07); m.position.y = .004; });   // crown with a little lift
+  /* tapered locks on the head sphere: from near the crown down to a pointed tip, slightly lifted off the scalp toward the tip */
+  const lock = (r, ph, w, t0, t1, lift) => {
+    const S = 7, pos = [], idx = [];
+    for (let j = 0; j <= S; j++){
+      const u = j/S, th = t0 + (t1 - t0)*u, ww = w*(1 - Math.pow(u, 2.2))*.5 + .0005, rr = r + lift*u*u;
+      for (const sd of [-1, 1]){ const p = ph + sd*ww/Math.max(Math.sin(th), .2); pos.push(-rr*Math.cos(p)*Math.sin(th), rr*Math.cos(th), rr*Math.sin(p)*Math.sin(th)); }
+      if (j < S){ const k = j*2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+    }
+    const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); gg.setIndex(idx); gg.computeVertexNormals();
+    const uv = []; for (let j = 0; j <= S; j++) uv.push(rnd(ph*100, j) , j/S, rnd(ph*100, j) + .02, j/S); gg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    return gg;
+  };
+  const N = 64;
+  for (let i = 0; i < N; i++){
+    const ph = (i + .6*rnd(i, 1))/N*Math.PI*2, front = Math.max(0, Math.sin(ph)), side = Math.abs(Math.cos(ph)), back = Math.max(0, -Math.sin(ph));
+    const end = front > .62 ? .4 + .065*rnd(i, 2) : .5 + .1*side + .2*back + .07*rnd(i, 3) - .06*front;
+    const g2 = lock(R + .003 + .004*rnd(i, 4), ph, Math.PI*2/N*2.4*(1.05 - .25*front), Math.PI*(.06 + .1*rnd(i, 5)), Math.PI*end, .004 + .005*side*(1 - front));
+    add(g2, m => m.scale.set(.99, 1, 1.07));
+  }
+  return g;
 }
 let HERO_G = 'f'; try { HERO_G = localStorage.getItem('damteoHero') === 'm' ? 'm' : 'f'; } catch (e){}
 function makeHero(g){
-  if (g === 'f' && femSrc) return femAvatar(.97, 'mom');
-  return styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:0x5b6650, plainTop:true, trim:.93, bottom:0x3a4d6d, shoes:0xe6e6e2, hair:0x1a1410 });
+  if (g === 'f' && femSrc) return femAvatar(1.01, 'mom');   // 160 cm
+  return styleMale(new Avatar(avatarSrc, avatarClips, {}));
 }
 /* the hero picker works from the first moment the intro is shown, also while the scene is still loading */
 function bindHeroPick(){
@@ -5380,7 +5478,7 @@ function chiefStyle(av){
   av.model.traverse(o => {
     if (!o.isMesh) return; const nm = o.material.name;
     if (nm === 'Wolf3D_Headwear' || nm === 'Wolf3D_Beard'){ o.visible = false; return; }
-    if (nm === 'Wolf3D_Body'){ o.material = o.material.clone(); o.material.userData = {}; skinPatch(o.material); }
+    if (nm === 'Wolf3D_Body'){ o.material = o.material.clone(); o.material.userData = {}; skinPatch(o.material); lightSkin(o.material); }
     const m = o.material;
     if (nm === 'Wolf3D_Outfit_Top'){ m.map = null; m.color.set(0x2f6f95);
       patchMat(m, 'chiefTop', sh => { restV(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
@@ -5406,6 +5504,7 @@ function chiefBuild(){
   const root = new THREE.Group();
   if (avatarSrc){
     const av = new Avatar(avatarSrc, avatarClips, { Wolf3D_Outfit_Top:0x2c6c90, Wolf3D_Outfit_Bottom:0x18191b, Wolf3D_Outfit_Footwear:0x23484e, Wolf3D_Headwear:0x1c2230 });
+    av.model.scale.multiplyScalar(1.75/1.835); av.k = 1.75/1.835;   // 175 cm
     av.mixer.update(1.3); root.add(av.root); CHIEF.av = av;
     chiefStyle(av);
   } else {
@@ -5633,7 +5732,7 @@ const FRIEND_DEF = [{ name:'아윤', v:'ayun' }, { name:'하윤', v:'hayun' }];
 function makeTeen(d){
   const V = FEM_V[d.v];
   if (!avatarSrc){ const h = new Hiker({ jacket:V.top, pants:V.shorts, cap:V.hair }); h.root.scale.setScalar(.92); shadowAll(h.root, true, false); return h; }
-  if (femSrc) return femAvatar(.94, d.v);
+  if (femSrc) return femAvatar(.975, d.v);
   const av = styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:V.top, plainTop:true, trim:.95, bottom:V.shorts, shoes:0xf4f4f2, hair:V.hair });
   av.model.scale.multiplyScalar(.9); av.k = .9; return av;
 }
@@ -6940,7 +7039,7 @@ async function boot(){
   window.__camp = {
     freeze:()=>renderer.setAnimationLoop(null), resume:()=>{ clock.getDelta(); renderer.setAnimationLoop(loop); },
     step:(n=1,dt=1/30)=>{ for(let i=0;i<n;i++){ simT+=dt; tick(dt, simT); } return renderer.info.render.triangles; },
-    setView, setHour, teleport, setHero, player, getHero:()=>hero, femAvatar, sceneAdd:o=>scene.add(o), groundAt, applySeason, look:(y,p)=>{ camYaw=y; camPitch=p; }, start:()=>btn.click(),
+    setView, setHour, teleport, setHero, player, getHero:()=>hero, femAvatar, makeHero, chiefRoot:()=>CHIEF.root, sceneAdd:o=>scene.add(o), groundAt, applySeason, look:(y,p)=>{ camYaw=y; camPitch=p; }, start:()=>btn.click(),
     evac:(v)=>{ evacGroup.visible = v; },
     topView:(cx=-2, cz=-5, h=330, fov=48)=>{ view='air'; orbit.enabled=false; camera.fov=fov; camera.updateProjectionMatrix(); camera.up.set(-1,0,0); camera.position.set(cx, h, cz); camera.lookAt(cx, 0, cz); },
     resetFov:()=>{ camera.fov=62; camera.updateProjectionMatrix(); camera.up.set(0,1,0); },
