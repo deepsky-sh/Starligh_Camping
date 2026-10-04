@@ -471,7 +471,7 @@ const STRIP = { x0:-24, x1:17.2, z0:-118, z1:116 };   // gravel campground
 const BYUL  = { x0:-31.5, x1:-18.8, z0:-84, z1:-23, h:1.2 };   // 별빛존 terrace with the pine row
 const CZONE = { x0:-28, x1:-14.6, z0:25, z1:52, h:0.7 };       // C zone: gravel from the lane back to the slope
 const CWALL_X = -23.2;                                           // dry-stone wall at the foot of the raised strip, C-1·C-2 sit in front of it
-const CSITES = [{ id:'C-1', x0:-22.6, x1:-15.6, z0:26.4, z1:34 }, { id:'C-2', x0:-22.6, x1:-15.6, z0:36, z1:50 }];   // C-2: two-family site, double length
+const CSITES = [{ id:'C-1', x0:-22.6, x1:-12.8, z0:26.4, z1:34 }, { id:'C-2', x0:-22.6, x1:-12.8, z0:36, z1:50 }];   // C-2: two-family site, double length
 const LAWN  = { x0:57, x1:126, z0:-175, z1:-12 };              // 담터수양관 lawn across the road
 const ENTRY = { z:-150 };                                      // entrance bridge over the creek
 const vShift = z => 30*Math.sin(z/260)*smooth(160,420,Math.abs(z));
@@ -3094,6 +3094,13 @@ function doorGlassTex(){
     g.fillStyle = 'rgba(255,255,255,.1)'; g.beginPath(); g.moveTo(0, 0); g.lineTo(90, 0); g.lineTo(0, 220); g.fill();
   });
 }
+function faucetTex(){   // 개수대 plate: a tap with a falling drop
+  return canvasTex(128, 128, (g, w, h) => { g.fillStyle = '#2f7f8f'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.strokeStyle = '#fff'; g.lineCap = 'round';
+    g.fillRect(22, 40, 16, 24); g.fillRect(30, 44, 52, 14); g.beginPath(); g.moveTo(82, 44); g.quadraticCurveTo(100, 44, 100, 62); g.lineTo(100, 72); g.lineTo(86, 72); g.lineTo(86, 62); g.quadraticCurveTo(86, 58, 82, 58); g.fill();
+    g.fillRect(50, 30, 14, 14); g.lineWidth = 6; g.beginPath(); g.moveTo(40, 30); g.lineTo(74, 30); g.stroke();
+    g.beginPath(); g.moveTo(93, 80); g.quadraticCurveTo(86, 92, 93, 97); g.quadraticCurveTo(100, 92, 93, 80); g.fill();
+    g.font = '700 20px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.fillText('개수대', 64, 122); });
+}
 function pictoTex(label, col){
   return canvasTex(128, 128, (g, w, h) => { g.fillStyle = col; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.beginPath(); g.arc(64, 34, 14, 0, Math.PI*2); g.fill(); g.fillRect(48, 52, 32, 40); g.fillRect(50, 90, 11, 22); g.fillRect(67, 90, 11, 22); g.font = '700 20px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.fillText(label, 64, 124); });
 }
@@ -3185,20 +3192,12 @@ function buildOffice(){
     B.box(M_.frame, .05, 2.2, 1.02, xF + .025, 1.08, z);
     B.box(M_.door, .06, 2.12, .92, xF + .04, 1.06, z);
     B.box(M_.frame, .03, .03, .14, xF + .085, 1.02, z - .32);
-    const pl = new THREE.Mesh(new THREE.PlaneGeometry(.24, .24), new THREE.MeshStandardMaterial({ map:pictoTex(label, col), roughness:.6 })); pl.rotation.y = Math.PI/2; pl.position.set(xF + .075, 1.62, z); g.add(pl);
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(.24, .24), new THREE.MeshStandardMaterial({ map:label ? pictoTex(label, col) : faucetTex(), roughness:.6 })); pl.rotation.y = Math.PI/2; pl.position.set(xF + .075, 1.62, z); g.add(pl);
     lampAt(z, 2.45);
   };
   wDoor(10.3, '여', '#c43b3b'); wDoor(6.7, '샤워 여', '#c43b3b'); wDoor(-7.9, '샤워 남', '#2a62b5'); wDoor(-10.3, '남', '#2a62b5');
-  // 개수대: open doorway to the indoor sink room (steel counter, taps, dish rack)
-  { const z = -5.2, w = 1.3;
-    B.box(M_.frame, .06, 2.24, w + .12, xF + .025, 1.1, z);
-    const inside = new THREE.Mesh(new THREE.PlaneGeometry(w, 2.12), new THREE.MeshStandardMaterial({ color:0x2c3136, roughness:.9 })); inside.rotation.y = Math.PI/2; inside.position.set(xF - .9, 1.06, z); g.add(inside);
-    for (const s of [-1, 1]) B.box(M_.siding, .9, 2.12, .03, xF - .45, 1.06, z + s*w/2);
-    B.box(M_.chrome, .55, .08, w - .1, xF - .55, .86, z); B.box(M_.chrome, .5, .8, .04, xF - .55, .43, z + w/2 - .08);
-    for (const dz of [-.3, .3]){ B.geo(M_.chrome, new THREE.CylinderGeometry(.015, .015, .3, 8), xF - .74, 1.05, z + dz); B.box(M_.chrome, .16, .02, .02, xF - .67, 1.2, z + dz); }
-    B.box(M_.trim, .02, .02, w, xF - .02, 2.2, z);
-    const pl = new THREE.Mesh(new THREE.PlaneGeometry(.6, .2), new THREE.MeshStandardMaterial({ map:signTex('개수대', { w:256, h:80, bg:'#1b1d22', fg:'#fff', font:'600 44px "IBM Plex Sans KR", sans-serif', grain:false }), roughness:.6 }));
-    pl.rotation.y = Math.PI/2; pl.position.set(xF + .07, 2.42, z); g.add(pl); lampAt(z, 2.62); }
+  // 개수대: same white door as the others, with a tap pictogram
+  wDoor(-5.2, '', '');
   lampAt(SD, 2.62); lampAt(-1.95, 2.85);
   win(8.5, 2.25, .6, .42); win(-9.1, 2.25, .6, .42);
   // back and end windows so the hillside view is not blank
@@ -4499,12 +4498,11 @@ async function buildCamp(){
     sites.push({ id:'별빛존 '+n, x:-25, z, zone:'별빛존' });
   });
   zoneBoard('별빛존', -22.5, BYUL.z0 - 3, Math.PI/2, { w:2.0, h:.6, post:1.2 });
-  // C-1 · C-2 (two-family, double length): gravel sites in front of the dry-stone wall, timber-edged like the other sites, with a brick fire pad
+  // C-1 · C-2 (two-family, double length): open gravel sites reaching from the dry-stone wall out toward the lane, with a brick fire pad
   for (const c of CSITES){
     const cx = (c.x0 + c.x1)/2, cz = (c.z0 + c.z1)/2, w = c.x1 - c.x0, d = c.z1 - c.z0;
-    for (const [x, z, l, ry] of [[c.x0, cz, d, 0], [c.x1, cz, d, 0], [cx, c.z0, w, Math.PI/2], [cx, c.z1, w, Math.PI/2]]){ const t = box(.1, .08, l, mat.woodDark); t.receiveShadow = true; place(t, x, H(x, z) + .02, z, ry); }
     zoneBoard(c.id === 'C-2' ? 'C-2 두가족' : c.id, c.x1 + .5, c.z0 + .9, Math.PI/2, { w:c.id === 'C-2' ? 1.25 : .8, h:.45, post:1.0, bg:'#a8361f' });
-    brickPad(c.x1 - 1.6, c.z0 + 6.4, Math.PI/2); if (c.id === 'C-2') brickPad(c.x1 - 1.6, c.z1 - 1.4, Math.PI/2);
+    brickPad(c.x1 - 1.4, c.z0 + 6.4, Math.PI/2); if (c.id === 'C-2') brickPad(c.x1 - 1.4, c.z1 - 1.4, Math.PI/2);
     powerBox(c.x1 + .3, c.z1 - .8, Math.PI/2);
     sites.push({ id:c.id, x:cx, z:cz, zone:'C존' });
   }
@@ -4576,9 +4574,9 @@ async function buildCamp(){
   zoneBoard('P 주차장', -9.4, -83.6, Math.PI/2, { w:1.3, h:.5, post:1.4, bg:'#1d4f9a' });
   reverseRow(-107, -90.5, -17.6, [0,1,3,4,6]);                             // NW lot by the entrance
   reverseRow(60.5, 80, -17.6, [0,2,3,5,6]);                                // SE lot by the B end
-  pitch('dome', -20.4, 30.6, Math.PI/2, { base:'#7d8a6a', skirt:'#3d4436' });   // C-1
-  pitch('tunnel', -20.2, 40.2, Math.PI, { base:'#cfc8b6', sleeve:'#55595e', skirt:'#45484c' });   // C-2: two families
-  pitch('bell', -20.0, 46.6, Math.PI/2, { base:'#efe6d2' }, false);
+  pitch('dome', -17.6, 30.4, Math.PI/2, { base:'#7d8a6a', skirt:'#3d4436' });   // C-1
+  pitch('tunnel', -17.4, 40.6, Math.PI, { base:'#cfc8b6', sleeve:'#55595e', skirt:'#45484c' });   // C-2: two families
+  pitch('bell', -17.2, 46.8, Math.PI/2, { base:'#efe6d2' }, false);
   addCar('midSUV', 0x0e0f11, -11.8, 22.6, Math.PI/2); addCar('fullSedan', 0xe9e9e6, -11.8, 56.4, -Math.PI/2);
   batchCars();
   occEnd(occM);
@@ -5387,7 +5385,7 @@ const xpRand = (a, b) => a + (b - a)*Math.random();
 function xpSiteList(){
   return sites.filter(s => /^A\d|^B\d|별빛존|^C-/.test(s.id)).map(s => {
     const creek = s.x > 0, C = CSITES.find(c => c.id === s.id);
-    return { id:s.id, creek, x:s.x, z:s.z, pad: creek ? { x:14.6, z:s.z + 1.5 } : C ? { x:C.x1 - 1.6, z:C.z0 + 6.4 } : { x:-21.2, z:s.z - 2.4 } };
+    return { id:s.id, creek, x:s.x, z:s.z, pad: creek ? { x:14.6, z:s.z + 1.5 } : C ? { x:C.x1 - 1.4, z:C.z0 + 6.4 } : { x:-21.2, z:s.z - 2.4 } };
   });
 }
 let XP_SITES = null;
