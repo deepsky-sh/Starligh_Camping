@@ -43,6 +43,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 #menu-toggle{display:block;z-index:4;position:fixed;right:16px;top:calc(14px + env(safe-area-inset-top,0px));border:1px solid var(--line);background:var(--glass-strong);border-radius:10px;padding:8px 12px;font-size:13px}
 .panel{z-index:3;position:fixed;right:16px;top:calc(56px + env(safe-area-inset-top,0px));width:244px;display:none;flex-direction:column;gap:12px;padding:14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);max-height:calc(100% - 200px);overflow:auto}
 .panel.open{display:flex}
+.panel-foot{border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
+.panel-foot #btn-quit{color:#ffb4a8;border-color:rgba(255,140,120,.35)}
+.panel-foot #btn-quit.armed{background:rgba(200,60,40,.35);color:#fff}
 .panel h2{margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--muted)}
 .panel h2 kbd{font-family:var(--f-ui);opacity:.6;font-size:10px}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:rgba(255,255,255,.05);border-radius:9px;padding:3px}
@@ -326,6 +329,10 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
     <button id="btn-evac" aria-pressed="false">대피로 표시</button>
     <button id="btn-sound" aria-pressed="false">소리 켜기</button>
     <button id="btn-info" style="grid-column:1 / -1">캠핑장 정보</button>
+  </section>
+  <section class="row panel-foot">
+    <button id="btn-close-menu">메뉴 닫기</button>
+    <button id="btn-quit">앱 종료</button>
   </section>
 </aside>
 
@@ -6605,6 +6612,16 @@ function bindInput(){
   document.querySelectorAll('#seg-gfx button').forEach(b => b.addEventListener('click', () => setGfx(b.dataset.g, true)));
   setGfx(POST.level);
   $('#hour').addEventListener('input', e => { setHour(parseFloat(e.target.value)); });
+  const closeMenu = () => { $('#panel').classList.remove('open'); $('#menu-toggle').setAttribute('aria-expanded', 'false'); canvas.focus(); };
+  $('#btn-close-menu').addEventListener('click', closeMenu);
+  let quitArm = 0;
+  $('#btn-quit').addEventListener('click', e => {
+    const b = e.currentTarget, now = performance.now();
+    if (now - quitArm > 2500){ quitArm = now; b.classList.add('armed'); b.textContent = '한 번 더 누르면 종료'; setTimeout(() => { b.classList.remove('armed'); b.textContent = '앱 종료'; }, 2500); return; }
+    if (window.DamteoApp && DamteoApp.exit){ DamteoApp.exit(); return; }
+    window.close();   // works only for a tab the page opened itself; otherwise say how to leave
+    setTimeout(() => { b.classList.remove('armed'); b.textContent = '앱 종료'; closeMenu(); toast('웹에서는 브라우저 탭을 닫아 종료해 주세요'); }, 200);
+  });
   $('#menu-toggle').addEventListener('click', e => { const p=$('#panel'); p.classList.toggle('open'); e.currentTarget.setAttribute('aria-expanded', String(p.classList.contains('open'))); });
   $('#btn-info').addEventListener('click', () => { $('#info').hidden = false; });
   $('#info-close').addEventListener('click', () => { $('#info').hidden = true; });
