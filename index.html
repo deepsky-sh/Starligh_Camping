@@ -105,6 +105,18 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .modal-card .src{margin-top:14px;font-size:11.5px;color:var(--muted);line-height:1.6}
 .modal-card .src a{color:var(--pine)}
 .modal-close{margin-top:16px;border:1px solid var(--line);background:transparent;border-radius:9px;padding:8px 16px}
+.shop-card{width:min(860px,100%)}
+.shop-grid{columns:3 220px;column-gap:22px}
+.shop-grid section{break-inside:avoid;margin:0 0 14px}
+.shop-grid h4{margin:0 0 6px;font-size:13.5px;color:var(--amber);font-weight:600;letter-spacing:.02em;border-bottom:1px solid var(--line);padding-bottom:4px}
+.shop-grid ul{list-style:none;margin:0;padding:0}
+.shop-grid li{display:flex;align-items:baseline;gap:6px;font-size:13.5px;line-height:1.75;flex-wrap:wrap}
+.shop-grid li span{min-width:0}
+.shop-grid li i{flex:1;border-bottom:1px dotted rgba(255,255,255,.22);transform:translateY(-4px);min-width:12px}
+.shop-grid li b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.shop-grid li small{flex-basis:100%;text-align:right;color:var(--muted);font-size:11.5px;margin-top:-4px}
+.shop-grid .sm-note{margin:0 0 4px;font-size:11.5px;color:var(--muted)}
+@media (max-width:560px){.shop-card{padding:16px 16px}.shop-grid{columns:1}.shop-grid li{font-size:15px}}
 
 .act{position:fixed;left:50%;bottom:calc(64px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:9px;border:1px solid rgba(242,179,91,.6);background:var(--glass-strong);border-radius:999px;padding:10px 18px 10px 14px;font-size:14px;font-weight:500;box-shadow:0 6px 24px rgba(0,0,0,.35);white-space:nowrap}
 .act svg{width:20px;height:20px;flex:none;color:var(--amber)}
@@ -330,7 +342,8 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
   <section class="row">
     <button id="btn-evac" aria-pressed="false">대피로 표시</button>
     <button id="btn-sound" aria-pressed="false">소리 켜기</button>
-    <button id="btn-info" style="grid-column:1 / -1">캠핑장 정보</button>
+    <button id="btn-shopmenu">매점 가격표</button>
+    <button id="btn-info">캠핑장 정보</button>
   </section>
   <section class="row panel-foot">
     <button id="btn-close-menu">메뉴 닫기</button>
@@ -368,6 +381,8 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 </section>
 
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
+<button class="act" id="act-shop" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>매점 가격표 보기<kbd>E</kbd></button>
+<div class="modal" id="shop-menu" hidden><div class="modal-card shop-card" role="dialog" aria-labelledby="shop-menu-h"><h3 id="shop-menu-h">매점 가격표</h3><div class="sub">관리동 매점 · 현장 가격표 기준이며 바뀔 수 있어요</div><div class="shop-grid" id="shop-menu-body"></div><button class="modal-close" id="shop-menu-x">닫기</button></div></div>
 <div class="tbtns" id="tbtns" hidden><button id="tb-run" aria-pressed="false">달리기</button><button id="tb-jump">점프</button></div>
 
 <div id="xp-hud" hidden>
@@ -414,6 +429,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
       <dt>편의시설</dt><dd>관리동·매점, 화장실, 샤워실, 개수대, 분리수거장, 주차장 2곳, 흡연구역 2곳, 소화기·구급상자</dd>
       <dt>피크닉존</dt><dd>A5와 B1 사이, 계곡으로 내려가는 계단 옆</dd>
       <dt>대피로</dt><dd>중앙 통로를 따라 진입로(북서쪽 다리) 방향으로 이동합니다. 메뉴의 ‘대피로 표시’로 바닥 화살표를 볼 수 있습니다.</dd>
+      <dt>매점</dt><dd>관리동 가운데 유리문으로 들어가면 매점이에요. 과자·라면·아이스크림·얼음·음료와 숯·장작·가스 같은 캠핑 용품을 팔고, 다슬기 채집통과 튜브를 빌려줘요. 안에서 <b>E</b> 키나 계산대 칸막이를 누르면 가격표를 볼 수 있어요 (바로가기 ‘매점 안’, 메뉴 ‘매점 가격표’)</dd>
       <dt>입·퇴실</dt><dd>입실 14:00 · 퇴실 11:00 (연중 운영)</dd>
       <dt>마스코트</dt><dd>은빛 스코티시폴드 고양이 ‘봄이’ — 관리동 앞을 돌아다니다 나비를 보면 살금살금 따라가 덮치고, 밤과 겨울엔 매점 문 앞에서 낮잠을 잡니다. <b>C</b> 키나 봄이를 클릭(탭)하면 얼굴을 가까이 볼 수 있고, 다가가면 ‘냥~’ 하고 인사하며 눈을 깜빡여요 (바로가기 ‘고양이 봄이’)</dd>
       <dt>체험하기</dt><dd>시작 화면의 <b>체험하기</b>로 다른 손님이 없는 빈 캠핑장에 차를 몰고 들어갑니다(W/S 가속·후진, A/D 방향, E 내리기·타기). 매점 앞 캠장님께 체크인하고 쓰레기 봉지를 받으면 캠핑 기능이 열려요: 사이트에 텐트 6종 중 하나와 타프·테이블·의자 설치(계곡 쪽 사이트는 계곡을 향해)와 철수, 빨간 벽돌 위 화로에 모닥불 피우기·끄기, 화로나 버너로 고기 굽기, 계곡에서 찌낚시와 족대질, 친구 둘과 할리갈리. 퇴실은 분리수거장에서 분리수거를 마쳐야 할 수 있어요</dd>
@@ -3071,7 +3087,7 @@ function officeTextures(){
 }
 // plane facing +x (front) or -x (back) whose siding UVs are in metres/2
 function sidingPlane(wz, hy){ const g = new THREE.PlaneGeometry(wz, hy); const uv = g.attributes.uv; for (let i=0;i<uv.count;i++) uv.setXY(i, uv.getX(i)*wz/2, uv.getY(i)*hy/2); return g; }
-function sidingShape(pts){ const g = new THREE.ShapeGeometry(new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], p[1])))); const p = g.attributes.position, uv = g.attributes.uv; for (let i=0;i<p.count;i++) uv.setXY(i, p.getX(i)/2, p.getY(i)/2); return g; }
+function sidingShape(pts, holes = []){ const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], p[1]))); for (const [u0, v0, u1, v1] of holes) sh.holes.push(new THREE.Path([new THREE.Vector2(u0, v0), new THREE.Vector2(u0, v1), new THREE.Vector2(u1, v1), new THREE.Vector2(u1, v0)])); const g = new THREE.ShapeGeometry(sh); const p = g.attributes.position, uv = g.attributes.uv; for (let i=0;i<p.count;i++) uv.setXY(i, p.getX(i)/2, p.getY(i)/2); return g; }
 function logoTex(){
   return canvasTex(512, 512, (g, w, h) => {
     g.fillStyle = '#fdfdfb'; g.beginPath(); g.arc(256, 256, 252, 0, Math.PI*2); g.fill();
@@ -3141,7 +3157,7 @@ function buildOffice(){
   // centre block (관리동·매점): front-facing gable
   const zc = 4.0, hE = 4.9, hR = 6.4;
   const gable = [[-zc, -.6], [zc, -.6], [zc, hE], [0, hR], [-zc, hE]];
-  B.geo(M_.siding, sidingShape(gable), xF, 0, 0, 0, Math.PI/2, 0);
+  B.geo(M_.siding, sidingShape(gable, [[-2.55, -.02, -.55, 2.3]]), xF, 0, 0, 0, Math.PI/2, 0);   // shop doorway cut out (u = -z)
   B.geo(M_.siding, sidingShape(gable), xB, 0, 0, 0, -Math.PI/2, 0);
   for (const s of [-1, 1]){ const p = sidingPlane(D, hE + .6); B.geo(M_.siding, p, xC, (hE - .6)/2, s*zc, 0, s > 0 ? 0 : Math.PI, 0); }
   const th = Math.atan((hR - hE)/zc), run = zc + .38, Ls = run/Math.cos(th);
@@ -3170,16 +3186,13 @@ function buildOffice(){
   };
   win(1.95, 4.2, 1.1, .85); win(-1.95, 4.2, 1.1, .85);
   // picture window (single pane, black frame)
-  B.box(M_.frame, .09, 1.74, 2.36, xF + .045, 1.75, -1.95);
+  for (const [w, h, y, dz] of [[2.36, .08, 2.59, 0], [2.36, .08, .91, 0], [.08, 1.74, 1.75, -1.14], [.08, 1.74, 1.75, 1.14]]) B.box(M_.frame, .12, h, w, xF + .0, y, -1.95 + dz);
   B.add(mat.glassWarm, (() => { const p = new THREE.PlaneGeometry(2.22, 1.6); p.rotateY(Math.PI/2); p.translate(xF + .095, 1.75, -1.95); return p; })());
   // 매점: glass double door with notices on the left leaf
   const SD = 1.55;
-  B.box(M_.frame, .09, 2.36, 2.0, xF + .045, 1.18, SD);
-  const dg = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 2.2), new THREE.MeshStandardMaterial({ map:doorGlassTex(), roughness:.12, metalness:.3, emissive:0xffc27a, emissiveMap:canvasTex(8, 8, (c) => { c.fillStyle = '#ffffff'; c.fillRect(0, 0, 8, 8); }), emissiveIntensity:0 }));
-  tentMats.push(dg.material); dg.rotation.y = Math.PI/2; dg.position.set(xF + .095, 1.18, SD + .46); dg.scale.x = .88; g.add(dg);
-  const dg2 = new THREE.Mesh(new THREE.PlaneGeometry(.9, 2.2), mat.glassWarm); dg2.rotation.y = Math.PI/2; dg2.position.set(xF + .095, 1.18, SD - .46); g.add(dg2);
-  B.box(M_.frame, .1, 2.3, .06, xF + .1, 1.18, SD);   // meeting stiles
-  for (const dz of [.08, -.08]) B.box(M_.chrome, .04, .9, .03, xF + .14, 1.15, SD + dz);
+  // door frame outline (the two glass leaves are built by buildShop and swing open)
+  B.box(M_.frame, .16, .1, 2.12, xF + .0, 2.35, SD);
+  for (const dz of [-1.03, 1.03]) B.box(M_.frame, .16, 2.4, .08, xF + .0, 1.15, SD + dz);
   // logo disc between the upper windows, notice board by the 화장실 wing
   const logo = new THREE.Mesh(new THREE.CircleGeometry(.62, 48), new THREE.MeshStandardMaterial({ map:logoTex(), roughness:.5 })); logo.rotation.y = Math.PI/2; logo.position.set(xF + .07, 4.5, 0); g.add(logo);
   B.geo(M_.trim, new THREE.CylinderGeometry(.64, .64, .05, 48), xF + .03, 4.5, 0, 0, 0, Math.PI/2);
@@ -3220,7 +3233,7 @@ function buildOffice(){
     for (let j=0;j<4;j++) B.geo(fm, new THREE.SphereGeometry(.035, 6, 5), xF + 1.3 + R(-.07,.07), .4 + R(0,.05), z + R(-.07,.07));
   }
   B.flush(g); shadowAll(g); scene.add(g);
-  boxes.push({ x0:xB - .1, x1:xF + .05, z0:-11.5, z1:12.0 });
+  boxes.push({ x0:xB - .1, x1:xF + .05, z0:4.0, z1:12.0 }, { x0:xB - .1, x1:xF + .05, z0:-11.5, z1:-4.0 });
   const shopLamp = new THREE.PointLight(0xffc98a, 0, 12, 1.8); shopLamp.position.set(xF + 1.2, y0 + 2.6, -.4); scene.add(shopLamp); extraLights.push([shopLamp, 14]);
   // pruned red pines with stone rings, solar stakes and string lights to the eaves
   for (const [px, pz] of [[xF + 2.9, 4.7], [xF + 2.7, 9.8], [xF + 2.8, -10.9]]){
@@ -3235,6 +3248,433 @@ function buildOffice(){
   parasolTable(-12.0, -1.75, 0xf3f1ea); parasolTable(-12.0, 7.6, 0xf2c6cf);
   return { xF, xB, y0 };
 }
+/* ---------------- 매점 내부 (photo/video-matched): the centre block of 관리동 is a walk-in shop.
+   Inside ≈ 7.8 m × 7.8 m under a 2.7 m pine ceiling (loft above), light 60 cm floor tiles, knotty pine boards on every wall.
+   Facing the glass door from inside (+x), +z is on the right. Front wall: shoe-off area taped in yellow, switch boxes, black desk under the picture window.
+   +z wall: café counter, white fridge, door under the stairs, black stairs rising toward the front to the loft.
+   Back wall: canopy boxes, cashier desk with a white partition (posters, Wi-Fi card, price sheet) and an office shelf by the window, jacket and clock,
+   two chest freezers under the second window, a glass-door drinks fridge in the corner. -z wall: two white goods shelves under the air conditioner,
+   wooden shelf with microwave and rice cooker. Desk tops are kept tidy. ---------------- */
+const SHOP = { x0:-22.28, x1:-14.52, z0:-3.88, z1:3.88, ceil:2.7, y:0, door:null, doorOpen:0, near:false, menuOpen:false, hit:[], built:false, SD:1.55 };
+const SHOP_MENU = [
+  ['과자·간식', [['봉지과자', 2000], ['오레오', 2000], ['허쉬 초콜릿 쿠키', 2000], ['예감', 2000], ['다이제', 3000], ['프링글스', 3500], ['육포', 6000], ['마시멜로', 4000], ['스니커즈', 2000], ['초콜릿 실카', 2000], ['마이구미 (포도맛·망고맛)', 2000], ['불닭쫀드기', 2000]]],
+  ['아이스크림', [['콘 (구구콘·월드콘)', 3000], ['팥빙수', 3500], ['죠스바', 2000], ['아이스크림 (바·폴라포)', 2000], ['설레임', 3000], ['와', 3000]]],
+  ['얼음·물', [['생수', 2000], ['얼음물', 2500], ['얼음 (작은 봉지)', 5000], ['얼음 (큰 봉지)', 10000]]],
+  ['음료·주류', [['소주', 5000], ['수입맥주', 5000], ['국산맥주 (카스·테라)', 4000], ['캔 음료수', 1500], ['콜라', 3000], ['사이다', 2000], ['감귤주스', 3000], ['아침햇살', 2000]]],
+  ['양념·식사', [['햇반', 2000], ['컵라면', 1500], ['봉지라면 (개당)', 2000], ['고추장·쌈장·초고추장', 3000], ['허브맛솔트', 3500], ['트러플 솔트', 4500], ['포도씨유', 8000], ['식용유', 3000], ['참기름', 5000], ['다시다 스틱', 1000], ['마요네즈', 3000], ['케첩', 3000], ['간장', 3000], ['튀김·부침가루', 3000]]],
+  ['불·캠핑', [['숯+번개탄+석쇠+그릴 세트', 25000], ['장작', 12000], ['숯', 4000], ['석쇠', 3000], ['착화제', 2000], ['번개탄', 2000], ['오로라 가루', 2000], ['이소가스', 4000], ['부탄가스', 2000], ['핫팩', 2000], ['모기향', 2000], ['해피홈 (에프킬라)', 3000]]],
+  ['생활용품', [['수건', 3000], ['물티슈', 2000], ['휴지', 1000], ['일회용 젓가락·수저', 2000], ['종이컵', 2000], ['일회용 샴푸·린스·폼클렌징', 1000], ['칫솔·치약', 1000]]],
+  ['기념품·소품', [['삼베 수세미', 2500], ['방울꽃 책갈피', 4000, '3개 10,000원'], ['키캡 키링', 6000, 'LED 7,000원'], ['캐릭터 볼펜', 6000], ['리본 머리핀', 4000], ['LED 낙하산 장난감', 3000], ['휴지걸이', 8000]]],
+  ['대여', [['다슬기 채집통', 5000], ['튜브 (성인·유아 동일)', 5000]], '보증금 5,000원 별도 · 다음 날 11시 반납'],
+];
+const won = n => n.toLocaleString('ko-KR') + '원';
+function shopPine(seed, w = 512, h = 512, boards = 10, tone = 0){
+  // knotty pine tongue-and-groove boards, boards run along v (vertical on walls); 512 px = 1.2 m
+  const r = mulberry32(seed);
+  return canvasTex(w, h, (g) => {
+    const bw = w/boards;
+    for (let i=0;i<boards;i++){
+      const L = 64 + r()*9 - tone, hue = 32 + r()*6;
+      g.fillStyle = hsl(hue, 52 + r()*10, L*.92); g.fillRect(i*bw, 0, bw, h);
+      for (let k=0;k<26;k++){ g.strokeStyle = hsl(hue - 4, 50, L*.78 - r()*6, .35 + r()*.25); g.lineWidth = .6 + r()*1.4; g.beginPath(); const x = i*bw + r()*bw; g.moveTo(x, 0); for (let y=0;y<=h;y+=32) g.lineTo(x + Math.sin(y*.02 + k)*r()*3, y); g.stroke(); }
+      const knots = r() < .55 ? 1 + (r()*2|0) : 0;
+      for (let k=0;k<knots;k++){ const kx = i*bw + bw*(.25 + r()*.5), ky = r()*h, rr = 3 + r()*6; const gr = g.createRadialGradient(kx, ky, 0, kx, ky, rr*2.2); gr.addColorStop(0, hsl(22, 60, 22, .95)); gr.addColorStop(.45, hsl(26, 58, 38, .7)); gr.addColorStop(1, hsl(30, 50, 50, 0)); g.fillStyle = gr; g.beginPath(); g.ellipse(kx, ky, rr*1.4, rr*2.4, 0, 0, Math.PI*2); g.fill(); }
+      g.fillStyle = 'rgba(70,40,15,.55)'; g.fillRect(i*bw, 0, 1.6, h);
+      g.fillStyle = 'rgba(255,240,210,.18)'; g.fillRect(i*bw + 1.6, 0, 1.2, h);
+    }
+  });
+}
+function shopTiles(){
+  // 60 cm porcelain tiles (two per 512 px = 1.2 m), soft grey-white with faint veining
+  const r = mulberry32(611);
+  return canvasTex(512, 512, (g, w, h) => {
+    for (let i=0;i<2;i++) for (let j=0;j<2;j++){
+      const L = 88 + r()*3; g.fillStyle = hsl(40, 6, L); g.fillRect(i*256, j*256, 256, 256);
+      for (let k=0;k<40;k++){ g.fillStyle = hsl(40, 5, L - 4 - r()*4, .18); g.beginPath(); g.ellipse(i*256 + r()*256, j*256 + r()*256, 4 + r()*30, 1 + r()*3, r()*3, 0, Math.PI*2); g.fill(); }
+    }
+    g.fillStyle = '#b9b6ae'; for (const p of [0, 255]) { g.fillRect(p, 0, 2, h); g.fillRect(0, p, w, 2); }
+  });
+}
+function shopPartitionTex(){
+  // white partition facing the door: 매점 가격표 sheet, café menu card, review-event poster, Wi-Fi QR card (made-up pattern)
+  return canvasTex(1024, 512, (g, w, h) => {
+    g.fillStyle = '#eceeef'; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(0,0,0,.05)'; for (let y=0;y<h;y+=6) g.fillRect(0, y, w, 1);
+    const F = (s, wt = 600) => `${wt} ${s}px "IBM Plex Sans KR", sans-serif`;
+    // price sheet
+    g.fillStyle = '#ffffff'; g.fillRect(40, 60, 300, 420); g.strokeStyle = '#9aa3aa'; g.lineWidth = 2; g.strokeRect(40, 60, 300, 420);
+    g.fillStyle = '#1d2b22'; g.font = F(30, 700); g.textAlign = 'center'; g.fillText('매점 가격표', 190, 104);
+    g.font = F(13, 500); g.textAlign = 'left';
+    let y = 132, col = 0;
+    for (const [cat, items] of SHOP_MENU){
+      if (y > 450 && col === 0){ col = 1; y = 132; }
+      const x = 56 + col*144;
+      g.fillStyle = '#1f6b45'; g.fillText(cat, x, y); y += 16; g.fillStyle = '#2a2a2a';
+      for (const it of items.slice(0, 4)){ g.fillText(it[0].replace(/ \(.*\)/, ''), x, y); y += 14; }
+      y += 6;
+    }
+    // café menu card
+    g.fillStyle = '#2b2440'; g.fillRect(372, 70, 180, 250);
+    const gr = g.createLinearGradient(372, 70, 372, 320); gr.addColorStop(0, '#2f3d6b'); gr.addColorStop(1, '#d58a52'); g.fillStyle = gr; g.fillRect(380, 78, 164, 234);
+    g.fillStyle = '#fff6e2'; g.font = F(24, 700); g.textAlign = 'center'; g.fillText('별빛캠핑장', 462, 118); g.font = F(16, 500); g.fillText('coffee', 462, 142);
+    g.font = F(13, 500); ['아메리카노', '카페라떼', '바닐라라떼', '아이스티'].forEach((t, i) => { g.textAlign = 'left'; g.fillText(t, 396, 180 + i*26); g.textAlign = 'right'; g.fillText('····', 528, 180 + i*26); });
+    // review event poster
+    g.fillStyle = '#163a5c'; g.fillRect(580, 60, 190, 280);
+    g.fillStyle = '#ffffff'; g.font = F(20, 700); g.textAlign = 'center'; g.fillText('별빛캠핑장', 675, 100); g.font = F(15, 600); g.fillText('영수증 리뷰 남기시면', 675, 132);
+    g.fillStyle = '#ffd34d'; g.font = F(19, 700); g.fillText('아이스 아메리카노', 675, 172); g.font = F(34, 700); g.fillText('1잔 공짜!', 675, 214);
+    g.fillStyle = '#ffffff'; g.fillRect(630, 240, 90, 76); g.fillStyle = '#163a5c'; g.font = F(12, 500); g.fillText('사진 또는 동영상', 675, 336);
+    // Wi-Fi card with a made-up QR-like pattern
+    g.fillStyle = '#ffffff'; g.fillRect(800, 60, 190, 230); g.strokeStyle = '#d33'; g.lineWidth = 3; g.strokeRect(806, 66, 178, 30);
+    g.fillStyle = '#222'; g.font = F(14, 600); g.fillText('Wi-Fi', 895, 87);
+    const qr = mulberry32(77); for (let i=0;i<21;i++) for (let j=0;j<21;j++){ const corner = (i < 7 && j < 7) || (i > 13 && j < 7) || (i < 7 && j > 13); const on = corner ? (i%6 === 0 || j%6 === 0 || (i%7 > 1 && i%7 < 5 && j%7 > 1 && j%7 < 5)) : qr() < .45; if (on){ g.fillStyle = '#111'; g.fillRect(840 + i*5.4, 110 + j*5.4, 5.4, 5.4); } }
+    g.fillStyle = '#222'; g.font = F(18, 600); g.fillText('무선랜', 895, 262);
+  });
+}
+function shopFridgeTex(){
+  // glass-door drinks fridge: shelves of cans and bottles behind the glass (no brand)
+  const r = mulberry32(905);
+  return canvasTex(256, 512, (g, w, h) => {
+    g.fillStyle = '#c9d3da'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#2f4f9e'; g.fillRect(0, 0, w, 52); g.fillStyle = '#e8eef8'; g.fillRect(40, 22, w - 80, 8);
+    g.fillStyle = '#9fb0bc'; g.fillRect(14, 60, w - 28, h - 120);
+    const cols = ['#d1342f', '#2f6fd1', '#e8e2d0', '#3b9b45', '#f2b233', '#7a4a2a', '#e86aa0', '#ffffff', '#2c2c2c'];
+    for (let s=0;s<5;s++){
+      const y1 = 60 + (s + 1)*(h - 120)/5; g.fillStyle = '#e9eef1'; g.fillRect(14, y1 - 4, w - 28, 4);
+      for (let x = 20; x < w - 30; ){ const bw = r() < .5 ? 18 : 24, bh = r() < .4 ? 62 : 38; g.fillStyle = cols[(r()*cols.length)|0]; g.fillRect(x, y1 - 4 - bh, bw - 2, bh); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x + 3, y1 - 4 - bh + 4, 3, bh - 8); x += bw; }
+    }
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(30, 60); g.lineTo(90, 60); g.lineTo(20, 400); g.lineTo(14, 400); g.fill();
+    g.fillStyle = '#f2f4f5'; g.fillRect(0, h - 60, w, 60); g.fillStyle = '#c4cbd0'; for (let x=20;x<w-20;x+=10) g.fillRect(x, h - 44, 6, 28);
+  });
+}
+function shopArtTex(kind){
+  return canvasTex(256, 256, (g, w, h) => {
+    if (kind === 'whale'){   // small painting: a whale gliding through a starry dusk sky
+      const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#2b3170'); gr.addColorStop(.6, '#8a6ab0'); gr.addColorStop(1, '#f2b4a0'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      g.fillStyle = 'rgba(255,255,255,.85)'; const r = mulberry32(5); for (let i=0;i<40;i++){ g.beginPath(); g.arc(r()*w, r()*h*.6, r()*1.6 + .3, 0, Math.PI*2); g.fill(); }
+      g.fillStyle = '#f7f1d8'; g.beginPath(); g.arc(200, 46, 14, 0, Math.PI*2); g.fill(); g.fillStyle = '#2b3170'; g.beginPath(); g.arc(207, 41, 13, 0, Math.PI*2); g.fill();
+      g.fillStyle = '#3c5c9c'; g.beginPath(); g.moveTo(40, 150); g.quadraticCurveTo(110, 100, 190, 140); g.quadraticCurveTo(215, 150, 232, 128); g.lineTo(228, 160); g.quadraticCurveTo(205, 160, 190, 158); g.quadraticCurveTo(110, 185, 40, 150); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.55)'; g.fillRect(0, 205, w, 4); g.fillStyle = 'rgba(255,255,255,.3)'; g.beginPath(); g.ellipse(80, 225, 70, 14, 0, 0, Math.PI*2); g.fill();
+    } else {   // framed night photo of a lit bridge
+      g.fillStyle = '#081226'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = '#4f86ff'; g.lineWidth = 6; g.beginPath(); g.moveTo(10, 150); g.quadraticCurveTo(128, 40, 246, 150); g.stroke();
+      g.lineWidth = 2; for (let x=20;x<240;x+=14){ g.beginPath(); g.moveTo(x, 150); g.lineTo(x, 150 - 100*Math.sin((x - 10)/236*Math.PI)*.95); g.stroke(); }
+      g.fillStyle = '#ffd36a'; g.fillRect(0, 150, w, 5); g.fillStyle = 'rgba(79,134,255,.35)'; for (let y=160;y<h;y+=7) g.fillRect(10 + (y*7)%30, y, w - 40, 2);
+    }
+  });
+}
+function shopSignTex(text, bg, fg, w = 256, h = 128, size = 44){
+  return canvasTex(w, h, (g) => { g.fillStyle = bg; g.fillRect(0, 0, w, h); g.fillStyle = fg; g.font = `700 ${size}px "IBM Plex Sans KR", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, w/2, h/2 + 2); });
+}
+
+function buildShop(o){
+  const S = SHOP, { xF, y0 } = o, SD = S.SD;
+  // floor slab sits just above any terrain bump inside the walls
+  let top = 0; for (let x = S.x0; x <= S.x1; x += .5) for (let z = S.z0; z <= S.z1; z += .5) top = Math.max(top, H(x, z) - y0);
+  const FL = Math.max(.06, top + .04); S.y = y0 + FL;
+  decks.push({ x0:S.x0 - .05, x1:S.x1 + .12, z0:S.z0, z1:S.z1, y:S.y });   // walk on the tiles, not the terrain under them
+  const g = new THREE.Group(); g.position.set(0, S.y, 0); scene.add(g);
+  const B = makeBuilder(), r = mulberry32(31337), R2 = (a, b) => a + r()*(b - a);
+  const lit = (m, f = .3) => {
+    m.emissive = new THREE.Color(0xffffff); if (m.map) m.emissiveMap = m.map; else if (!m.vertexColors) m.emissive.copy(m.color); m.emissiveIntensity = f;
+    if (m.vertexColors) m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= vColor.rgb;'); };
+    return m;
+  };
+  const tiled = (t, s) => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1/s, 1/s); return t; };
+  const M_ = {
+    pine: lit(new THREE.MeshStandardMaterial({ map:tiled(shopPine(41), 1.2), roughness:.72 }), .34),
+    ceil: lit(new THREE.MeshStandardMaterial({ map:tiled(shopPine(97, 512, 512, 8, -4), 1.2), roughness:.75, side:THREE.DoubleSide }), .3),
+    tile: lit(new THREE.MeshStandardMaterial({ map:tiled(shopTiles(), 1.2), roughness:.35, metalness:.05 }), .22),
+    wood: lit(new THREE.MeshStandardMaterial({ map:tiled(shopPine(13, 512, 512, 6, -6), .9), roughness:.6 }), .3),
+    black: lit(new THREE.MeshStandardMaterial({ color:0x1d1f22, roughness:.5, metalness:.25 }), .25),
+    dark: lit(new THREE.MeshStandardMaterial({ color:0x2a2c30, roughness:.6, metalness:.2 }), .25),
+    white: lit(new THREE.MeshStandardMaterial({ color:0xf1f2f0, roughness:.45 }), .26),
+    grey: lit(new THREE.MeshStandardMaterial({ color:0x8d9399, roughness:.5, metalness:.35 }), .25),
+    steel: lit(new THREE.MeshStandardMaterial({ color:0xc9cdd0, roughness:.25, metalness:.85 }), .2),
+    card: lit(new THREE.MeshStandardMaterial({ color:0xb8946a, roughness:.85 }), .3),
+    yellow: lit(new THREE.MeshStandardMaterial({ color:0xf2c230, roughness:.6 }), .3),
+    goods: lit(new THREE.MeshStandardMaterial({ vertexColors:true, roughness:.55 }), .3),
+    led: new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xfff3dc, emissiveIntensity:2.2, roughness:.3 }),
+    glassIn: new THREE.MeshStandardMaterial({ color:0xb8c9d4, roughness:.05, metalness:.2, transparent:true, opacity:.16, depthWrite:false }),
+    lid: new THREE.MeshStandardMaterial({ color:0xd6e2e8, roughness:.05, metalness:.1, transparent:true, opacity:.45, depthWrite:false }),
+    door: lit(new THREE.MeshStandardMaterial({ map:tiled(shopPine(23, 512, 512, 3, -14), 1.2), color:0xf3dcc0, roughness:.55 }), .32),
+    trim: lit(new THREE.MeshStandardMaterial({ color:0x7a5534, roughness:.6 }), .25),
+  };
+  const deco = (tex, f = .35) => lit(new THREE.MeshStandardMaterial({ map:tex, roughness:.6 }), f);
+  const C = new THREE.Color();
+  const goods = (w, h, d, x, y, z, col, ry = 0) => {
+    const geo = new THREE.BoxGeometry(w, h, d); if (ry) geo.rotateY(ry); geo.translate(x, y + h/2, z);
+    C.set(col); const n = geo.attributes.position.count, a = new Float32Array(n*3);
+    for (let i=0;i<n;i++){ const k = geo.attributes.normal.getY(i) > .5 ? 1.08 : 1; a[i*3] = C.r*k; a[i*3+1] = C.g*k; a[i*3+2] = C.b*k; }
+    geo.setAttribute('color', new THREE.BufferAttribute(a, 3)); B.add(M_.goods, geo);
+  };
+  const PAL = [0xd8392f, 0xf08a24, 0xf4c430, 0x2f6fd1, 0x3b9b45, 0xffffff, 0x2a2a2a, 0xe86aa0, 0x7b4bb3, 0x8b5a2b, 0x19a7b8];
+  const pick = () => PAL[(r()*PAL.length)|0];
+  const plane = (m, w, h, x, y, z, ry) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m); p.rotation.y = ry; p.position.set(x, y, z); g.add(p); return p; };
+  const { x0, x1, z0, z1, ceil } = S;
+
+  // ---- floor, ceiling, wall linings (shapes with holes for the door and windows) ----
+  const wall = (len, holes, ry, x, z) => {
+    const s = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(len, 0), new THREE.Vector2(len, ceil), new THREE.Vector2(0, ceil)]);
+    for (const [u0, v0, u1, v1] of holes) s.holes.push(new THREE.Path([new THREE.Vector2(u0, v0), new THREE.Vector2(u0, v1), new THREE.Vector2(u1, v1), new THREE.Vector2(u1, v0)]));
+    const geo = new THREE.ShapeGeometry(s); geo.rotateY(ry); geo.translate(x, 0, z); B.add(M_.pine, geo);
+  };
+  // front lining (faces -x, u = z from z0): door and picture window
+  wall(z1 - z0, [[SD - 1.0 - z0, 0, SD + 1.0 - z0, 2.3 - FL], [-3.06 - z0, .95 - FL, -.84 - z0, 2.55 - FL]], -Math.PI/2, x1, z0);
+  // back lining (faces +x, u = -z from -z1): two windows
+  wall(z1 - z0, [[-1.7 + z1, 1.0, -.1 + z1, 2.1], [1.25 + z1, 1.0, 2.95 + z1, 2.1]], Math.PI/2, x0, z1);
+  // +z side (faces -z, u = -x from -x1) and -z side (faces +z, u = x from x0)
+  wall(x1 - x0, [], Math.PI, x1, z1);
+  wall(x1 - x0, [], 0, x0, z0);
+  const fl = new THREE.PlaneGeometry(x1 - x0, z1 - z0); fl.rotateX(-Math.PI/2); fl.translate((x0 + x1)/2, 0, (z0 + z1)/2);
+  { const uv = fl.attributes.uv, p = fl.attributes.position; for (let i=0;i<uv.count;i++) uv.setXY(i, p.getX(i), -p.getZ(i)); }
+  B.add(M_.tile, fl);
+  // ceiling with the stair opening (loft hatch above the top flight)
+  const hx0 = -19.0, hx1 = -17.2, hz0 = 2.95;
+  const cs = new THREE.Shape([new THREE.Vector2(x0, z0), new THREE.Vector2(x1, z0), new THREE.Vector2(x1, z1), new THREE.Vector2(x0, z1)]);
+  cs.holes.push(new THREE.Path([new THREE.Vector2(hx0, hz0), new THREE.Vector2(hx0, z1), new THREE.Vector2(hx1, z1), new THREE.Vector2(hx1, hz0)]));
+  const cg = new THREE.ShapeGeometry(cs); cg.rotateX(Math.PI/2); cg.translate(0, ceil, 0); B.add(M_.ceil, cg);
+  // loft void above the hatch: dim boards and a rail along the hatch edge
+  const loft = new THREE.Mesh(new THREE.BoxGeometry(hx1 - hx0 + 1.2, 1.6, z1 - hz0 + .6), lit(new THREE.MeshStandardMaterial({ color:0x6b5038, roughness:.8, side:THREE.BackSide }), .12));
+  loft.position.set((hx0 + hx1)/2 - .6, ceil + .8, (hz0 + z1)/2 - .3); g.add(loft);
+  B.box(M_.black, hx1 - hx0, .04, .04, (hx0 + hx1)/2, ceil + .9, hz0 - .05);
+  for (let x = hx0; x <= hx1 + .01; x += .3) B.box(M_.black, .025, .9, .025, x, ceil + .45, hz0 - .05);
+  // baseboard
+  for (const [w, d, x, z] of [[.02, z1 - z0, x1 - .01, 0], [.02, z1 - z0, x0 + .01, 0], [x1 - x0, .02, (x0 + x1)/2, z1 - .01], [x1 - x0, .02, (x0 + x1)/2, z0 + .01]]) B.box(M_.wood, w, .08, d, x, .04, z);
+
+  // ---- door and window trims, inside glass (the outside panes are one-sided, so the view out stays clear) ----
+  const inPane = (w, h, x, y, z, ry) => plane(M_.glassIn, w, h, x, y, z, ry);
+  inPane(2.22, 1.6, x1 - .02, 1.75 - FL, -1.95, -Math.PI/2);
+  for (const [zc, w] of [[.9, 1.6], [-2.1, 1.7]]){
+    inPane(w, 1.1, x0 + .02, 1.55, zc, Math.PI/2);
+    for (const dz of [-w/2, w/2]) B.box(M_.white, .1, 1.18, .06, x0 + .04, 1.55, zc + dz);
+    for (const dy of [-.57, .57]) B.box(M_.white, .1, .06, w + .06, x0 + .04, 1.55 + dy, zc);
+    B.box(M_.white, .06, 1.1, .05, x0 + .06, 1.55, zc);   // sliding sash meeting rail
+    B.box(M_.white, .22, .03, w + .1, x0 + .1, .99, zc);   // sill
+  }
+  for (const dz of [-1.0, 1.0]) B.box(M_.black, .1, 2.3, .05, x1 - .04, 1.15, SD + dz);
+  B.box(M_.black, .1, .06, 2.05, x1 - .04, 2.3, SD);
+  // matching panes on the outside of the back wall (white PVC sliding windows)
+  for (const [zc, w] of [[.9, 1.6], [-2.1, 1.7]]){
+    const ex = o.xB;
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(w, 1.1), mat.glassWarm); pane.rotation.y = -Math.PI/2; pane.position.set(ex - .03, 1.55, zc); g.add(pane);
+    for (const dz of [-w/2, w/2]) B.box(officeMats.sash, .08, 1.2, .07, ex - .04, 1.55, zc + dz);
+    for (const dy of [-.58, .58]) B.box(officeMats.sash, .08, .07, w + .07, ex - .04, 1.55 + dy, zc);
+    B.box(officeMats.sash, .05, 1.1, .05, ex - .06, 1.55, zc);
+  }
+
+  // glass double door: two leaves hinged at the outer jambs, swinging inward when someone walks up
+  S.door = [];
+  const dgMat = new THREE.MeshStandardMaterial({ map:doorGlassTex(), roughness:.12, metalness:.3, emissive:0xffc27a, emissiveMap:canvasTex(8, 8, (c) => { c.fillStyle = '#ffffff'; c.fillRect(0, 0, 8, 8); }), emissiveIntensity:0 });
+  tentMats.push(dgMat);
+  for (const s of [1, -1]){
+    const leaf = new THREE.Group(); leaf.position.set(xF - .03, 0, SD + s*.98);
+    const lw = .96, cx = -s*lw/2;
+    const out = new THREE.Mesh(new THREE.PlaneGeometry(lw - .08, 2.12), s > 0 ? dgMat : mat.glassWarm); out.rotation.y = Math.PI/2; out.position.set(.025, 1.12 - FL, cx); leaf.add(out);
+    const inn = new THREE.Mesh(new THREE.PlaneGeometry(lw - .08, 2.12), M_.glassIn); inn.rotation.y = -Math.PI/2; inn.position.set(-.025, 1.12 - FL, cx); leaf.add(inn);
+    const fm = officeMats.frame;
+    for (const [w, h, d, y, z] of [[.05, .06, lw, 2.2, cx], [.05, .1, lw, .07, cx], [.05, 2.22, .05, 1.13, cx - lw/2 + .025], [.05, 2.22, .05, 1.13, cx + lw/2 - .025]]){ const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), fm); b.position.set(0, y - FL, z); leaf.add(b); }
+    for (const dx of [.06, -.06]){ const hnd = new THREE.Mesh(new THREE.BoxGeometry(.03, .9, .03), officeMats.chrome); hnd.position.set(dx, 1.1 - FL, cx - s*(lw/2 - .1)); leaf.add(hnd); }
+    shadowAll(leaf); g.add(leaf); leaf.userData.s = s; S.door.push(leaf);
+  }
+
+  // ---- front wall: shoe-off area taped in yellow, slippers, switch boxes and the "외출중" tag ----
+  const tz0 = .35, tz1 = 2.75, tx1 = x1 - 1.25;
+  for (const [w, d, x, z] of [[x1 - tx1, .05, (x1 + tx1)/2, tz0], [x1 - tx1, .05, (x1 + tx1)/2, tz1], [.05, tz1 - tz0, tx1, (tz0 + tz1)/2]]) B.box(M_.yellow, w, .004, d, x, .002, z);
+  const slip = lit(new THREE.MeshStandardMaterial({ color:0x24324a, roughness:.7 }), .25), slip2 = lit(new THREE.MeshStandardMaterial({ color:0xe9ecef, roughness:.6 }), .25);
+  for (const [x, z, a, m] of [[-15.0, .62, .2, slip], [-15.35, .8, -.15, slip], [-15.2, 2.5, 2.9, slip2], [-14.85, 2.62, 3.3, slip]]){
+    for (const dz of [-.06, .06]){ const sh = new THREE.Mesh(new THREE.BoxGeometry(.27, .035, .1), m); sh.position.set(x + Math.sin(a)*0, .018, z + dz); sh.rotation.y = a; g.add(sh); }
+  }
+  B.box(M_.grey, .1, .4, .3, x1 - .05, 1.55, 3.2); B.box(M_.grey, .1, .3, .22, x1 - .05, 1.55, 3.62);
+  B.box(M_.black, .02, 1.6, .03, x1 - .02, 2.0, 3.32); B.box(M_.black, .02, 1.4, .03, x1 - .02, .7, 3.4);
+  plane(deco(shopSignTex('외출중', '#ffffff', '#111111', 96, 192, 34)), .16, .32, x1 - .02, 1.75, 2.85, -Math.PI/2);
+  plane(deco(shopSignTex('안전 수칙', '#f6f1df', '#23412c', 256, 160, 30)), .5, .32, x1 - .02, 1.5, -.35, -Math.PI/2);
+
+  // ---- +z wall: café counter (tidy), white fridge, door under the stairs ----
+  const cz = z1 - .33;
+  B.box(M_.wood, 1.65, .95, .64, -15.55, .475, cz);
+  B.box(M_.wood, 1.71, .045, .7, -15.55, .97, cz - .02);
+  B.box(M_.black, .3, .42, .38, -15.95, 1.2, z1 - .26);           // coffee machine
+  B.box(M_.steel, .05, .02, .12, -15.95, 1.09, z1 - .5);
+  B.geo(M_.steel, new THREE.CylinderGeometry(.075, .085, .22, 16), -15.5, 1.1, z1 - .25);   // kettle
+  B.geo(M_.black, new THREE.CylinderGeometry(.04, .04, .06, 12), -15.5, 1.24, z1 - .25);
+  for (let i=0;i<3;i++) B.geo(M_.white, new THREE.CylinderGeometry(.04, .032, .12 + i*.0, 12), -15.18 + i*.1, 1.05, z1 - .2);   // paper cups
+  B.geo(M_.white, new THREE.CylinderGeometry(.035, .035, .2, 12), -14.85, 1.09, z1 - .18);   // hand sanitiser
+  const menuStand = plane(deco(shopArtTex('whale'), .38), .24, .3, -15.3, 1.15, z1 - .45, Math.PI); menuStand.rotation.x = -.15;
+  plane(deco(shopArtTex('whale'), .38), .4, .4, -15.75, 1.78, z1 - .01, Math.PI);   // the whale painting above the counter
+  B.box(M_.black, .42, .42, .015, -15.75, 1.78, z1 - .005);
+  // fridge
+  B.box(M_.white, .6, 1.45, .64, -16.8, .725, z1 - .34);
+  B.box(M_.grey, .6, .01, .02, -16.8, 1.0, z1 - .665);
+  for (const y of [.75, 1.2]) B.box(M_.grey, .025, .22, .03, -16.55, y, z1 - .68);
+  // door under the stairs (to the back corridor)
+  B.box(M_.door, .84, 1.93, .05, -17.75, .965, z1 - .03);
+  for (const [w, h, x, y] of [[.96, .06, -17.75, 1.96], [.06, 1.96, -17.3, .98], [.06, 1.96, -18.2, .98]]) B.box(M_.trim, w, h, .07, x, y, z1 - .035);
+  B.geo(M_.steel, new THREE.CylinderGeometry(.02, .02, .1, 8), -17.42, 1.0, z1 - .1, Math.PI/2, 0, 0);
+
+  // ---- stairs to the loft: black treads and stringers rising toward the front, black balusters on the room side ----
+  const sxB = -20.8, sxT = hx1, sw0 = 3.0, steps = 13, rise = ceil/steps, run = (sxT - sxB)/steps;
+  for (let i=0;i<steps;i++){ const x = sxB + run*(i + .5), y = rise*(i + 1); B.box(M_.black, run + .03, .045, z1 - sw0, x, y - .022, (sw0 + z1)/2); B.box(M_.dark, .02, rise, z1 - sw0 - .04, x - run/2 + .01, y - rise/2, (sw0 + z1)/2); }
+  const sl = Math.hypot(sxT - sxB, ceil), sa = Math.atan2(ceil, sxT - sxB);
+  for (const z of [sw0 + .02, z1 - .03]) B.box(M_.black, sl, .24, .04, (sxB + sxT)/2, ceil/2 - .05, z, 0, 0, sa);
+  for (let i=1;i<steps;i+=2){ const x = sxB + run*(i + .5), y = rise*(i + 1); B.box(M_.black, .022, .95, .022, x, y + .475, sw0 + .02); }
+  B.box(M_.black, sl, .04, .045, (sxB + sxT)/2, ceil/2 + .92, sw0 + .02, 0, 0, sa);
+  // stored canopy cartons behind the stair foot
+  B.box(M_.card, .55, 2.2, .3, -21.9, 1.1, 3.6); B.box(M_.card, .45, 1.9, .28, -21.95, .95, 3.25);
+
+  // ---- back wall: poster and speaker, office shelf (printer) by window 1, cashier desk with the partition, jacket and clock ----
+  plane(deco(shopArtTex('bridge'), .4), .5, .38, x0 + .015, 1.75, 2.35, Math.PI/2);
+  B.box(M_.black, .015, .42, .54, x0 + .008, 1.75, 2.35);
+  B.box(M_.black, .16, .24, .16, x0 + .1, 2.4, 2.0);
+  // office shelf (grey metal, three shelves) with a printer and two storage bins
+  const osx = x0 + .25, osz = .9;
+  for (const dz of [-.5, .5]) for (const dx of [-.2, .2]) B.box(M_.dark, .03, 1.1, .03, osx + dx, .55, osz + dz);
+  for (const y of [.1, .55, 1.08]) B.box(M_.dark, .44, .025, 1.02, osx, y, osz);
+  B.box(M_.white, .36, .16, .44, osx, 1.17, osz - .1);   // printer
+  B.box(M_.white, .34, .26, .4, osx, .7, osz - .25); B.box(M_.grey, .34, .24, .4, osx, .7, osz + .25);
+  // cashier desk: desk top behind a white partition that faces the door
+  const dxF = -20.12, dxB = -20.85, dz0 = -.45, dz1 = 1.95;
+  B.box(M_.white, .04, 1.15, dz1 - dz0, dxF, .575, (dz0 + dz1)/2);
+  B.box(M_.dark, .06, .04, dz1 - dz0 + .04, dxF, 1.17, (dz0 + dz1)/2);
+  B.box(M_.wood, dxF - dxB, .035, dz1 - dz0, (dxF + dxB)/2 - .02, .75, (dz0 + dz1)/2);
+  for (const z of [dz0 + .05, dz1 - .05]) B.box(M_.dark, dxF - dxB - .04, .73, .03, (dxF + dxB)/2, .365, z);
+  const part = plane(deco(shopPartitionTex(), .42), dz1 - dz0 - .1, 1.05, dxF + .025, .62, (dz0 + dz1)/2, Math.PI/2);
+  S.hit.push(part);
+  // tidy desk top: card terminal, pen cup, closed laptop, small plant
+  B.box(M_.black, .16, .05, .09, -20.5, .79, 1.6);
+  B.geo(M_.dark, new THREE.CylinderGeometry(.035, .035, .1, 12), -20.6, .82, 1.25);
+  B.box(M_.grey, .26, .02, .34, -20.55, .78, .55);
+  B.geo(M_.white, new THREE.CylinderGeometry(.05, .04, .08, 12), -20.6, .81, -.2);
+  B.geo(officeMats.leaf, new THREE.SphereGeometry(.07, 8, 6), -20.6, .9, -.2);
+  // office chair behind the desk
+  const chair = (x, z, a) => {
+    B.box(M_.black, .46, .07, .44, x, .48, z); B.box(M_.black, .07, .45, .42, x - Math.cos(a)*.22, .78, z - Math.sin(a)*.0);
+    B.geo(M_.grey, new THREE.CylinderGeometry(.025, .025, .38, 8), x, .26, z);
+    for (let k=0;k<5;k++){ const b = k/5*Math.PI*2; B.box(M_.black, .26, .03, .03, x + Math.cos(b)*.12, .05, z + Math.sin(b)*.12, 0, -b, 0); }
+  };
+  chair(-21.3, .7, 0);
+  // clock and a thermostat between the windows
+  B.geo(M_.white, new THREE.CylinderGeometry(.16, .16, .03, 24), x0 + .02, 2.35, -.45, 0, 0, Math.PI/2);
+  B.box(M_.white, .02, .12, .1, x0 + .01, 1.45, .0);
+  // two chest freezers under window 2, glass-door drinks fridge in the corner
+  for (const zc of [-1.6, -2.62]){
+    B.box(M_.white, .66, .82, .98, x0 + .35, .41, zc);
+    B.box(M_.steel, .68, .03, 1.0, x0 + .35, .83, zc);
+    const lid = new THREE.Mesh(new THREE.PlaneGeometry(.6, .9), M_.lid); lid.rotation.x = -Math.PI/2; lid.position.set(x0 + .35, .846, zc); g.add(lid);
+    for (let k=0;k<6;k++) goods(.12, .05, .2, x0 + .2 + (k%3)*.15, .7, zc - .3 + (k>>1)*.2 - .1, [0xffffff, 0x2f6fd1, 0xf4c430, 0xd8392f][k%4]);
+    B.box(M_.grey, .02, .06, .12, x0 + .69, .55, zc + .3);
+  }
+  B.box(M_.white, .66, 1.9, .62, x0 + .34, .95, z0 + .33);
+  plane(deco(shopFridgeTex(), .55), .56, 1.82, x0 + .675, .97, z0 + .33, Math.PI/2);
+  plane(deco(shopSignTex('얼음 · 아이스크림', '#ffffff', '#2c3e57', 320, 96, 34), .4), .5, .15, x0 + .015, 1.25, -2.1, Math.PI/2);
+
+  // ---- -z wall: air conditioner, two white goods shelves, ramen cartons, wooden shelf with microwave and rice cooker ----
+  B.box(M_.white, 1.0, .3, .22, -19.6, 2.32, z0 + .12);
+  B.box(M_.grey, .96, .02, .02, -19.6, 2.2, z0 + .22);
+  for (const sx of [-20.25, -18.95]){
+    const sw = 1.2, sd = .42, sz = z0 + sd/2 + .02;
+    for (const dx of [-sw/2 + .02, sw/2 - .02]) for (const dz of [-sd/2 + .02, sd/2 - .02]) B.box(M_.white, .035, 1.85, .035, sx + dx, .925, sz + dz);
+    const ys = [.12, .5, .88, 1.26, 1.64];
+    for (const y of ys){ B.box(M_.white, sw, .025, sd, sx, y, sz); }
+    for (const y of ys){
+      if (y > 1.6){ for (let k=0;k<4;k++) goods(R2(.18, .3), R2(.1, .26), R2(.2, .35), sx - .45 + k*.3, y + .013, sz, pick()); continue; }
+      let x = sx - sw/2 + .05;
+      if (r() < .45){ // a row of white bins holding packets
+        for (let k=0;k<2;k++){ const bx = x + .27 + k*.55; B.box(M_.white, .5, .14, .34, bx, y + .085, sz); for (let j=0;j<5;j++) goods(.08, R2(.1, .17), .12, bx - .2 + j*.1, y + .1, sz + R2(-.08, .08), pick()); }
+        continue;
+      }
+      while (x < sx + sw/2 - .1){ const w = R2(.07, .16), h = R2(.08, .26), col = pick(); const n = 1 + (r()*3|0); for (let j=0;j<n;j++) goods(w, h, .1, x + w/2, y + .013, sz - .12 + j*.11, col); x += w + .015; }
+    }
+    // price sheet clipped to the upright
+    plane(deco(shopSignTex('가격표', '#ffffff', '#1f6b45', 128, 96, 30), .4), .16, .12, sx, 1.42, z0 + .44, 0);
+  }
+  for (let k=0;k<3;k++) B.box(M_.card, .48, .32, .34, -21.15, .16 + k*.32, z0 + .2);   // ramen cartons
+  for (let k=0;k<3;k++) B.box(M_.yellow, .48, .05, .345, -21.15, .3 + k*.32, z0 + .2);
+  // wooden shelf by the picture window
+  const wsx = -15.75, wsz = z0 + .27;
+  for (const dx of [-.42, .42]) for (const dz of [-.2, .2]) B.box(M_.wood, .05, 1.5, .05, wsx + dx, .75, wsz + dz);
+  for (const y of [.25, .75, 1.25, 1.5]) B.box(M_.wood, .9, .03, .45, wsx, y, wsz);
+  B.box(M_.black, .5, .3, .36, wsx, .91, wsz);   // microwave
+  B.box(M_.white, .2, .2, .02, wsx - .08, .93, wsz + .18);
+  B.geo(M_.dark, new THREE.CylinderGeometry(.15, .15, .24, 18), wsx - .15, .38, wsz);   // rice cooker
+  B.box(M_.white, .26, .2, .2, wsx + .2, .36, wsz);
+  // black desk under the picture window (kept clear) with a chair
+  B.box(M_.black, .62, .04, 2.0, x1 - .33, .74, -1.95);
+  for (const z of [-2.9, -1.0]) for (const dx of [-.25, .25]) B.box(M_.black, .04, .72, .04, x1 - .33 + dx, .36, z);
+  B.geo(M_.dark, new THREE.CylinderGeometry(.06, .07, .02, 14), x1 - .3, .77, -2.6);   // desk lamp
+  B.box(M_.dark, .02, .34, .02, x1 - .3, .94, -2.6); B.box(M_.dark, .12, .02, .1, x1 - .34, 1.11, -2.6);
+  chair(-15.25, -1.7, Math.PI);
+
+  // ---- snack rack (white wire, five sloped baskets) by the stair foot ----
+  const rx = -19.65, rz = 2.25;
+  for (const dx of [-.22, .22]) for (const dz of [-.17, .17]) B.box(M_.white, .02, 1.45, .02, rx + dx, .73, rz + dz);
+  for (let k=0;k<5;k++){
+    const y = .2 + k*.28;
+    B.box(M_.white, .44, .015, .34, rx, y, rz, .32, 0, 0);
+    for (let j=0;j<4;j++) goods(.09, .15, .03, rx - .15 + j*.1, y + .01, rz + .03, pick(), 0);
+  }
+  for (const dz of [-.12, .12]) B.geo(M_.steel, new THREE.SphereGeometry(.025, 6, 4), rx, .025, rz + dz);
+
+  // ---- ceiling lights: two long LED lines on black track, a panel over the counter, two barn pendants ----
+  for (const z of [-1.3, 1.3]){ B.box(M_.black, 6.2, .04, .06, -18.4, ceil - .02, z); B.box(M_.led, 6.0, .03, .05, -18.4, ceil - .05, z); }
+  B.box(M_.white, .62, .03, 1.22, -15.55, ceil - .015, 3.2); B.box(M_.led, .56, .01, 1.14, -15.55, ceil - .035, 3.2);
+  for (const x of [-16.9, -19.9]){
+    B.geo(M_.black, new THREE.CylinderGeometry(.008, .008, .32, 6), x, ceil - .16, 0);
+    B.geo(M_.black, new THREE.ConeGeometry(.17, .14, 18, 1, true), x, ceil - .38, 0);
+    B.geo(M_.led, new THREE.SphereGeometry(.05, 10, 8), x, ceil - .43, 0);
+  }
+
+  B.flush(g); g.traverse(c => { if (c.isMesh){ c.castShadow = c.material !== M_.glassIn && c.material !== M_.lid && c.material !== M_.led; c.receiveShadow = true; } });
+  const lamp = new THREE.PointLight(0xfff0d8, 9, 9.5, 1.4); lamp.position.set(-18.4, S.y + ceil - .5, .2); scene.add(lamp); S.lamp = lamp;
+
+  // ---- colliders: walls with the door gap, then the furniture ----
+  const W = (ax0, ax1, az0, az1) => boxes.push({ x0:ax0, x1:ax1, z0:az0, z1:az1 });
+  W(x1, xF + .05, -4.0, SD - 1.0); W(x1, xF + .05, SD + 1.0, 4.0);
+  W(o.xB - .1, x0, -4.0, 4.0); W(o.xB - .1, xF + .05, z1, 4.05); W(o.xB - .1, xF + .05, -4.05, z0);
+  W(-16.4, x1, cz - .33, z1); W(-17.12, -16.48, z1 - .66, z1);
+  W(sxB - .1, sxT, sw0 - .02, z1);
+  W(x0, -21.6, 2.95, z1);
+  W(x0, x0 + .5, .38, 1.42);
+  W(dxB, dxF + .02, dz0, dz1);
+  W(x0, x0 + .7, z0, -1.08);
+  W(-20.87, -18.33, z0, z0 + .46);
+  W(-21.42, -20.88, z0, z0 + .38);
+  W(-16.22, -15.28, z0, z0 + .52);
+  W(x1 - .66, x1, -2.98, -.92);
+  colliders.push({ x:rx, z:rz, r:.18 });
+  S.built = true;
+}
+function shopInside(x, z, m = 0){ const S = SHOP; return x > S.x0 - m && x < S.x1 + m && z > S.z0 - m && z < S.z1 + m; }
+/** keep the 3rd-person camera inside the shop: shorten the boom where it would leave the room */
+function shopCamClamp(target, pos){
+  const S = SHOP; if (!S.built || !shopInside(target.x, target.z)) return;
+  const dx = pos.x - target.x, dy = pos.y - target.y, dz = pos.z - target.z, L = Math.hypot(dx, dy, dz); if (L < 1e-4) return;
+  let t = 1;
+  const lim = (p, d, lo, hi) => { if (d > 1e-6) t = Math.min(t, (hi - p)/d); else if (d < -1e-6) t = Math.min(t, (lo - p)/d); };
+  lim(target.x, dx, S.x0 + .2, S.x1 - .2); lim(target.z, dz, S.z0 + .2, S.z1 - .2); lim(target.y, dy, S.y + .3, S.y + S.ceil - .18);
+  t = Math.max(0, t); pos.set(target.x + dx*t, target.y + dy*t, target.z + dz*t);
+}
+function shopUpdate(dt){
+  const S = SHOP; if (!S.built) return;
+  const p = player.pos, dd = Math.hypot(p.x - (S.x1 + .3), p.z - S.SD);
+  const want = (dd < 2.6 && started && view !== 'air') ? 1 : 0;
+  S.doorOpen += (want - S.doorOpen)*(1 - Math.exp(-dt*(want ? 6 : 3)));
+  const e = S.doorOpen*S.doorOpen*(3 - 2*S.doorOpen);
+  for (const leaf of S.door) leaf.rotation.y = leaf.userData.s*e*1.45;
+  const near = started && !S.menuOpen && (view === 'tp' || view === 'fp') && shopInside(p.x, p.z, -.1) && !(EXP.on && EXP.mode !== 'free');
+  if (near !== S.near){ S.near = near; $('#act-shop').hidden = !near; }
+}
+function shopHit(cx, cy){
+  const S = SHOP; if (!S.built || !S.hit.length || !shopInside(player.pos.x, player.pos.z, .6)) return false;
+  const rc = canvas.getBoundingClientRect(), ndc = new THREE.Vector2(((cx - rc.left)/rc.width)*2 - 1, -((cy - rc.top)/rc.height)*2 + 1);
+  const ray = new THREE.Raycaster(); ray.setFromCamera(ndc, camera); ray.far = 12;
+  return ray.intersectObjects(S.hit, false).length > 0;
+}
+function shopMenuRender(){
+  $('#shop-menu-body').innerHTML = SHOP_MENU.map(([cat, items, note]) =>
+    `<section><h4>${cat}</h4>${note ? `<p class="sm-note">${note}</p>` : ''}<ul>${items.map(([n, p, extra]) => `<li><span>${n}</span><i></i><b>${won(p)}</b>${extra ? `<small>${extra}</small>` : ''}</li>`).join('')}</ul></section>`).join('');
+}
+function shopMenuOpen(){ const S = SHOP; if (!$('#shop-menu-body').firstChild) shopMenuRender(); $('#shop-menu').hidden = false; S.menuOpen = true; $('#act-shop').hidden = true; S.near = false; }
+function shopMenuClose(){ $('#shop-menu').hidden = true; SHOP.menuOpen = false; }
 /* Korean red pine, cloud-pruned: crooked reddish trunk and flat needle pads */
 function redPine(x, z, hgt){
   const y0 = H(x,z) - .05;
@@ -3989,6 +4429,7 @@ function catHit(cx, cy){
   return centers.some(([x, y, z, rad]) => ray.ray.distanceSqToPoint(_cv.set(x, y, z)) < rad*rad && ray.ray.origin.distanceTo(_cv) < 30);
 }
 function catCamBlocked(x, z){
+  if (x > -22.75 && x < -14.05 && z > -4.35 && z < 4.35) return true;
   for (const b of boxes) if (x > b.x0 - .35 && x < b.x1 + .35 && z > b.z0 - .35 && z < b.z1 + .35) return true;
   for (const o of colliders) if ((x - o.x)**2 + (z - o.z)**2 < (o.r + .18)**2) return true;
   return false;
@@ -4515,7 +4956,7 @@ async function buildCamp(){
   await frame();
 
   // buildings: 관리동·매점 with 화장실·샤워실, 개수대 (blue roof in the satellite photo), 분리수거장
-  buildOffice();
+  buildShop(buildOffice());
   const ws = new THREE.Group(); const cnt = box(.7,.9,4.4,M(0xbfc3c6,{metalness:.7,roughness:.3})); cnt.position.y=.45; ws.add(cnt);
   const roof2 = box(2.6,.1,5.2,mat.roofBlue); roof2.position.y=2.55; ws.add(roof2);
   for (const sx of [-1.1,1.1]) for (const sz of [-2.4,2.4]){ const p=box(.1,2.55,.1,mat.woodDark); p.position.set(sx,1.27,sz); ws.add(p); }
@@ -4738,6 +5179,7 @@ function updateCamera(dt){
   const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
   camPos.set(camTarget.x + Math.sin(camYaw)*cp*camDist, camTarget.y - sp*camDist, camTarget.z + Math.cos(camYaw)*cp*camDist);
   const gmin = H(camPos.x, camPos.z) + .45; if (camPos.y < gmin) camPos.y = gmin;
+  shopCamClamp(camTarget, camPos);
   camera.position.lerp(camPos, 1 - Math.exp(-dt*14));
   camera.lookAt(camTarget);
 }
@@ -6771,6 +7213,8 @@ function bindInput(){
     keys.add(e.code); keyT[e.code] = performance.now();
     if (xpKey(e, true)) return;
     if (e.code === 'KeyE' && SCOPE.near) scopeOpen();
+    else if (e.code === 'KeyE' && SHOP.near) shopMenuOpen();
+    if (e.code === 'Escape' && SHOP.menuOpen) shopMenuClose();
     if (e.code === 'KeyV') setView(view === 'tp' ? 'fp' : view === 'fp' ? 'air' : 'tp');
     if (e.code === 'KeyC'){ if (view === 'cat') setView('tp'); else catView(); }
     if (e.code === 'KeyT'){ const ks=['day','dusk','night']; const i=ks.findIndex(k=>Math.abs(presetHour(k)-hourTarget)<.05); setHour(presetHour(ks[(i+1)%3])); }
@@ -6800,7 +7244,7 @@ function bindInput(){
     if (view === 'cat'){ catCam.yaw -= dx*s; catCam.pitch = clamp(catCam.pitch - dy*s*.85, -.3, .85); return; }
     camYaw -= dx*s; camPitch = clamp(camPitch - dy*s*.85, view==='fp' ? -1.35 : -1.25, view==='fp' ? 1.3 : .35);
   });
-  const end = e => { if (drag && drag.id === e.pointerId){ if (drag.moved < 6 && EXP.on){ if (HG.on && hgClick(e.clientX, e.clientY)){ drag = null; return; } if ((view === 'tp' || view === 'fp') && !EXP.lock && xpHit(e.clientX, e.clientY)){ drag = null; return; } } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && scopeHit(e.clientX, e.clientY)){ drag = null; if (Math.hypot(player.pos.x - SCOPE.x, player.pos.z - SCOPE.z) < 4.6) scopeOpen(); else toast('<b>망원경</b> · 가까이 가서 클릭(탭)하면 달과 토성을 볼 수 있어요'); return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && catHit(e.clientX, e.clientY)){ catView(); drag = null; return; } if (drag.moved < 4 && view==='fp' && e.pointerType==='mouse') canvas.requestPointerLock?.()?.catch?.(()=>{}); drag = null; } };
+  const end = e => { if (drag && drag.id === e.pointerId){ if (drag.moved < 6 && EXP.on){ if (HG.on && hgClick(e.clientX, e.clientY)){ drag = null; return; } if ((view === 'tp' || view === 'fp') && !EXP.lock && xpHit(e.clientX, e.clientY)){ drag = null; return; } } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && scopeHit(e.clientX, e.clientY)){ drag = null; if (Math.hypot(player.pos.x - SCOPE.x, player.pos.z - SCOPE.z) < 4.6) scopeOpen(); else toast('<b>망원경</b> · 가까이 가서 클릭(탭)하면 달과 토성을 볼 수 있어요'); return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && !(EXP.on && EXP.mode !== 'free') && shopHit(e.clientX, e.clientY)){ shopMenuOpen(); drag = null; return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && catHit(e.clientX, e.clientY)){ catView(); drag = null; return; } if (drag.moved < 4 && view==='fp' && e.pointerType==='mouse') canvas.requestPointerLock?.()?.catch?.(()=>{}); drag = null; } };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('wheel', e => { if (view === 'scope'){ scopeFocus(SCOPE.focus - e.deltaY*.0011); e.preventDefault(); return; } if (view === 'cat'){ catCam.dist = clamp(catCam.dist + e.deltaY*.0012, .42, 2.6); e.preventDefault(); return; } if (view === 'tp'){ camDist = clamp(camDist + e.deltaY*.006, 2.2, 14); e.preventDefault(); } }, { passive:false });
   const joyEl = $('#joy'), knob = $('#knob');
@@ -6831,6 +7275,10 @@ function bindInput(){
   });
   $('#menu-toggle').addEventListener('click', e => { const p=$('#panel'); p.classList.toggle('open'); e.currentTarget.setAttribute('aria-expanded', String(p.classList.contains('open'))); });
   $('#btn-info').addEventListener('click', () => { $('#info').hidden = false; });
+  $('#btn-shopmenu').addEventListener('click', () => { shopMenuOpen(); if (innerWidth < 1100) $('#panel').classList.remove('open'); });
+  $('#act-shop').addEventListener('click', shopMenuOpen);
+  $('#shop-menu-x').addEventListener('click', shopMenuClose);
+  $('#shop-menu').addEventListener('click', e => { if (e.target.id === 'shop-menu') shopMenuClose(); });
   $('#info-close').addEventListener('click', () => { $('#info').hidden = true; });
   $('#info').addEventListener('click', e => { if (e.target.id === 'info') $('#info').hidden = true; });
   $('#btn-evac').addEventListener('click', e => { evacGroup.visible = !evacGroup.visible; e.currentTarget.setAttribute('aria-pressed', String(evacGroup.visible)); if (evacGroup.visible) toast('<b>대피로</b> · 중앙 통로를 따라 진입로 다리 쪽으로'); });
@@ -6847,7 +7295,7 @@ function bindInput(){
   });
   const places = [
     ['진입로', 9, -128, Math.PI], ['멀티존', 4, -104, -Math.PI/2], ['A1', 4, -88, -Math.PI/2], ['별빛존 ★1', -26, -78, -Math.PI/2],
-    ['피크닉존', 4, -35, -Math.PI/2], ['관리동·매점', -7, -1, Math.PI/2], ['불멍 B3', 6.2, -12.5, -2.45], ['C-1·C-2', -9.5, 38, Math.PI/2],
+    ['피크닉존', 4, -35, -Math.PI/2], ['관리동·매점', -7, -1, Math.PI/2], ['매점 안', 'shop'], ['불멍 B3', 6.2, -12.5, -2.45], ['C-1·C-2', -9.5, 38, Math.PI/2],
     ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['여름 래프팅', 'raft'], ['고양이 봄이', 'cat'], ['별빛 망원경', 'scope'], ['항공 전경', null]
   ];
   const pl = $('#places');
@@ -6856,6 +7304,7 @@ function bindInput(){
     b.addEventListener('click', () => {
       if (x === null) setView('air');
       else if (x === 'cat'){ catView(); }
+      else if (x === 'shop'){ if (view === 'air') setView('tp'); teleport(-16.0, .9, Math.PI/2 + .45); camPitch = -.12; toast('<b>매점 안</b> · 가격표 보기 버튼이나 E 키, 계산대 칸막이를 클릭(탭)하면 가격을 볼 수 있어요'); }
       else if (x === 'scope'){ if (nightF < .5) setHour(presetHour('night'), true); { const px = SCOPE.x + 1.8, pz = SCOPE.z - 2.0; teleport(px, pz, Math.atan2(px - SCOPE.x, pz - SCOPE.z) - .5); camPitch = -.12; } toast('<b>별빛 망원경</b> · 망원경을 클릭(탭)하거나 E 키로 달과 토성을 보세요'); }
       else if (x === 'raft'){
         if (season !== 'summer') applySeason('summer', true);
@@ -7050,6 +7499,7 @@ function tick(dt, t){
   if (started) updatePlayer(dt); else { hero.update(dt, 0); hero.root.position.copy(player.pos); }
   npcs.forEach(n => n.update(dt, 0));
   scopeUpdate(dt);
+  shopUpdate(dt);
   xpUpdate(dt, t);
   styledUpdate();
   helpUpdate();
@@ -7123,6 +7573,7 @@ async function boot(){
     setDist:d=>camDist=d, orbit:()=>orbit, camera, keys, zoneAt, H,
     wake: WAKE, cat: CAT, catSet, catView, catCam, catMeow, BF, bfSpawn, catT:(sec)=>{ for (let i=0;i<sec*30;i++){ simT += 1/30; U.uTime.value = simT; catUpdate(1/30, simT); } return CAT.state; }, post: POST, postReset:()=>{ post.w = 0; }, rafting: raft, shot:(px,py,pz,tx,ty,tz,fov=40)=>{ window.__camHold = true; orbit.enabled=false; orbit.target.set(tx,ty,tz); camera.up.set(0,1,0); camera.fov=fov; camera.updateProjectionMatrix(); camera.position.set(px,py,pz); camera.lookAt(tx,ty,tz); },
     exp: EXP, car: CAR, chief: CHIEF, hg: HG, fishS: FISH, gr: GR, expStart, xpChief, xpCheckIn, xpPitch, xpStrike, xpFireOn, xpFireOff, xpGrillOpen, grillAdd, grillFlip, grillTake, grillClose, fishStart, fishDown, fishUp, fishLift, fishStop, hgStart, hgFlip, hgRing, hgEnd, recOpen, recPick, xpEnd, carEnter, carExit, xpSites:()=>XP_SITES, xpNearWater, xpCtx, tube:TUBE,
+    shop: SHOP, shopMenuOpen, shopMenuClose, shopHit,
     scope: SCOPE, scopeHit, scopeOpen, scopeClose, scopeSetTarget, scopeSetEyepiece, scopeFocus, scopeLayout,
     raftT:(sec)=>{ for (let i=0;i<sec*30;i++) raftUpdate(1/30); return raft.state; },
     raft:(st, v=0)=>{ raft.state = st; raft.d = v; raft.k = 0; if (st === 'float') raft.z = lerp(RAFT_START, RAFT_END, v); raft.from = [floatX(RAFT_END), RAFT_END, 0]; if (st === 'carry') raft.heading = pathAt(v).h; return st; },
