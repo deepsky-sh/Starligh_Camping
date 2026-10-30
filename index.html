@@ -129,6 +129,17 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .fade.on{opacity:1}
 body.scoping .brand,body.scoping #menu-toggle,body.scoping .panel,body.scoping .mapwrap,body.scoping .help,body.scoping .joy,body.scoping .tbtns,body.scoping .act{display:none!important}
 body.scoping #c{cursor:grab}
+body.binoing .brand,body.binoing #menu-toggle,body.binoing .panel,body.binoing .mapwrap,body.binoing .help,body.binoing .joy,body.binoing .tbtns,body.binoing .act,body.binoing #xp-hud,body.binoing .xp-quest,body.binoing .xp-ctx{display:none!important}
+body.binoing #c{cursor:grab}
+.bino{position:fixed;inset:0;z-index:5;pointer-events:none}
+.bino-ring{position:absolute;inset:0}
+.bino-read{position:absolute;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);max-width:92vw;text-align:center;font-size:13px;line-height:1.45;color:#e8eef5;text-shadow:0 1px 3px #000;pointer-events:none}
+.bino-read b{color:var(--amber)}.bino-read small{display:block;color:#8a96a3;font-size:11.5px}
+.bino-bar{position:absolute;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;align-items:center;padding:0 12px}
+.bino-chips{display:flex;gap:6px;overflow-x:auto;max-width:100%;pointer-events:auto;padding:2px}
+.bino-bar button{pointer-events:auto;white-space:nowrap;padding:6px 12px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(0,0,0,.55);color:#eef2f7;font:600 13px/1.2 inherit;font-family:inherit;cursor:pointer}
+.bino-bar button[aria-pressed=true]{border-color:var(--amber);color:var(--amber)}
+.bino-ctl{display:flex;gap:8px}
 .scope{position:fixed;inset:0;z-index:5;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px))}
 .scope > *{pointer-events:auto}
 .scope-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
@@ -300,7 +311,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
   <div class="eyebrow">경기 포천시 관인면 담터길 307-2</div>
   <h1>담터 별빛캠핑장<span class="star"> ★</span></h1>
   <div class="zone"><span id="zone">진입로</span><span class="clock" id="clock">가을 · 13:00</span></div>
-  <div class="mp-row"><button id="mp-badge" class="mp-badge" type="button" hidden title="눌러서 닉네임 바꾸기"></button><button id="mp-wave" class="mp-badge" type="button" hidden title="인사하기 (H)">👋 인사</button></div>
+  <div class="mp-row"><button id="mp-badge" class="mp-badge" type="button" hidden title="눌러서 닉네임 바꾸기"></button><button id="bino-btn" class="mp-badge" type="button" aria-label="쌍안경">🔭 쌍안경</button><button id="mp-wave" class="mp-badge" type="button" hidden title="인사하기 (H)">👋 인사</button></div>
 </header>
 
 <button id="menu-toggle" aria-expanded="false" aria-controls="panel">메뉴 ☰</button>
@@ -359,10 +370,11 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
   <div class="map-cap">배치도 · 클릭하여 이동 · 오른쪽이 진입로</div>
   <canvas id="minimap" width="552" height="206" aria-label="캠핑장 배치도"></canvas>
 </div>
-<div class="help" id="help"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 · <kbd>Shift</kbd> 달리기 · <kbd>Space</kbd> 점프 · 드래그 둘러보기 · 휠 줌 · <kbd>C</kbd> 봄이 · <kbd>E</kbd> 망원경(밤) · <kbd>V</kbd> 시점 · <kbd>T</kbd> 시간 · <kbd>Y</kbd> 계절</div>
+<div class="help" id="help"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 · <kbd>Shift</kbd> 달리기 · <kbd>Space</kbd> 점프 · 드래그 둘러보기 · 휠 줌 · <kbd>C</kbd> 봄이 · <kbd>E</kbd> 망원경(밤) · <kbd>B</kbd> 쌍안경 · <kbd>V</kbd> 시점 · <kbd>T</kbd> 시간 · <kbd>Y</kbd> 계절</div>
 <div class="toast" id="toast"></div>
 <button class="act" id="act-scope" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5l13-5.2 1.6 4-13 5.2z"/><path d="M18.1 10.3l2.2-.9-1.6-4-2.2.9"/><path d="M10 13.3l-3 7.2M12 12.6l3 7.9M11 13v7.5"/></svg>망원경 들여다보기<kbd>E</kbd></button>
 <div class="fade" id="fade"></div>
+<section class="bino" id="bino" hidden aria-label="쌍안경 시야"><div class="bino-ring" id="bino-ring"></div><div class="bino-read" id="bino-read"></div><div class="bino-bar"><div class="bino-chips" id="bino-chips"></div><div class="bino-ctl"><button id="bino-minus" aria-label="배율 낮추기">－</button><button id="bino-plus" aria-label="배율 높이기">＋</button><button id="bino-x">내리기 <kbd>B</kbd></button></div></div></section>
 <section class="scope" id="scope" hidden aria-label="망원경 아이피스 시야">
   <div class="scope-top">
     <div class="scope-id">
@@ -5139,7 +5151,7 @@ function updatePlayer(dt){
   if (joy.active){ ix += joy.x; iz += -joy.y; }
   if (view === 'air') { ix = 0; iz = 0; }
   if (view === 'cat'){ if (Math.hypot(ix, iz) > .2) setView('tp'); ix = 0; iz = 0; }
-  if (view === 'scope' || view === 'xpcam' || EXP.lock){ ix = 0; iz = 0; }
+  if (view === 'scope' || view === 'bino' || view === 'xpcam' || EXP.lock){ ix = 0; iz = 0; }
   const il = Math.hypot(ix,iz); if (il > 1){ ix/=il; iz/=il; }
   const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || (joy.active && Math.hypot(joy.x,joy.y) > .92);
   const maxS = (running ? 5.4 : 2.1) * (season === 'winter' ? .9 : 1);
@@ -5162,6 +5174,90 @@ function updatePlayer(dt){
   hero.root.position.copy(p); hero.root.rotation.y = player.heading;
   hero.update(dt, player.speed, player.air);
 }
+
+/* ---------------- 쌍안경 (10×50) — 유니티 앱과 같은 방식: 65° 접안 시야 ÷ 배율, 둥근 시야, 배율 7~20× ---------------- */
+const BN = { on:false, prev:'tp', mag:10, magShown:10, goal:null, sway:0, deep:null, fov:62, chips:[] };
+function binoOk(){ return started && !SCOPE.on && !$('#intro').hidden === false && (view === 'tp' || view === 'fp') && !(EXP.on && (EXP.mode !== 'free' || EXP.lock)); }
+function binoToggle(){ if (BN.on) binoClose(); else binoOpen(); }
+function binoDeep(){
+  if (BN.deep) return BN.deep;
+  const n = Math.round(26000*Q), pos = new Float32Array(n*3), col = new Float32Array(n*3);
+  for (let i = 0; i < n; i++){
+    let v = new THREE.Vector3(R(-1,1), R(-1,1), R(-1,1)).normalize(); if (v.y < -.05) v.y = -v.y;
+    pos.set([v.x*5100, v.y*5100, v.z*5100], i*3); const b = .16 + rng()*.34, w = rng(); col.set([b*(w < .25 ? 1 : .88), b*.93, b*(w > .7 ? 1.12 : .96)], i*3);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setAttribute('color', new THREE.BufferAttribute(col,3));
+  const p = new THREE.Points(g, new THREE.PointsMaterial({ size:1.5, sizeAttenuation:false, vertexColors:true, transparent:true, opacity:0, depthWrite:false, fog:false, blending:THREE.AdditiveBlending }));
+  p.renderOrder = -1; p.frustumCulled = false; p.visible = false; scene.add(p); return BN.deep = p;
+}
+function binoTargets(){
+  const out = [], cn = new THREE.Vector3(.35,.55,.76).normalize(), a1 = new THREE.Vector3(1,0,0).cross(cn).normalize().multiplyScalar(-1);
+  out.push({ k:'moon', l:'🌕 달', d:moonDir.clone(), m:10 });
+  out.push({ k:'sat', l:'🪐 토성', d:SCOPE.satDir.lengthSq() ? SCOPE.satDir.clone() : bearingDir(128, 36, new THREE.Vector3()), m:14 });
+  out.push({ k:'pol', l:'⭐ 북극성', d:bearingDir(0, 38, new THREE.Vector3()), m:10 });
+  out.push({ k:'mw', l:'🌌 은하수', d:a1, m:7 });
+  return out;
+}
+function binoLayout(){
+  const W = innerWidth, H = innerHeight, rad = .43*Math.min(1, W/(1.24*H))*H;
+  BN.rad = rad;
+  $('#bino-ring').style.background = `radial-gradient(circle at 50% 50%, rgba(0,0,0,0) ${rad*.88}px, rgba(0,0,0,.45) ${rad*.97}px, rgba(0,0,0,.93) ${rad*.995}px, #000 ${rad*1.004}px)`;
+}
+function binoRead(){
+  const night = nightF > .35, f = (65/BN.mag).toFixed(1);
+  $('#bino-read').innerHTML = `<b>쌍안경 ${Math.round(BN.mag)}×50</b> · 실시야 ${f}°` + (night ? '' : '<br>낮에는 별이 안 보여요 · 아래에서 밤으로') + `<small>${isTouch ? '드래그 조준 · ＋/－ 배율' : '드래그 조준 · 휠 배율 · B/Esc 내리기'}</small>`;
+}
+function binoChips(){
+  const box = $('#bino-chips'); box.innerHTML = '';
+  if (nightF <= .35){ const b = document.createElement('button'); b.textContent = '🌙 밤으로'; b.addEventListener('click', () => { setHour(presetHour('night')); setTimeout(() => { binoChips(); binoRead(); }, 50); }); box.appendChild(b); }
+  for (const t of binoTargets()){
+    const b = document.createElement('button'); b.textContent = t.l;
+    b.addEventListener('click', () => { BN.mag = t.m; const yaw = Math.atan2(-t.d.x, -t.d.z), pit = Math.asin(clamp(t.d.y, -1, 1)); BN.goal = { yaw, pit }; box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); binoRead(); });
+    box.appendChild(b);
+  }
+}
+function binoOpen(){
+  if (BN.on || !binoOk()) return;
+  BN.on = true; BN.prev = view; BN.fov = camera.fov; BN.sway = 0; BN.goal = null;
+  view = 'bino'; hero.root.visible = false; camera.rotation.order = 'YXZ';
+  if (document.pointerLockElement) document.exitPointerLock?.();
+  const d = binoDeep(); d.visible = true;
+  document.body.classList.add('binoing'); $('#bino').hidden = false; binoLayout(); binoRead(); binoChips();
+  if (view === 'bino' && BN.prev === 'tp'){ camPitch = clamp(camPitch, -1.35, 1.5); }
+}
+function binoClose(){
+  if (!BN.on) return;
+  BN.on = false; document.body.classList.remove('binoing'); $('#bino').hidden = true;
+  view = BN.prev; camera.rotation.order = 'XYZ'; camera.fov = BN.fov; camera.updateProjectionMatrix();
+  hero.root.visible = view !== 'fp'; if (view === 'tp') camPitch = clamp(camPitch, -1.25, .35);
+  if (BN.deep) BN.deep.visible = false;
+  stars.material.size = 1.6; starsBright.material.size = 1.2; stars.userData.extra.material.size = 3.0;
+  helpUpdate();
+}
+function binoZoom(f){ BN.mag = clamp(BN.mag*f, 7, 20); binoRead(); }
+function binoCam(dt){
+  const p = player.pos;
+  BN.magShown = lerp(BN.magShown, BN.mag, 1 - Math.exp(-dt*8));
+  if (BN.goal){
+    let dy = BN.goal.yaw - camYaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    const k = 1 - Math.exp(-dt*5); camYaw += dy*k; camPitch = lerp(camPitch, BN.goal.pit, k);
+    if (Math.abs(dy) < .002 && Math.abs(BN.goal.pit - camPitch) < .002) BN.goal = null;
+  }
+  BN.sway += dt;
+  const t = BN.sway, sx = (Math.sin(t*1.3) + .6*Math.sin(t*2.9 + 1))*.0006*(65/BN.magShown/6.5), sy = (Math.sin(t*1.1 + 2) + .6*Math.sin(t*3.3))*.0005*(65/BN.magShown/6.5);
+  camera.position.set(p.x, p.y + 1.63, p.z);
+  camera.rotation.set(camPitch + sy, camYaw + sx, 0);
+  const H = innerHeight, D = 2*(BN.rad || .43*H), F = THREE.MathUtils.degToRad(65/BN.magShown);
+  const vf = THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(F/2)*H/D));
+  if (Math.abs(camera.fov - vf) > .001){ camera.fov = vf; camera.updateProjectionMatrix(); }
+  // deeper sky through the glass
+  const dk = nightF * smooth(0, 1, (BN.magShown - 6)/6);
+  BN.deep.material.opacity = dk; const sz = 1.6 + BN.magShown*.07;
+  stars.material.size = sz; starsBright.material.size = sz*.8; stars.userData.extra.material.size = 3 + BN.magShown*.1; BN.deep.material.size = sz*.85;
+  BN.deep.rotation.y = stars.rotation.y;
+}
+addEventListener('resize', () => { if (BN.on) binoLayout(); });
+
 function jump(){ if (!player.air && view !== 'air'){ player.air = true; player.vy = 5.6; } }
 const camTarget = new THREE.Vector3(), camPos = new THREE.Vector3();
 const AIR = { minAz:.35, maxAz:2.1 };
@@ -5169,6 +5265,7 @@ function updateCamera(dt){
   if (window.__camHold) return;
   if (view === 'cat'){ catCamUpdate(dt); return; }
   if (view === 'scope') return;
+  if (view === 'bino'){ binoCam(dt); return; }
   if (view === 'drive'){ carCam(dt); return; }
   if (view === 'xpcam'){ xpCamUpdate(dt); return; }
   if (view === 'air'){ if (!orbit.enabled) return; const az = orbit.getAzimuthalAngle(); if (az > AIR.maxAz - .05) orbit.autoRotateSpeed = -Math.abs(orbit.autoRotateSpeed); if (az < AIR.minAz + .05) orbit.autoRotateSpeed = Math.abs(orbit.autoRotateSpeed); orbit.update(); return; }
@@ -7085,9 +7182,9 @@ function helpUpdate(){
   if (m === helpMode) return; helpMode = m;
   $('#help').innerHTML = m === 'drive' ? `${k('W')} 가속 · ${k('S')} 후진 · ${k('A', 'D')} 방향 · ${k('Space')} 브레이크 · ${k('E')} 내리기 · 드래그 둘러보기 · ${k('T')} 시간`
     : m === 'tube' ? `${k('W', 'A', 'S', 'D')} 튜브 젓기 · ${k('E')} 튜브에서 내리기 · 드래그 둘러보기`
-    : m === 'xp' ? `${k('W', 'A', 'S', 'D')} 이동 · ${k('Shift')} 달리기 · ${k('E')} 상호작용(차·캠장님·텐트·불·굽기·낚시·할리갈리·분리수거) · ${k('Esc')} 닫기 · 드래그 둘러보기 · 휠 줌 · ${k('V')} 시점 · ${k('T')} 시간`
+    : m === 'xp' ? `${k('W', 'A', 'S', 'D')} 이동 · ${k('Shift')} 달리기 · ${k('E')} 상호작용(차·캠장님·텐트·불·굽기·낚시·할리갈리·분리수거) · ${k('Esc')} 닫기 · 드래그 둘러보기 · 휠 줌 · ${k('B')} 쌍안경 · ${k('V')} 시점 · ${k('T')} 시간`
     : m === 'cat' ? `드래그 둘러보기 · 휠 줌 · ${k('C')} 봄이 시점 끝내기`
-    : `${k('W', 'A', 'S', 'D')} 이동 · ${k('Shift')} 달리기 · ${k('Space')} 점프 · 드래그 둘러보기 · 휠 줌 · ${k('C')} 봄이 · ${k('E')} 망원경(밤) · ${k('V')} 시점 · ${k('T')} 시간 · ${k('Y')} 계절`;
+    : `${k('W', 'A', 'S', 'D')} 이동 · ${k('Shift')} 달리기 · ${k('Space')} 점프 · 드래그 둘러보기 · 휠 줌 · ${k('C')} 봄이 · ${k('E')} 망원경(밤) · ${k('B')} 쌍안경 · ${k('V')} 시점 · ${k('T')} 시간 · ${k('Y')} 계절`;
 }
 function xpMinimap(ctx){
   if (!EXP.on) return;
@@ -7236,7 +7333,9 @@ function bindInput(){
     if (e.code === 'KeyE' && SCOPE.near) scopeOpen();
     else if (e.code === 'KeyE' && SHOP.near) shopMenuOpen();
     if (e.code === 'Escape' && SHOP.menuOpen) shopMenuClose();
-    if (e.code === 'KeyV') setView(view === 'tp' ? 'fp' : view === 'fp' ? 'air' : 'tp');
+    if (e.code === 'KeyB' && !e.repeat) binoToggle();
+    if (e.code === 'Escape' && BN.on) binoClose();
+    if (e.code === 'KeyV' && view !== 'bino') setView(view === 'tp' ? 'fp' : view === 'fp' ? 'air' : 'tp');
     if (e.code === 'KeyC'){ if (view === 'cat') setView('tp'); else catView(); }
     if (e.code === 'KeyT'){ const ks=['day','dusk','night']; const i=ks.findIndex(k=>Math.abs(presetHour(k)-hourTarget)<.05); setHour(presetHour(ks[(i+1)%3])); }
     if (e.code === 'KeyY'){ applySeason(SEASON_ORDER[(SEASON_ORDER.indexOf(season)+1)%4], true); }
@@ -7255,10 +7354,12 @@ function bindInput(){
     canvas.setPointerCapture?.(e.pointerId);
   });
   canvas.addEventListener('pointermove', e => {
+    if (view === 'bino' && document.pointerLockElement === canvas){ const f = camera.fov/62; camYaw -= e.movementX*.0024*f; camPitch = clamp(camPitch - e.movementY*.002*f, -1.35, 1.5); return; }
     if (document.pointerLockElement === canvas){ camYaw -= e.movementX*.0024; camPitch = clamp(camPitch - e.movementY*.002, -1.35, 1.3); return; }
     if (!drag || drag.id !== e.pointerId) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; drag.moved += Math.abs(dx)+Math.abs(dy);
     if (view === 'scope'){ scopeDrag(dx, dy); return; }
+    if (view === 'bino'){ const f = Math.max(.04, camera.fov/62)*(e.pointerType === 'touch' ? .0065 : .0045); BN.goal = null; camYaw -= dx*f; camPitch = clamp(camPitch - dy*f, -1.35, 1.5); return; }
     if (view === 'drive'){ CAR.camOff -= dx*.005; return; }
     if (view === 'xpcam') return;
     const s = e.pointerType === 'touch' ? .0065 : .0045;
@@ -7267,7 +7368,7 @@ function bindInput(){
   });
   const end = e => { if (drag && drag.id === e.pointerId){ if (drag.moved < 6 && EXP.on){ if (HG.on && hgClick(e.clientX, e.clientY)){ drag = null; return; } if ((view === 'tp' || view === 'fp') && !EXP.lock && xpHit(e.clientX, e.clientY)){ drag = null; return; } } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && scopeHit(e.clientX, e.clientY)){ drag = null; if (Math.hypot(player.pos.x - SCOPE.x, player.pos.z - SCOPE.z) < 4.6) scopeOpen(); else toast('<b>망원경</b> · 가까이 가서 클릭(탭)하면 달과 토성을 볼 수 있어요'); return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && !(EXP.on && EXP.mode !== 'free') && shopHit(e.clientX, e.clientY)){ shopMenuOpen(); drag = null; return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && catHit(e.clientX, e.clientY)){ catView(); drag = null; return; } if (drag.moved < 4 && view==='fp' && e.pointerType==='mouse') canvas.requestPointerLock?.()?.catch?.(()=>{}); drag = null; } };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
-  canvas.addEventListener('wheel', e => { if (view === 'scope'){ scopeFocus(SCOPE.focus - e.deltaY*.0011); e.preventDefault(); return; } if (view === 'cat'){ catCam.dist = clamp(catCam.dist + e.deltaY*.0012, .42, 2.6); e.preventDefault(); return; } if (view === 'tp'){ camDist = clamp(camDist + e.deltaY*.006, 2.2, 14); e.preventDefault(); } }, { passive:false });
+  canvas.addEventListener('wheel', e => { if (view === 'bino'){ binoZoom(Math.exp(-e.deltaY*.0012)); e.preventDefault(); return; } if (view === 'scope'){ scopeFocus(SCOPE.focus - e.deltaY*.0011); e.preventDefault(); return; } if (view === 'cat'){ catCam.dist = clamp(catCam.dist + e.deltaY*.0012, .42, 2.6); e.preventDefault(); return; } if (view === 'tp'){ camDist = clamp(camDist + e.deltaY*.006, 2.2, 14); e.preventDefault(); } }, { passive:false });
   const joyEl = $('#joy'), knob = $('#knob');
   if (isTouch){ joyEl.hidden = false; $('#tbtns').hidden = false; }
   let jid = null;
@@ -7280,6 +7381,8 @@ function bindInput(){
   $('#tb-jump').addEventListener('click', jump);
   document.querySelectorAll('#seg-view button').forEach(b => b.addEventListener('click', () => setView(b.dataset.v)));
   document.querySelectorAll('#seg-time button').forEach(b => b.addEventListener('click', () => setHour(presetHour(b.dataset.t))));
+  $('#bino-btn').addEventListener('click', e => { e.currentTarget.blur(); binoToggle(); });
+  $('#bino-x').addEventListener('click', binoClose); $('#bino-plus').addEventListener('click', () => binoZoom(1.2)); $('#bino-minus').addEventListener('click', () => binoZoom(1/1.2));
   document.querySelectorAll('#seg-season button').forEach(b => b.addEventListener('click', () => applySeason(b.dataset.s, true)));
   document.querySelectorAll('#seg-gfx button').forEach(b => b.addEventListener('click', () => setGfx(b.dataset.g, true)));
   setGfx(POST.level);
