@@ -7573,6 +7573,7 @@ function mpDropPeer(id){
 }
 function mpApply(id, d){
   if (!d || id === MP.id) return;
+  if (d.t && Date.now() - d.t > 120000){ try { MP.fb.remove(MP.fb.ref(MP.db, 'p/' + id)); } catch (e){} return; }   // left-over entry of a closed tab (the live ones refresh every few seconds)
   const p = MP.peers.get(id);
   if (!p){ mpAddPeer(id, d); return; }
   p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now();
