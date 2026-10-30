@@ -162,7 +162,7 @@ body.scoping #c{cursor:grab}
 .hero-pick{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;color:var(--muted,#9aa7b5)}
 .hero-pick .seg{grid-template-columns:repeat(2,1fr)}
 .hero-pick .seg button{min-width:96px;padding:7px 12px}
-.xp-quest{position:fixed;left:16px;top:calc(124px + env(safe-area-inset-top,0px));width:276px;padding:12px 14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:3}
+.xp-quest{position:fixed;left:16px;top:calc(158px + env(safe-area-inset-top,0px));width:276px;padding:12px 14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:3}
 .xp-quest h3{margin:0 0 8px;font-size:12px;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;justify-content:space-between;font-weight:600}
 .xp-quest h3 button{border:0;background:transparent;color:var(--muted);font-size:11px;padding:2px 4px}
 .xp-quest ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:12.5px;line-height:1.4}
@@ -266,7 +266,7 @@ body.xp-busy .help,body.scoping .help{display:none}
 body.scoping #xp-hud,body.scoping .xp-quest{display:none!important}
 body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .tbtns,body.xp-drive .tbtns{display:none!important}
 @media (max-width:760px){
-  .xp-quest{top:calc(104px + env(safe-area-inset-top,0px));width:calc(100vw - 228px);padding:9px 11px}
+  .xp-quest{top:calc(138px + env(safe-area-inset-top,0px));width:calc(100vw - 228px);padding:9px 11px}
   .xp-quest:not(.min){width:auto;right:16px;z-index:4}
   .xp-actions{bottom:calc(214px + env(safe-area-inset-bottom,0px))}
   .xp-panel{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:none;right:12px;left:12px;width:auto}
