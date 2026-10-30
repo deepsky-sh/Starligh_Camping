@@ -4810,6 +4810,146 @@ function updateFire(dt, t, night){
   p.needsUpdate = true; fire.embers.material.opacity = .4 + .6*night;
 }
 
+
+/* ---- Unity-style creek site set + unlit folding 화로대 (lit after dusk at A1·A5·B6·B12) ---- */
+const BRAZ = { list:[] };
+function brazier(x, z, seed, lit){
+  const g = new THREE.Group(), steel = M(0x2b2a28, { roughness:.6, metalness:.6 }), ash = M(0x8a8680, { roughness:.95 }), logM = M(0x6a5446, { roughness:.95 }), charM = M(0x2a1e16, { roughness:.95 });
+  const W = .46, Hb = .14, Y = .3;
+  for (const sg of [-1, 1]){
+    const a = box(W, Hb, .012, steel); a.position.set(0, Y + Hb/2, sg*W/2); a.rotation.x = sg*.25; g.add(a);
+    const b = box(.012, Hb, W, steel); b.position.set(sg*W/2, Y + Hb/2, 0); b.rotation.z = -sg*.25; g.add(b);
+  }
+  const fl = box(W*.8, .012, W*.8, steel); fl.position.y = Y; g.add(fl);
+  const as = box(W*.74, .02, W*.74, ash); as.position.y = Y + .02; g.add(as);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]){ const l = box(.014, Y, .014, steel); l.position.set(sx*.19, Y/2, sz*.19); l.rotation.z = -sx*.05; l.rotation.x = sz*.05; g.add(l); }
+  const rr = (a, b) => a + (b - a)*rng();
+  for (let i = 0; i < 3; i++){ const l = new THREE.Mesh(new THREE.CylinderGeometry(.035, .04, .36, 6), i === 1 ? charM : logM); l.position.set(rr(-.08, .08), Y + .07 + i*.03, rr(-.08, .08)); l.rotation.set(rr(-.2, .2), rr(0, 3), Math.PI/2); g.add(l); }
+  shadowAll(g); place(g, x, H(x, z) + .06, z, rr(0, Math.PI)); colliders.push({ x, z, r:.32 });
+  if (lit){
+    const base = new THREE.Vector3(x, H(x, z) + .06 + Y + .08, z), fm = new THREE.SpriteMaterial({ map:flameTex, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, fog:false, opacity:0 });
+    const sprites = []; for (let i = 0; i < 4; i++){ const sp = new THREE.Sprite(fm.clone()); sp.userData = { o:new THREE.Vector3(rr(-.07, .07), 0, rr(-.07, .07)), k:rr(.7, 1.15), p:rng()*10 }; sp.visible = false; scene.add(sp); sprites.push(sp); }
+    const gm = new THREE.SpriteMaterial({ map:poolTex, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, fog:false, opacity:0 }), glow = new THREE.Sprite(gm); glow.scale.set(2.4, 2.4, 1); glow.position.set(x, base.y + .1, z); glow.visible = false; scene.add(glow);
+    BRAZ.list.push({ base, sprites, glow, level:0, phase:seed*.37 });
+  }
+}
+function brazierUpdate(dt, t, night){
+  for (const f of BRAZ.list){
+    const goal = EXP.on ? 0 : clamp(clamp((night - .25)*2.2, 0, 1)*1.2 - f.phase*.15, 0, 1);
+    f.level += clamp(goal - f.level, -dt*.8, dt*.35);
+    const on = f.level > .01; f.glow.visible = on;
+    f.sprites.forEach((sp, i) => {
+      sp.visible = on && !EXP.on; if (!on) return;
+      const u = sp.userData, fl = .75 + .25*Math.sin(t*9.3*u.k + u.p) + .12*Math.sin(t*23 + i);
+      sp.scale.set(.2*u.k*f.level, .42*u.k*fl*f.level, 1); sp.position.set(f.base.x + u.o.x, f.base.y + .1 + .2*u.k*fl*f.level, f.base.z + u.o.z); sp.material.opacity = f.level;
+    });
+    f.glow.material.opacity = f.level*.55*(.85 + .15*Math.sin(t*13 + f.phase));
+  }
+}
+function creekCamp(z, kind, opt, tarpCol, car, carCol, litFire, seed){
+  try { creekCamp_(z, kind, opt, tarpCol, car, carCol, litFire, seed); } catch (e){ console.error('creekCamp', seed, e); }
+}
+function creekCamp_(z, kind, opt, tarpCol, car, carCol, litFire, seed){
+  const tun = kind === 'tunnel' || kind === 'air';
+  if (tun && opt.L === undefined) opt.L = 4.6;
+  if (kind === 'bell' && opt.R === undefined) opt.R = 2.2;
+  if (kind === 'teepee' && opt.Rh === undefined) opt.Rh = 2.15;
+  const tx = kind === 'cabin' ? 9.75 : kind === 'dome' ? 10.1 : 9.9;
+  pitch(kind, tx, z, tun ? Math.PI : Math.PI/2, opt, false);
+  pitch('hexa', 13.75, z, Math.PI/2, { color:tarpCol, L:4.3, W:3.6, Hp:2.35, Hc:1.35 }, false);
+  campTable(12.95, z - 1.6, Math.PI/2);
+  const fx = 14.6, fz = z + 1.5;
+  if (litFire) firePit(fx, fz); else brazier(fx, fz, seed, [0, 2, 4, 6].includes(seed));
+  const cols = [0x2f3a30, 0x6b4d33, 0x2e3d52, 0x7a6a52, 0x3c3f44, 0x44503f];
+  [[-1.2, 0, 0], [-.85, -1.0, 1], [1.05, -.3, 2]].forEach(([dx, dz, k]) => { const px = fx + dx, pz = fz + dz; chair(px, pz, Math.atan2(fx - px, fz - pz), cols[(seed*2 + k) % cols.length]); });
+  if (car) addCar(car, carCol, 5.5, z, Math.PI/2);
+}
+
+
+/* ---- 멀티존 장어구이 세트 (유니티 앱 둘러보기와 같은 구성): 검은 SUV 지붕 텐트 + 사다리, 접이식 롤 테이블, 하이체어, 쿨러, 장어 숯불 그릴, 랜턴 스탠드, 가족 ---- */
+const EEL = { people:[], smoke:[], glow:null, lampGlow:null, t:0 };
+function multiEelSet(){
+  const CX = 14.55, CZ = -104.3, RY = Math.PI/2;
+  const mk = (c, o) => M(c, o || { roughness:.6 });
+  const bx = (g, w, h, d, m, x, y, z) => { const b = box(w, h, d, m); b.position.set(x, y, z); g.add(b); return b; };
+  const cy = (g, r1, r2, h, m, x, y, z, seg = 12) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, seg), m); c.position.set(x, y, z); g.add(c); return c; };
+  // car + roof tent in the car's frame (x along the car, ladder on the -z side)
+  addCar('compactSUV', 0x0d0e10, CX, CZ, RY);
+  { const g = new THREE.Group(), shell = mk(0x151618, { roughness:.45, metalness:.1 }), fab = mk(0x222427, { roughness:.9, side:THREE.DoubleSide }), inner = mk(0x0b0b0c), bar = mk(0x1b1c1e, { roughness:.5, metalness:.4 }), alu = mk(0xd3d7db, { roughness:.3, metalness:.85 });
+    const ROOF = 1.595, cx = .5, L = 2.15, W = 1.38, y0 = ROOF + .075, HT = .98;
+    for (const sg of [-1, 1]) bx(g, 1.75, .035, .04, bar, .45, ROOF + .02, sg*.58);
+    for (const bxp of [cx - .75, cx + .75]) bx(g, .07, .035, 1.3, bar, bxp, ROOF + .055, 0);
+    bx(g, L, .1, W, shell, cx, y0 + .05, 0);
+    bx(g, L - .06, HT, .02, fab, cx, y0 + .1 + HT/2, W/2 - .05);
+    bx(g, .02, HT, W - .1, fab, cx - L/2 + .04, y0 + .1 + HT/2, 0); bx(g, .02, HT, W - .1, fab, cx + L/2 - .04, y0 + .1 + HT/2, 0);
+    const zs = -W/2 + .05;
+    bx(g, .3, HT, .02, fab, cx - L/2 + .15, y0 + .1 + HT/2, zs); bx(g, .3, HT, .02, fab, cx + L/2 - .15, y0 + .1 + HT/2, zs);
+    bx(g, L - .6, .16, .02, fab, cx, y0 + .18, zs); bx(g, L - .6, .1, .02, fab, cx, y0 + .1 + HT - .05, zs);
+    bx(g, L - .62, HT - .3, .01, inner, cx, y0 + .26 + (HT - .3)/2, zs + .5);
+    bx(g, L - .2, .08, W - .2, mk(0x5d6066, { roughness:.9 }), cx, y0 + .14, 0); bx(g, .45, .1, .3, mk(0xb9b4a8, { roughness:.9 }), cx - .55, y0 + .23, .15);
+    bx(g, L + .08, .06, W + .06, shell, cx, y0 + .1 + HT + .03, 0);   // lid, popped up straight
+    // telescopic aluminium ladder down the lane side
+    for (const lx of [cx - .12, cx + .12]){ const r = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, 1.9, 6), alu); r.position.set(lx, y0 - .1 + .0, zs - .38); r.rotation.x = -.2; r.position.y = (y0 + .1)/2 + .15; g.add(r); }
+    for (let i = 0; i < 6; i++){ const t = (i + .6)/6.4; cy(g, .01, .01, .26, alu, cx, y0 + .12 - t*(y0 - .05) + .1, zs - .08 - t*.45, 6).rotation.z = Math.PI/2; }
+    shadowAll(g); place(g, CX, H(CX, CZ), CZ, RY);
+  }
+  // furniture
+  const rollTable = (w, d, h, x, z, ry) => { const g = new THREE.Group(), wood = mk(0xb98a55);
+    for (let i = 0; i < 9; i++) bx(g, w/9 - .004, .025, d, wood, -w/2 + (i + .5)*w/9, h, 0);
+    for (const sg of [-1, 1]){ const a = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, h*1.3, 6), furnM.alu); a.position.set(sg*w*.36, h/2, 0); a.rotation.z = sg*.25; g.add(a); const b = a.clone(); b.rotation.z = -sg*.25; g.add(b); }
+    shadowAll(g); place(g, x, H(x, z), z, ry); colliders.push({ x, z, r:Math.max(w, d)*.55 }); return g; };
+  rollTable(1.0, .62, .68, 11.75, -104.55, Math.PI/2); rollTable(.62, .42, .5, 11.55, -106.25, Math.PI/2 + .1);
+  const face = (px, pz, tx, tz) => Math.atan2(tx - px, tz - pz), TB = [11.75, -104.55];
+  const hc = (x, z, ry) => { chair(x, z, ry, 0x151517); colliders.push({ x, z, r:.32 }); };
+  hc(12.5, -104.15, face(12.5, -104.15, ...TB) + .1); hc(12.5, -105.05, face(12.5, -105.05, ...TB) - .25);
+  { const kc = chair(10.98, -104.6, face(10.98, -104.6, ...TB), 0x1f2c4f); kc.scale.setScalar(.86); colliders.push({ x:10.98, z:-104.6, r:.28 }); }
+  { const g = new THREE.Group(); bx(g, .55, .36, .36, mk(0x2e6b3f), 0, .18, 0); bx(g, .57, .05, .38, mk(0xe9e6df), 0, .385, 0); shadowAll(g); place(g, 13.05, H(13.05, -102.85), -102.85, .3); colliders.push({ x:13.05, z:-102.85, r:.3 }); }
+  { const g = new THREE.Group(); bx(g, .42, .28, .3, mk(0xb48a58), 0, .14, 0); shadowAll(g); place(g, 12.95, H(12.95, -101.85), -101.85, .25); }
+  // plates on the table
+  { const ty = H(11.75, -104.55) + .69; for (const [dx, dz] of [[.12, -.05], [-.15, .25], [-.1, -.28]]){ const g = new THREE.Group(); cy(g, .1, .08, .05, mk(0xf2f2ef), 0, 0, 0, 16); const e = bx(g, .12, .02, .05, mk(0x5a3516, { roughness:.35 }), 0, .03, 0); e.rotation.y = dx*8; place(g, 11.75 + dx, ty + .025, -104.55 + dz, 0); } }
+  // charcoal grill with eel fillets
+  { const g = new THREE.Group(), steel = mk(0x1d1e20, { roughness:.5, metalness:.6 });
+    bx(g, .52, .2, .52, steel, 0, .62, 0); for (const sx of [-1, 1]) for (const sz of [-1, 1]) cy(g, .018, .018, .6, steel, sx*.22, .3, sz*.22, 6);
+    const em = new THREE.Mesh(new THREE.PlaneGeometry(.44, .44), new THREE.MeshBasicMaterial({ color:0xff5a14, transparent:true, opacity:.85 })); em.rotation.x = -Math.PI/2; em.position.y = .715; g.add(em); EEL.ember = em;
+    for (let i = 0; i < 4; i++){ const e = bx(g, .36, .03, .075, mk(0x5a3516, { roughness:.35 }), 0, .75, -.15 + i*.1); e.rotation.y = (i%2 ? 1 : -1)*.06; }
+    for (let i = -3; i <= 3; i++) bx(g, .005, .008, .46, steel, i*.07, .735, 0);
+    shadowAll(g); place(g, 10.75, H(10.75, -107.55), -107.55, Math.PI/2); colliders.push({ x:10.75, z:-107.55, r:.45 });
+    EEL.base = new THREE.Vector3(10.75, H(10.75, -107.55) + .8, -107.55);
+    const mkS = new THREE.SpriteMaterial({ map:flakeTex, depthWrite:false, transparent:true, fog:false, color:0xcfcfcf, opacity:0 });
+    for (let i = 0; i < 7; i++){ const sp = new THREE.Sprite(mkS.clone()); sp.userData = { p:i/7, ox:R(-.2, .2), oz:R(-.15, .15) }; scene.add(sp); EEL.smoke.push(sp); }
+    const gm = new THREE.SpriteMaterial({ map:poolTex, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, fog:false, opacity:0 }); EEL.glow = new THREE.Sprite(gm); EEL.glow.scale.set(2.6, 2.6, 1); EEL.glow.position.set(10.75, EEL.base.y + .1, -107.55); scene.add(EEL.glow);
+  }
+  // lantern stand beside the table
+  { const g = new THREE.Group(), st = mk(0x18191b, { roughness:.45, metalness:.7 }), Hp = 1.78, Arm = .5;
+    cy(g, .011, .013, Hp, st, 0, Hp/2, 0, 8);
+    for (let k = 0; k < 3; k++){ const a = k*2*Math.PI/3 + .4, d = V3(Math.cos(a)*.32, -.42, Math.sin(a)*.32), l = cy(g, .008, .008, d.length(), st, Math.cos(a)*.16, .21, Math.sin(a)*.16, 6); l.quaternion.setFromUnitVectors(V3(0, 1, 0), d.normalize()); }
+    const arm = cy(g, .008, .008, Arm, st, Arm/2, Hp - .04, 0, 6); arm.rotation.z = Math.PI/2;
+    const lamp = cy(g, .05, .05, .15, mat.lamp, Arm, Hp - .24, 0, 16); cy(g, .058, .05, .035, st, Arm, Hp - .15, 0, 16);
+    shadowAll(g); place(g, 11.0, H(11.0, -103.55), -103.55, -.15); colliders.push({ x:11.0, z:-103.55, r:.2 });
+    const gm = new THREE.SpriteMaterial({ map:poolTex, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, fog:false, opacity:0, color:0xffd9a0 }); EEL.lampGlow = new THREE.Sprite(gm); EEL.lampGlow.scale.set(5, 5, 1); EEL.lampGlow.position.set(11.4, H(11, -103.55) + 1.5, -103.55); scene.add(EEL.lampGlow);
+  }
+  // the family: dad at the grill, mum and the boy at the table
+  const person = (g, x, z, ry, sit, scale, reach) => {
+    let av; try { av = makeHero(g); } catch (e){ av = null; } if (!av) return;
+    const root = new THREE.Group(); root.add(av.root); if (scale) av.root.scale.setScalar(scale);
+    place(root, x, H(x, z), z, ry); if (av.mixer) av.mixer.update(Math.random()*3);
+    const f = { av, root, k:(av.k || 1)*(scale || 1), sit, reach:reach || 0 }; EEL.people.push(f); colliders.push({ x, z, r:.3 });
+  };
+  person('m', 10.05, -107.55, face(10.05, -107.55, 10.75, -107.55), 0, 1, .55);
+  person('f', 12.5, -104.15, face(12.5, -104.15, ...TB) + .1, 1, 1, 0);
+  person('m', 10.98, -104.6, face(10.98, -104.6, ...TB), 1, .63, 0);
+}
+function eelUpdate(dt, t, night){
+  if (EXP.on || !EEL.glow) return;
+  for (const f of EEL.people){
+    f.av.update(dt, 0);
+    if (f.av.model){ f.bones = f.bones || null; poseSit(f, f.sit, f.reach + (f.reach ? .1*Math.sin(t*1.7) : 0), 1); }
+  }
+  EEL.smoke.forEach(sp => { const u = sp.userData; u.p = (u.p + dt*.17) % 1; const s = .22 + u.p*.85; sp.scale.set(s, s, 1); sp.position.set(EEL.base.x + u.ox + u.p*u.p*.4, EEL.base.y + u.p*1.6, EEL.base.z + u.oz); sp.material.opacity = .3*Math.sin(Math.PI*u.p)*(night > .5 ? .55 : 1); });
+  EEL.glow.material.opacity = .5*night*(.85 + .15*Math.sin(t*5)); EEL.lampGlow.material.opacity = .35*clamp(night*1.4 - .1, 0, 1);
+  if (EEL.ember) EEL.ember.material.opacity = .65 + .25*Math.sin(t*3.1);
+}
+
 /* ---------------- sky extras ---------------- */
 let stars, starsBright, clouds = [];
 function buildStars(){
@@ -5009,27 +5149,18 @@ async function buildCamp(){
 
   const occM = occBegin();
   // occupied creek-side sites: premium tents with a site kit (table, lantern, chairs, cooler)
-  pitch('bell', 13.5, -88, -Math.PI/2);                                   // A1 cotton bell tent
-  addCar('luxSUV', 0x0e0f11, 9.4, -82.2, Math.PI/2);
-  pitch('cabin', 13.6, -70, -Math.PI/2, { base:'#c4c2bc', skirt:'#55524c', roofTint:.94 });                                  // A3 grey cabin shell (sunny photos)
-  addCar('compactSUV', 0xeceae5, 9.4, -64.2, Math.PI/2);
-  pitch('tunnel', 13.8, -52, -Math.PI/2, { base:'#8e8b70', sleeve:'#4b4a3c', skirt:'#3e3d33' });  // A5 olive tunnel
-  addCar('fullSedan', 0x3a3d42, 9.4, -48.6, Math.PI/2);
-  pitch('tunnel', 13.8, -2.3, -Math.PI/2, {}, false);                      // B3 beige tunnel shell by the fire (fire photo)
-  addCar('minivan', 0xeeeeea, 9.6, 4.6, Math.PI/2);
-  firePit(9.2, -8.6);
-  const faceFire = (x,z) => Math.atan2(9.2-x, -8.6-z);
-  chair(10.6, -10.1, faceFire(10.6,-10.1), 0x44503f); chair(7.8, -10, faceFire(7.8,-10), 0x6b4d33);
+  /* creek-side sites, laid out like the Unity app: tent on the lane half with its door toward the creek, a hexa tarp over the camp table,
+     chairs round the 화로대 on the brick fire pad (x 14.6), the car parallel-parked on the lane just outside the bollard line */
+  creekCamp(-88, 'bell', {}, '#b9a98a', 'luxSUV', 0x0e0f11, false, 0);                                                         // A1 cotton bell tent
+  creekCamp(-70, 'cabin', { base:'#c4c2bc', skirt:'#55524c', roofTint:.94 }, '#8d917a', 'compactSUV', 0xeceae5, false, 1);   // A3 grey cabin shell
+  creekCamp(-52, 'tunnel', { base:'#8e8b70', sleeve:'#4b4a3c', skirt:'#3e3d33' }, '#6f6a58', 'fullSedan', 0x3a3d42, false, 2);  // A5 olive tunnel
+  creekCamp(B_Z[2], 'tunnel', {}, '#a59a82', 'minivan', 0xeeeeea, true, 3);                                                       // B3 beige tunnel, the tour's lit fire
   const aframe = new THREE.Group(); for (const s of [-1,1]){ const b=box(.62,1.0,.04,mat.wood); b.rotation.x=s*.18; b.position.set(0,.5,s*.1); aframe.add(b); const bd=new THREE.Mesh(new THREE.PlaneGeometry(.5,.62), M(0x3c4046)); bd.position.set(0,.55,s*.13); bd.rotation.x=s*.18; if(s<0) bd.rotation.y=Math.PI; aframe.add(bd); } shadowAll(aframe); place(aframe, -13.25, H(-13.25,2.5), 2.5, 1.35); colliders.push({x:-13.25,z:2.5,r:.4});
   bbqScene(-10.55, -6.3);
-  pitch('air', 13.8, 23, -Math.PI/2);                                      // B6 air-beam tunnel
-  addCar('midSUV', 0x9ea3a8, 9.4, 26.4, Math.PI/2);
-  pitch('dome', 15, 39.8, -Math.PI/2, {}, false);                          // B8 dome tent with a hexa tarp
-  pitch('hexa', 10.9, 39.8, Math.PI/2);
-  pitch('teepee', 13.8, 73.4, -Math.PI/2);                                 // B12 pyramid shelter
-  addCar('execSedan', 0x1c2638, 9.4, 78.4, Math.PI/2);
-  pitch('hexa', 13.6, -104, Math.PI/2, { color:'#8d917a' });                // 멀티존 camper van under a hexa tarp
-  addCar('minivan', 0xd9dbdc, 9.2, -104, Math.PI/2);
+  creekCamp(B_Z[5], 'air', {}, '#c4b796', 'midSUV', 0x9ea3a8, false, 4);                                                          // B6 air-beam tunnel
+  creekCamp(B_Z[7], 'dome', {}, '#8d917a', null, 0, false, 5);                                                                     // B8 dome tent
+  creekCamp(B_Z[11], 'teepee', {}, '#b9a98a', 'execSedan', 0x1c2638, false, 6);                                                    // B12 pyramid shelter
+  try { multiEelSet(); } catch (e){ console.error('multiEel', e); }                                                           // 멀티존: rooftop-tent SUV + eel grill family (tour only, hidden in 체험하기 with the other occupied sites)
   // 별빛존 is tents only (no cars on the terrace); site 2 left empty as in the ★2 photo
   pitch('bell', -26.2, -76, Math.PI/2, { base:'#efe6d2' });                // 별빛존 1
   pitch('tunnel', -27.6, -58, Math.PI, { base:'#d5d1c6', sleeve:'#5a5e63', skirt:'#45484c' }); // 별빛존 3
@@ -7864,6 +7995,7 @@ function tick(dt, t){
   sun.target.position.copy(focus);
   SC.left = SC.bottom = view === 'air' ? -150 : -58; SC.right = SC.top = view === 'air' ? 150 : 58; SC.updateProjectionMatrix();
   updateFire(dt, t, nightF);
+  if (!window.__occOff){ try { brazierUpdate(dt, t, nightF); eelUpdate(dt, t, nightF); } catch (e){ window.__occOff = true; console.error('occ fx', e); } }
   updateWeather(dt, t);
   updateCreek(dt, t);
   if (waterMat && SEASONS[season].water !== 'ice'){ waterMat.normalMap.offset.set(t*.02, -t*.25); }
