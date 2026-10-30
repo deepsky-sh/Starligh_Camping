@@ -7495,7 +7495,7 @@ function adaptQuality(){
 }
 /* ---------------- 같이 둘러보기 — 로그인 없이 접속하면 닉네임이 생기고, 둘러보기 중인 다른 사람이 보입니다 (Firebase Realtime Database) ----------------
    MP_CONFIG(Firebase 웹 앱 설정)를 채우면 켜집니다. 비어 있으면 혼자 보기로 동작합니다. */
-const MP_CONFIG = null;   // { apiKey, authDomain, databaseURL, projectId, appId }
+const MP_CONFIG = { projectId:"damteo-starlight-camp", databaseURL:"https://damteo-starlight-camp-default-rtdb.asia-southeast1.firebasedatabase.app" };   // Firebase Realtime Database (규칙: firebase-rules.json)
 const MP = { on:false, id:null, name:'', g:'f', db:null, fb:null, peers:new Map(), sendT:0, lastSent:null, count:1, MAX:14 };
 const MP_ADJ = ['별빛','달빛','포근한','씩씩한','느긋한','반짝','솔솔','든든한','졸린','용감한','수줍은','신난'];
 const MP_NOUN = ['토끼','다람쥐','고라니','올빼미','너구리','곰돌이','반딧불','캠퍼','별지기','산새','오소리','청설모'];
