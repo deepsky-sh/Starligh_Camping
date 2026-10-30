@@ -4928,7 +4928,10 @@ function multiEelSet(){
     shadowAll(g); place(g, 11.0, H(11.0, -103.55), -103.55, -.15); colliders.push({ x:11.0, z:-103.55, r:.2 });
     const gm = new THREE.SpriteMaterial({ map:poolTex, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, fog:false, opacity:0, color:0xffd9a0 }); EEL.lampGlow = new THREE.Sprite(gm); EEL.lampGlow.scale.set(5, 5, 1); EEL.lampGlow.position.set(11.4, H(11, -103.55) + 1.5, -103.55); scene.add(EEL.lampGlow);
   }
-  // the family: dad at the grill, mum and the boy at the table
+}
+/* the family is built once the avatars are loaded (after buildCamp) */
+function multiEelPeople(){
+  const face = (px, pz, tx, tz) => Math.atan2(tx - px, tz - pz), TB = [11.75, -104.55];
   const person = (g, x, z, ry, sit, scale, reach) => {
     let av; try { av = makeHero(g); } catch (e){ av = null; } if (!av) return;
     const root = new THREE.Group(); root.add(av.root); if (scale) av.root.scale.setScalar(scale);
@@ -8023,7 +8026,7 @@ async function boot(){
   setMsg('하늘과 별 띄우는 중'); buildStars(); buildGlows(); occGlow();   // clouds are now drawn procedurally in the sky shader buildWeather(); await frame();
   setMsg('캐릭터 불러오는 중');
   if (await loadAvatar()){ hero = makeHero(HERO_G); }
-  { const m = occBegin(); addCampers(); occEnd(m); }
+  { const m = occBegin(); addCampers(); try { multiEelPeople(); } catch (e){ console.error('eelPeople', e); } occEnd(m); }
   buildRafting();
   catBuild(); npcs.push({ update: dt => catUpdate(dt, U.uTime.value) });
   scene.add(hero.root);
