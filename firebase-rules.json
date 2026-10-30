@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "p": {
+      ".read": true,
+      "$id": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['n','x','z'])",
+        "n": { ".validate": "newData.isString() && newData.val().length <= 16" }
+      }
+    }
+  }
+}

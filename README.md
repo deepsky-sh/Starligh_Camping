@@ -88,3 +88,8 @@ https://deepsky-sh.github.io/Starligh_Camping/
 캠핑장 정보 출처: [한국관광공사 고캠핑 · 별빛캠핑장](https://www.gocamping.or.kr/bsite/camp/info/read.do?c_no=1499&viewType=read01)
 
 배치는 배치도·위성사진·현장 사진을 바탕으로 재구성한 것으로 실제 치수와 다를 수 있습니다.
+
+## 같이 둘러보기 (멀티플레이)
+로그인 없이 접속하면 "별빛토끼42" 같은 닉네임이 자동으로 생기고, 둘러보기 중인 다른 방문자의 캐릭터가 걸어 다니는 것이 보입니다(체험하기 중에는 서로 숨김). 왼쪽 위 `👥 N명 · 닉네임`을 누르면 닉네임을 바꿀 수 있어요.
+- Firebase Realtime Database(무료 Spark)를 사용합니다. `index.html`의 `MP_CONFIG`에 Firebase 웹 앱 설정을 넣으면 켜지고, 비어 있으면 혼자 보기로 동작합니다.
+- 보안 규칙은 `firebase-rules.json` 참고. 위치(x,y,z)·방향·속도·닉네임만 주고받으며 접속을 끊으면 자동으로 사라집니다.

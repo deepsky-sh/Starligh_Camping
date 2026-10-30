@@ -38,6 +38,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .brand h1 .star{color:var(--amber)}
 .zone{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
 .zone::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--pine);box-shadow:0 0 8px var(--pine);flex:none}
+.mp-badge{margin-top:5px;padding:3px 10px;border:1px solid var(--line,rgba(255,255,255,.18));border-radius:999px;background:rgba(0,0,0,.28);color:var(--ink);font-size:12px;font-weight:600;line-height:1.4;font-family:inherit;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .zone .clock{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
 
 #menu-toggle{display:block;z-index:4;position:fixed;right:16px;top:calc(14px + env(safe-area-inset-top,0px));border:1px solid var(--line);background:var(--glass-strong);border-radius:10px;padding:8px 12px;font-size:13px}
@@ -297,6 +298,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
   <div class="eyebrow">경기 포천시 관인면 담터길 307-2</div>
   <h1>담터 별빛캠핑장<span class="star"> ★</span></h1>
   <div class="zone"><span id="zone">진입로</span><span class="clock" id="clock">가을 · 13:00</span></div>
+  <button id="mp-badge" class="mp-badge" type="button" hidden title="눌러서 닉네임 바꾸기"></button>
 </header>
 
 <button id="menu-toggle" aria-expanded="false" aria-controls="panel">메뉴 ☰</button>
@@ -7491,12 +7493,111 @@ function adaptQuality(){
   else if (slowSecs >= 4 && POST.level === 'high'){ setGfx('std', true); slowSecs = 0; }
   if (fastSecs >= 6 && pr < basePR){ renderer.setPixelRatio(Math.min(basePR, pr + .25)); fastSecs = 0; }
 }
+/* ---------------- 같이 둘러보기 — 로그인 없이 접속하면 닉네임이 생기고, 둘러보기 중인 다른 사람이 보입니다 (Firebase Realtime Database) ----------------
+   MP_CONFIG(Firebase 웹 앱 설정)를 채우면 켜집니다. 비어 있으면 혼자 보기로 동작합니다. */
+const MP_CONFIG = null;   // { apiKey, authDomain, databaseURL, projectId, appId }
+const MP = { on:false, id:null, name:'', g:'f', db:null, fb:null, peers:new Map(), sendT:0, lastSent:null, count:1, MAX:14 };
+const MP_ADJ = ['별빛','달빛','포근한','씩씩한','느긋한','반짝','솔솔','든든한','졸린','용감한','수줍은','신난'];
+const MP_NOUN = ['토끼','다람쥐','고라니','올빼미','너구리','곰돌이','반딧불','캠퍼','별지기','산새','오소리','청설모'];
+function mpNick(){
+  try { const s = localStorage.getItem('damteoNick'); if (s) return s; } catch (e){}
+  const n = MP_ADJ[Math.floor(Math.random()*MP_ADJ.length)] + MP_NOUN[Math.floor(Math.random()*MP_NOUN.length)] + (10 + Math.floor(Math.random()*90));
+  try { localStorage.setItem('damteoNick', n); } catch (e){}
+  return n;
+}
+function mpTag(name){
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d');
+  g.font = '700 30px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const w = Math.min(244, g.measureText(name).width + 28);
+  g.fillStyle = 'rgba(14,20,26,.66)'; g.beginPath(); g.roundRect(128 - w/2, 10, w, 44, 22); g.fill();
+  g.fillStyle = '#f4efe4'; g.fillText(name, 128, 33, 230);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, transparent:true, depthWrite:false, depthTest:false }));
+  s.scale.set(1.05, .26, 1); s.renderOrder = 9; return s;
+}
+function mpBadge(){
+  const el = document.getElementById('mp-badge'); if (!el) return;
+  el.hidden = !MP.on; if (MP.on) el.textContent = '👥 ' + MP.count + '명 · ' + MP.name;
+}
+function mpAddPeer(id, d){
+  if (id === MP.id || MP.peers.has(id) || MP.peers.size >= MP.MAX) return;
+  let av;
+  try { av = makeHero(d.g === 'm' ? 'm' : 'f'); } catch (e){ av = null; }
+  if (!av){ av = new Hiker({ jacket:0x3f6a8a, pants:0x2f3a45, cap:0x2f4b3c }); }
+  const tag = mpTag(String(d.n || '손님').slice(0, 16));
+  const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true };
+  av.root.position.set(p.x, p.y, p.z); av.root.visible = false; scene.add(av.root); scene.add(tag);
+  MP.peers.set(id, p); MP.count = MP.peers.size + 1; mpBadge();
+  toast('<b>' + p.name + '</b> 님이 들어왔어요');
+}
+function mpDropPeer(id){
+  const p = MP.peers.get(id); if (!p) return;
+  scene.remove(p.av.root); scene.remove(p.tag); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
+}
+function mpApply(id, d){
+  if (!d || id === MP.id) return;
+  const p = MP.peers.get(id);
+  if (!p){ mpAddPeer(id, d); return; }
+  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now();
+}
+let mpStarted = false;
+async function mpInit(){
+  if (mpStarted) return; mpStarted = true;
+  if (!MP_CONFIG || !MP_CONFIG.databaseURL) return;
+  try {
+    const V = '10.14.1', B = 'https://www.gstatic.com/firebasejs/' + V + '/';
+    const [app, db] = await Promise.all([import(B + 'firebase-app.js'), import(B + 'firebase-database.js')]);
+    MP.fb = db; MP.db = db.getDatabase(app.initializeApp(MP_CONFIG));
+    MP.id = Math.random().toString(36).slice(2, 12); MP.name = mpNick();
+    const root = db.ref(MP.db, 'p'), me = db.ref(MP.db, 'p/' + MP.id);
+    db.onChildAdded(root, s => mpApply(s.key, s.val()));
+    db.onChildChanged(root, s => mpApply(s.key, s.val()));
+    db.onChildRemoved(root, s => mpDropPeer(s.key));
+    db.onDisconnect(me).remove();
+    MP.on = true; mpBadge();
+    document.getElementById('mp-badge')?.addEventListener('click', () => {
+      let n = null; try { n = prompt('닉네임을 바꿀까요? (최대 12자)', MP.name); } catch (e){}
+      n = (n || '').trim().slice(0, 12); if (!n) return;
+      MP.name = n; try { localStorage.setItem('damteoNick', n); } catch (e){} mpBadge(); MP.lastSent = null;
+    });
+    addEventListener('pagehide', () => { try { db.remove(me); } catch (e){} });
+  } catch (e){ MP.on = false; console.warn('같이 둘러보기를 켤 수 없어요', e); }
+}
+function mpUpdate(dt){
+  if (!MP.on) return;
+  const now = performance.now(), xp = !!EXP.on;
+  // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
+  MP.sendT += dt;
+  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G].join();
+  if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
+    MP.sendT = 0; MP.lastSent = st;
+    MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), { n:MP.name, g:HERO_G, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, t:Date.now() }).catch(() => {});
+  }
+  for (const p of [...MP.peers.values()]){
+    if (now - p.seen > 40000){ mpDropPeer(p.id); continue; }   // left without a clean exit
+    const k = 1 - Math.exp(-dt * 8), dx = p.tx - p.x, dz = p.tz - p.z;
+    if (dx*dx + dz*dz > 400 || p.fresh){ p.x = p.tx; p.y = p.ty; p.z = p.tz; p.h = p.th; p.fresh = false; }   // far jump / first sight: snap
+    else { p.x += dx*k; p.y += (p.ty - p.y)*k; p.z += dz*k; p.h += Math.atan2(Math.sin(p.th - p.h), Math.cos(p.th - p.h))*k; }
+    const moving = Math.hypot(dx, dz) > .02 ? Math.min(7, Math.hypot(dx, dz)*6 + p.ts*.5) : 0;
+    p.s += (Math.max(moving, p.ts * (Math.hypot(dx, dz) > .02 ? 1 : 0)) - p.s) * Math.min(1, dt*6);
+    const show = !xp && !p.xp;
+    p.av.root.visible = show; p.tag.visible = show;
+    if (!show) continue;
+    p.av.root.position.set(p.x, p.y, p.z); p.av.root.rotation.y = p.h;
+    p.av.update(dt, p.s < .15 ? 0 : p.s, false);
+    const d = Math.hypot(p.x - pos.x, p.z - pos.z);
+    p.tag.position.set(p.x, p.y + (p.g === 'm' ? 2.1 : 1.95), p.z);
+    p.tag.material.opacity = d < 14 ? 1 : Math.max(0, 1 - (d - 14)/16); p.tag.visible = p.tag.material.opacity > .02;
+  }
+}
+
 let simT = 0;
 function loop(){ const dt = Math.min(clock.getDelta(), .05); simT += dt; tick(dt, simT); }
 function tick(dt, t){
   U.uTime.value = t;
   if (Math.abs(hour - hourTarget) > .001){ hour = lerp(hour, hourTarget, 1 - Math.exp(-dt*2.2)); if (Math.abs(hour-hourTarget) < .005) hour = hourTarget; applyTime(hour); }
   if (started) updatePlayer(dt); else { hero.update(dt, 0); hero.root.position.copy(player.pos); }
+  if (started) mpUpdate(dt);
   npcs.forEach(n => n.update(dt, 0));
   scopeUpdate(dt);
   shopUpdate(dt);
@@ -7552,14 +7653,14 @@ async function boot(){
   setMsg('준비 완료');
   const btn = $('#btn-start'); btn.disabled = false; btn.textContent = '둘러보기 시작';
   btn.addEventListener('click', () => {
-    $('#intro').hidden = true; started = true;
+    $('#intro').hidden = true; started = true; mpInit();
     if (innerWidth >= 1100){ $('#panel').classList.add('open'); $('#menu-toggle').setAttribute('aria-expanded','true'); }
     teleport(8, -126, Math.PI); setView('tp'); canvas.focus();
     toast('<b>담터 별빛캠핑장</b>에 오신 것을 환영합니다');
   });
   const bx = $('#btn-exp'); bx.disabled = false;
   bx.addEventListener('click', () => {
-    $('#intro').hidden = true; started = true;
+    $('#intro').hidden = true; started = true; mpInit();
     setView('tp'); expStart(); canvas.focus();
   });
   window.__camp = {
