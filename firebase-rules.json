@@ -5,7 +5,16 @@
       "$id": {
         ".write": true,
         ".validate": "newData.hasChildren(['n','x','z'])",
-        "n": { ".validate": "newData.isString() && newData.val().length <= 16" }
+        "n": {
+          ".validate": "newData.isString() && newData.val().length <= 16"
+        }
+      }
+    },
+    "s": {
+      ".read": true,
+      "$id": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['by'])"
       }
     }
   }

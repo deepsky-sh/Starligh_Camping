@@ -6076,7 +6076,7 @@ function xpCtx(force){
     if (SCOPE.near) acts.unshift({ id:'scope', label:'망원경으로 달·토성 보기', fn:scopeOpen });
     if (EXP.checked){
       const c = EXP.camp;
-      if (!c){ const s = xpNearestSite(6.5); if (s) acts.push({ id:'pitch', label:`${s.id}에 텐트 치기`, fn:() => xpTentPicker(s) }); }
+      if (!c){ const s = xpNearestSite(6.5); if (s) acts.push(mpSiteTaken(s.id) ? { id:'taken', label:`${s.id}는 다른 방문자가 사용 중이에요`, fn:null, dim:true } : { id:'pitch', label:`${s.id}에 텐트 치기`, fn:() => xpTentPicker(s) }); }
       else {
         const dPad = dist(c.site.pad.x, c.site.pad.z), dSeat = dist(c.seats[0].x, c.seats[0].z), dTbl = dist(c.table.x, c.table.z);
         if (dPad < 2.6) acts.push(EXP.fire && EXP.fire.on ? { id:'fireoff', label:'모닥불 끄기', fn:xpFireOff } : { id:'fire', label:'모닥불 피우기', fn:xpFireOn });
@@ -6143,7 +6143,7 @@ function xpLayout(s, kind){
 function xpTentPicker(s){
   const box_ = $('#xp-tent'), list = $('#xp-tent-list'); list.innerHTML = '';
   $('#xp-tent-site').textContent = s.id + (s.creek ? ' · 계곡 쪽 — 텐트 입구와 의자가 계곡을 향해요' : ' · 산 쪽 테라스');
-  TENTS.forEach(t => { const b = document.createElement('button'); b.innerHTML = `<b>${t.name}</b><span>${t.desc}</span>`; b.addEventListener('click', () => { box_.hidden = true; EXP.lock = false; xpPitch(s, t.id); }); list.appendChild(b); });
+  TENTS.forEach(t => { const b = document.createElement('button'); b.innerHTML = `<b>${t.name}</b><span>${t.desc}</span>`; b.addEventListener('click', () => { box_.hidden = true; EXP.lock = false; mpClaim(s.id).then(ok => { if (!ok){ toast('<b>' + s.id + '</b>는 다른 방문자가 먼저 쓰고 있어요 · 다른 사이트를 골라 주세요'); return; } xpPitch(s, t.id); mpSiteSet({ k:t.id, f:0 }); }); }); list.appendChild(b); });
   box_.hidden = false; EXP.lock = true;
 }
 const XP_ANIM = [];
@@ -6168,7 +6168,7 @@ function xpProgUpdate(){
   const u = Math.min(1, (performance.now() - P.t0)/(P.dur*1000)); P.bar.style.width = (u*100).toFixed(1) + '%';
   if (u >= 1){ EXP.prog = null; P.el.hidden = true; EXP.lock = false; P.done && P.done(); xpCtx(true); }
 }
-function xpPitch(s, kind){
+function xpBuildParts(s, kind){
   const L = xpLayout(s, kind);
   const opt = kind === 'tunnel' ? { L:4.8 } : kind === 'air' ? { L:4.8 } : kind === 'bell' ? { base:'#efe6d2' } : kind === 'teepee' ? { base:'#d8ccb2' } : kind === 'dome' ? { base:'#6f7a8c', skirt:'#34393f' } : {};
   const camp = { site:s, kind, ...L, parts:[], friends:[], table:{ x:L.T.x, z:L.T.z } };
@@ -6179,6 +6179,10 @@ function xpPitch(s, kind){
   const table = xpCapture(() => { camp.tableObj = xpTable(L.T.x, L.T.z); });
   const chairs = xpCapture(() => { const fab = [0x2f3a30, 0x6b4d33, 0x2e3d52]; L.seats.forEach((q, i) => chair(q.x, q.z, q.ry, fab[i])); });
   camp.parts = [tent, tarp, table, chairs];
+  return { camp, L, tent, tarp, table, chairs };
+}
+function xpPitch(s, kind){
+  const { camp, L, tent, tarp, table, chairs } = xpBuildParts(s, kind);
   // keep the player out of the footprint while it goes up
   const stand = { x:L.anchor.x - .2, z:L.P.z + 1.9 };
   if (Math.hypot(player.pos.x - L.tent.x, player.pos.z - L.tent.z) < 3.6 || Math.hypot(player.pos.x - L.T.x, player.pos.z - L.T.z) < 1.2){ player.pos.set(stand.x, groundAt(stand.x, stand.z), stand.z); }
@@ -6193,6 +6197,7 @@ function xpPitch(s, kind){
 }
 function xpStrike(){
   const c = EXP.camp; if (!c) return;
+  mpRelease();
   if (EXP.fire){ xpFireRemove(); }
   xpFriends(false);
   const all = c.parts.slice().reverse();
@@ -6262,8 +6267,8 @@ function xpFriendsUpdate(dt){
 
 /* ---------- campfire on the brick pad: steel brazier, logs, flames, embers, smoke, crackle ---------- */
 let smokeTex = null;
-function xpFireBuild(){
-  const P = EXP.camp.site.pad, g = new THREE.Group();
+function xpFireBuild(P0){
+  const P = P0 || EXP.camp.site.pad, g = new THREE.Group();
   const steel = new THREE.MeshStandardMaterial({ color:0x2a2b2d, roughness:.5, metalness:.7 }), rim = new THREE.MeshStandardMaterial({ color:0x6d6a66, roughness:.4, metalness:.8 });
   for (const s of [-1, 1]){ g.add(tubeAlong([V3(-.26, 0, s*.2), V3(.26, .34, -s*.2)], .012, steel)); g.add(tubeAlong([V3(.26, 0, s*.2), V3(-.26, .34, -s*.2)], .012, steel)); }
   const pts = []; for (let i = 0; i <= 8; i++){ const u = i/8; pts.push(new THREE.Vector2(.05 + .27*Math.sin(u*Math.PI/2), .34 + .12*u*u)); }
@@ -6283,18 +6288,25 @@ function xpFireBuild(){
   const N = 40, ep = new Float32Array(N*3), ed = []; for (let i = 0; i < N; i++) ed.push({ t:Math.random()*2, vx:xpRand(-.2, .2), vz:xpRand(-.2, .2), s:xpRand(.6, 1.3) });
   const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.BufferAttribute(ep, 3));
   const embers = new THREE.Points(eg, new THREE.PointsMaterial({ color:0xffa040, size:.05, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })); embers.frustumCulled = false; scene.add(embers);
-  EXP.fire = { g, col, flames, smoke, light, embers, ed, ember, logs, grate, lvl:0, on:false, steam:0, base:new THREE.Vector3(P.x, groundAt(P.x, P.z) + .06, P.z) };
+  const FF = { g, col, flames, smoke, light, embers, ed, ember, logs, grate, lvl:0, on:false, steam:0, base:new THREE.Vector3(P.x, groundAt(P.x, P.z) + .06, P.z) };
+  if (!P0) EXP.fire = FF;
   xpGrow([g], 0, .6, 1);
+  return FF;
 }
 function xpFireOn(){
   if (!EXP.camp) return;
   if (!EXP.fire) xpFireBuild();
   const F = EXP.fire;
-  xpProgress('화로를 벽돌 위에 놓고 장작에 불을 붙이는 중…', 1.8, () => { F.on = true; EXP.done.fire = true; EXP.stats.fires++; sfx('ignite'); xpHud(); toast('<b>모닥불</b> · 타닥타닥, 불멍 시작!'); xpAddTrash({ n:'장작 포장 상자', c:'paper', i:'📦' }, { n:'토치 부탄가스', c:'can', i:'🥫' }); });
+  xpProgress('화로를 벽돌 위에 놓고 장작에 불을 붙이는 중…', 1.8, () => { F.on = true; mpSiteSet({ f:1 }); EXP.done.fire = true; EXP.stats.fires++; sfx('ignite'); xpHud(); toast('<b>모닥불</b> · 타닥타닥, 불멍 시작!'); xpAddTrash({ n:'장작 포장 상자', c:'paper', i:'📦' }, { n:'토치 부탄가스', c:'can', i:'🥫' }); });
 }
 function xpFireOff(){
   const F = EXP.fire; if (!F) return;
-  F.on = false; F.steam = 1.6; sfx('steam'); toast('<b>모닥불 끄기</b> · 물을 부어 불씨까지 꺼요');
+  F.on = false; mpSiteSet({ f:0 }); F.steam = 1.6; sfx('steam'); toast('<b>모닥불 끄기</b> · 물을 부어 불씨까지 꺼요');
+}
+function xpFireDispose(F){
+  for (const o of [...F.flames, ...F.smoke, F.light, F.embers]) scene.remove(o);
+  xpGrow([F.g], 0, .4, -1, () => scene.remove(F.g));
+  const k = colliders.indexOf(F.col); if (k >= 0) colliders.splice(k, 1);
 }
 function xpFireRemove(){
   const F = EXP.fire; if (!F) return;
@@ -6304,11 +6316,14 @@ function xpFireRemove(){
   EXP.fire = null; fire.pos.set(1e4, 0, 1e4);
 }
 function xpFireUpdate(dt, t){
-  const F = EXP.fire; if (!F) return;
+  if (EXP.fire) xpFireTick(EXP.fire, dt, t, true);
+  for (const rc of MP.camps.values()) if (rc.fire) xpFireTick(rc.fire, dt, t, false);
+}
+function xpFireTick(F, dt, t, mine){
   F.lvl = lerp(F.lvl, F.on ? 1 : 0, 1 - Math.exp(-dt*(F.on ? .9 : 1.6)));
   const L = F.lvl, b = F.base;
-  fire.pos.copy(L > .05 ? b : tmpV.set(1e4, 0, 1e4));
-  const gk = GR.on && GR.src === 'fire' ? .32 : 1;
+  if (mine) fire.pos.copy(L > .05 ? b : tmpV.set(1e4, 0, 1e4));
+  const gk = mine && GR.on && GR.src === 'fire' ? .32 : 1;
   F.flames.forEach((s, i) => { const u = s.userData, f = .75 + .25*Math.sin(t*9.3*u.k + u.p) + .12*Math.sin(t*23 + i); s.visible = L > .02; s.scale.set(.36*u.k*L*(gk < 1 ? .7 : 1), .72*u.k*f*L*gk, 1); s.position.set(b.x + u.o.x + Math.sin(t*3 + i)*.02, b.y + .42 + .34*u.k*f*L*gk, b.z + u.o.z); });
   F.light.intensity = (5 + 26*nightF)*L*(.85 + .15*Math.sin(t*17) + .08*Math.sin(t*31));
   F.ember.material.opacity = Math.max(L, F.steam > 0 ? .25 : 0)*.85;
@@ -6986,7 +7001,7 @@ function recLabels(){
 function xpEnd(){
   if (!EXP.recycled){ toast('먼저 <b>분리수거장</b>에서 분리수거를 마쳐야 체크아웃할 수 있어요'); return; }
   if (FISH.on) fishStop(); if (GR.on) grillClose(); if (HG.on) hgEnd(true);
-  if (EXP.camp){ if (EXP.fire) xpFireRemove(); xpFriends(false); for (const p of EXP.camp.parts){ for (const o of p.objs) scene.remove(o); for (const c of p.cols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); } } EXP.camp = null; }
+  if (EXP.camp){ mpRelease(); if (EXP.fire) xpFireRemove(); xpFriends(false); for (const p of EXP.camp.parts){ for (const o of p.objs) scene.remove(o); for (const c of p.cols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); } } EXP.camp = null; }
   EXP.ended = true; $('#xp-actions').hidden = true;
   const S = EXP.stats, mins = Math.max(1, Math.round((performance.now() - EXP.t0)/60000));
   const fishList = EXP.fish.concat(); const caught = S.caught;
@@ -7003,6 +7018,7 @@ function expStart(){
   for (const c of OCC.cols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); }
   fire.pos.set(1e4, 0, 1e4);
   chiefBuild(); carBuild(); recLabels();
+  setTimeout(mpCampSyncAll, 0);
   $('#xp-hud').hidden = false; xpHud();
   view = 'drive'; hero.root.visible = false; CAR.auto = 2.4; CAR.v = 3.5;
   camera.position.set(CAR.x - Math.sin(CAR.h)*9, CAR.g.position.y + 3.5, CAR.z - Math.cos(CAR.h)*9);
@@ -7499,7 +7515,7 @@ function adaptQuality(){
 /* ---------------- 같이 둘러보기 — 로그인 없이 접속하면 닉네임이 생기고, 둘러보기 중인 다른 사람이 보입니다 (Firebase Realtime Database) ----------------
    MP_CONFIG(Firebase 웹 앱 설정)를 채우면 켜집니다. 비어 있으면 혼자 보기로 동작합니다. */
 const MP_CONFIG = { projectId:"damteo-starlight-camp", databaseURL:"https://damteo-starlight-camp-default-rtdb.asia-southeast1.firebasedatabase.app" };   // Firebase Realtime Database (규칙: firebase-rules.json)
-const MP = { waveN:0, myWave:-9, on:false, id:null, name:'', g:'f', db:null, fb:null, peers:new Map(), sendT:0, lastSent:null, count:1, MAX:14 };
+const MP = { claims:new Map(), camps:new Map(), mySite:null, hbT:0, waveN:0, myWave:-9, on:false, id:null, name:'', g:'f', db:null, fb:null, peers:new Map(), sendT:0, lastSent:null, count:1, MAX:14 };
 const MP_ADJ = ['별빛','달빛','포근한','씩씩한','느긋한','반짝','솔솔','든든한','졸린','용감한','수줍은','신난'];
 const MP_NOUN = ['토끼','다람쥐','고라니','올빼미','너구리','곰돌이','반딧불','캠퍼','별지기','산새','오소리','청설모'];
 function mpNick(){
@@ -7541,6 +7557,72 @@ function mpGreet(){
   if (MP.myBubble) { scene.remove(MP.myBubble); MP.myBubble = null; }
   MP.myBubble = mpBubble(MP.myMsg); MP.lastSent = null; MP.sendT = 1;
 }
+
+/* ---- 체험하기: 사이트 점유(겹침 방지) + 상대의 텐트·모닥불·차량 표시 ---- */
+const MP_CLAIM_TTL = 120000;
+function mpSiteTaken(id){ const d = MP.claims.get(id); return !!d && d.by !== MP.id && Date.now() - (d.t || 0) < MP_CLAIM_TTL; }
+async function mpClaim(id){
+  if (!MP.on) return true;
+  if (mpSiteTaken(id)) return false;
+  try {
+    const ref = MP.fb.ref(MP.db, 's/' + id);
+    const r = await MP.fb.runTransaction(ref, v => (v && v.by !== MP.id && Date.now() - (v.t || 0) < MP_CLAIM_TTL) ? undefined : { by:MP.id, n:MP.name, k:'', f:0, t:Date.now() });
+    if (!r.committed) return false;
+    MP.mySite = id; MP.fb.onDisconnect(ref).remove(); return true;
+  } catch (e){ return true; }   // offline / rules: never block the player
+}
+function mpSiteSet(patch){
+  if (!MP.on || !MP.mySite) return;
+  try { MP.fb.update(MP.fb.ref(MP.db, 's/' + MP.mySite), Object.assign({ t:Date.now() }, patch)).catch(() => {}); } catch (e){}
+}
+function mpRelease(){
+  if (!MP.on || !MP.mySite) return;
+  try { MP.fb.remove(MP.fb.ref(MP.db, 's/' + MP.mySite)).catch(() => {}); } catch (e){}
+  MP.mySite = null;
+}
+function mpCampRemove(id){
+  const rc = MP.camps.get(id); if (!rc) return; MP.camps.delete(id);
+  if (rc.fire) xpFireDispose(rc.fire);
+  rc.parts.slice().reverse().forEach((q, i) => xpGrow(q.objs, i*.3, .6, -1, () => { for (const o of q.objs) scene.remove(o); for (const c of q.cols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); } }));
+}
+function mpCampSync(id){
+  const d = MP.claims.get(id), rc = MP.camps.get(id);
+  const live = d && d.by !== MP.id && d.k && Date.now() - (d.t || 0) < MP_CLAIM_TTL;
+  if (!EXP.on || !live){ if (rc) mpCampRemove(id); return; }
+  if (rc && rc.kind !== d.k) mpCampRemove(id);
+  let r = MP.camps.get(id);
+  if (!r || r.kind !== d.k){
+    const s = XP_SITES && XP_SITES.find(x => x.id === id); if (!s) return;
+    const b = xpBuildParts(s, d.k);
+    xpGrow(b.tent.objs, 0, 1.6, 1); xpGrow(b.tarp.objs, 1.4, 1.0, 1); xpGrow(b.table.objs, 2.2, .5, 1); xpGrow(b.chairs.objs, 2.6, .6, 1);
+    r = { kind:d.k, site:s, parts:[b.tent, b.tarp, b.table, b.chairs], fire:null }; MP.camps.set(id, r);
+    toast('<b>' + (d.n || '방문자') + '</b> 님이 ' + id + '에 텐트를 쳤어요');
+  }
+  if (d.f && !r.fire){ r.fire = xpFireBuild(r.site.pad, true); r.fire.on = true; }
+  else if (r.fire && r.fire.on !== !!d.f){ r.fire.on = !!d.f; if (!d.f) r.fire.steam = 1.6; }
+}
+function mpCampSyncAll(){ if (!MP.on) return; for (const id of MP.claims.keys()) mpCampSync(id); }
+const MP_CAR_COLS = [0x8a2f2f, 0x2f5a8a, 0x3f7a4a, 0xb08a2a, 0x5a4a8a, 0x2a7a7a, 0x8a5a2a];
+function mpCarUpdate(p, dt, show){
+  if (!show || p.cx === undefined){ if (p.car) p.car.visible = false; return; }
+  if (!p.car){
+    const kind = CAR_SPECS[p.ck] ? p.ck : 'midSUV', L = CAR_SPECS[kind].L;
+    let hsh = 0; for (const ch of p.id) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
+    p.car = carGroup(kind, MP_CAR_COLS[hsh % MP_CAR_COLS.length]); p.car.rotation.order = 'YZX'; scene.add(p.car);
+    p.carL = L; p.carCols = [0, 1, 2].map(() => { const c = { x:1e4, z:1e4, r:1.1 }; colliders.push(c); return c; });
+    p.cxs = p.cx; p.czs = p.cz; p.chs = p.ch;
+  }
+  const k = 1 - Math.exp(-dt*8), dx = p.cx - p.cxs, dz = p.cz - p.czs;
+  if (dx*dx + dz*dz > 400){ p.cxs = p.cx; p.czs = p.cz; p.chs = p.ch; } else { p.cxs += dx*k; p.czs += dz*k; p.chs += Math.atan2(Math.sin(p.ch - p.chs), Math.cos(p.ch - p.chs))*k; }
+  const fx = Math.sin(p.chs), fz = Math.cos(p.chs), kk = p.carL*.36;
+  const hf = groundAt(p.cxs + fx*kk, p.czs + fz*kk), hr = groundAt(p.cxs - fx*kk, p.czs - fz*kk);
+  p.car.visible = true; p.car.position.set(p.cxs, (hf + hr)/2, p.czs); p.car.rotation.y = p.chs + Math.PI/2; p.car.rotation.z = Math.atan2(hf - hr, 2*kk);
+  [-.32, 0, .32].forEach((f, i) => { p.carCols[i].x = p.cxs + fx*p.carL*f; p.carCols[i].z = p.czs + fz*p.carL*f; });
+}
+function mpCarDrop(p){
+  if (p.car){ scene.remove(p.car); p.car = null; }
+  if (p.carCols){ for (const c of p.carCols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); } p.carCols = null; }
+}
 function mpTag(name){
   const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d');
   g.font = '700 30px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -7562,21 +7644,21 @@ function mpAddPeer(id, d){
   try { av = makeHero(d.g === 'm' ? 'm' : 'f'); } catch (e){ av = null; }
   if (!av){ av = new Hiker({ jacket:0x3f6a8a, pants:0x2f3a45, cap:0x2f4b3c }); }
   const tag = mpTag(String(d.n || '손님').slice(0, 16));
-  const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null };
+  const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
   av.root.position.set(p.x, p.y, p.z); av.root.visible = false; scene.add(av.root); scene.add(tag);
   MP.peers.set(id, p); MP.count = MP.peers.size + 1; mpBadge();
   toast('<b>' + p.name + '</b> 님이 들어왔어요');
 }
 function mpDropPeer(id){
   const p = MP.peers.get(id); if (!p) return;
-  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
+  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
 }
 function mpApply(id, d){
   if (!d || id === MP.id) return;
   if (d.t && Date.now() - d.t > 120000){ try { MP.fb.remove(MP.fb.ref(MP.db, 'p/' + id)); } catch (e){} return; }   // left-over entry of a closed tab (the live ones refresh every few seconds)
   const p = MP.peers.get(id);
   if (!p){ mpAddPeer(id, d); return; }
-  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now();
+  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr;
   if ((d.w || 0) !== p.w){ p.w = d.w || 0; p.waveAt = performance.now()/1000; if (p.bub) scene.remove(p.bub); p.bub = mpBubble(MP_HELLO[(p.w|0) % MP_HELLO.length]); }
 }
 let mpStarted = false;
@@ -7593,6 +7675,9 @@ async function mpInit(){
     db.onChildChanged(root, s => mpApply(s.key, s.val()));
     db.onChildRemoved(root, s => mpDropPeer(s.key));
     db.onDisconnect(me).remove();
+    const sroot = db.ref(MP.db, 's');
+    const onS = s => { const v = s.val(); if (v) MP.claims.set(s.key, v); else MP.claims.delete(s.key); mpCampSync(s.key); if (EXP.on) xpCtx(true); };
+    db.onChildAdded(sroot, onS); db.onChildChanged(sroot, onS); db.onChildRemoved(sroot, s => { MP.claims.delete(s.key); mpCampSync(s.key); if (EXP.on) xpCtx(true); });
     MP.on = true; mpBadge(); document.getElementById('mp-wave')?.addEventListener('click', mpGreet);
     document.getElementById('mp-badge')?.addEventListener('click', () => {
       let n = null; try { n = prompt('닉네임을 바꿀까요? (최대 12자)', MP.name); } catch (e){}
@@ -7610,11 +7695,15 @@ function mpUpdate(dt){
     if (MP.myBubble){ const on = ma >= 0 && ma < MP_WAVE_S + .4; MP.myBubble.visible = on; if (on) MP.myBubble.position.set(player.pos.x, player.pos.y + (HERO_G === 'm' ? 2.45 : 2.3), player.pos.z); else if (ma > MP_WAVE_S + .4){ scene.remove(MP.myBubble); MP.myBubble = null; } } }
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
-  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, MP.waveN].join();
+  const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
+  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
-    MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), { n:MP.name, g:HERO_G, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() }).catch(() => {});
+    const rec = { n:MP.name, g:HERO_G, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
+    if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
+    MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
   }
+  MP.hbT += dt; if (MP.hbT > 30){ MP.hbT = 0; mpSiteSet({}); }
   for (const p of [...MP.peers.values()]){
     if (now - p.seen > 40000){ mpDropPeer(p.id); continue; }   // left without a clean exit
     const k = 1 - Math.exp(-dt * 8), dx = p.tx - p.x, dz = p.tz - p.z;
@@ -7622,7 +7711,8 @@ function mpUpdate(dt){
     else { p.x += dx*k; p.y += (p.ty - p.y)*k; p.z += dz*k; p.h += Math.atan2(Math.sin(p.th - p.h), Math.cos(p.th - p.h))*k; }
     const moving = Math.hypot(dx, dz) > .02 ? Math.min(7, Math.hypot(dx, dz)*6 + p.ts*.5) : 0;
     p.s += (Math.max(moving, p.ts * (Math.hypot(dx, dz) > .02 ? 1 : 0)) - p.s) * Math.min(1, dt*6);
-    const show = true;   // visible in both the tour and the experience
+    const show = !p.dr;   // a driving visitor is seen in the car
+    mpCarUpdate(p, dt, xp && p.cx !== undefined);
     p.av.root.visible = show; p.tag.visible = show;
     if (!show) continue;
     p.av.root.position.set(p.x, p.y, p.z); p.av.root.rotation.y = p.h;
