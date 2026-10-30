@@ -1971,9 +1971,9 @@ function attachAtBind(model, boneRe, obj, at, useBind = true){   // place obj at
   const m = bindBone.invert().multiply(new THREE.Matrix4().makeTranslation(at.x, at.y, at.z));
   m.decompose(obj.position, obj.quaternion, obj.scale); bone.add(obj);
 }
-function femAvatar(k, v){
+function femAvatar(k, v, pal){
   const V = FEM_V[v] || FEM_V.mom, av = new Avatar(femSrc, femClips, {}); av.model.scale.multiplyScalar(k); av.k = k;
-  const C = c => new THREE.Color(c), U2 = { uTop:{ value:C(V.top) }, uInner:{ value:C(V.inner) }, uShorts:{ value:C(V.shorts) }, uSkinC:{ value:C(0xf5d3bb) } };
+  const C = c => new THREE.Color(c), U2 = { uTop:{ value:C(pal ? pal.top : V.top) }, uInner:{ value:C(pal ? pal.inner : V.inner) }, uShorts:{ value:C(pal ? pal.shorts : V.shorts) }, uSkinC:{ value:C(0xf5d3bb) } };
   av.model.traverse(o => {
     if (!o.isMesh) return;
     o.geometry = femGeom(o.geometry, V);
@@ -2010,7 +2010,7 @@ function lightSkin(m){
 }
 /* the man: 178 cm, layered black hair with soft bangs, an open ivory short-sleeve shirt with a red paisley print over a white crew-neck tee,
    indigo jeans, white trainers. Painted in the avatar's bind pose (metres), so the print and the sleeves stay put while it moves */
-function styleMale(av){
+function styleMale(av, pal){
   const k = 1.78/1.835; av.model.scale.multiplyScalar(k); av.k = k;
   av.model.updateMatrixWorld(true);
   const toModel = new THREE.Matrix4().copy(av.model.matrixWorld).invert(), skin = new THREE.Color(0xf3cfb6);
@@ -2019,7 +2019,7 @@ function styleMale(av){
     if (nm === 'Wolf3D_Headwear' || nm === 'Wolf3D_Beard'){ o.visible = false; return; }
     if (!/Outfit/.test(nm)) return;
     const m = o.material = o.material.clone(); m.userData = {}; m.name = nm; m.map = null; m.color.set(0xffffff);
-    const U = { uBind:{ value:new THREE.Matrix4().multiplyMatrices(toModel, o.matrixWorld) }, uSkinM:{ value:skin } };
+    const U = { uBind:{ value:new THREE.Matrix4().multiplyMatrices(toModel, o.matrixWorld) }, uSkinM:{ value:skin }, uTint:{ value:new THREE.Color(pal ? (nm === 'Wolf3D_Outfit_Top' ? pal.mTop : pal.mPants) : 0xffffff) }, uTintK:{ value:pal && /Top|Bottom/.test(nm) ? .8 : 0 } };
     clothPatch(m, .55);
     let body = '';
     if (nm === 'Wolf3D_Outfit_Top'){ m.roughness = .82; m.normalMap = null; body = `
@@ -2038,11 +2038,13 @@ function styleMale(av){
       if (front && ax < 0.075 && p.y < 1.5) col = vec3(0.95, 0.94, 0.91);
       if (front && abs(ax - 0.077) < 0.005 && p.y < 1.5) col *= 0.78;
       if (p.y < 0.925) col *= 0.88;
+      if (uTintK > 0.0 && !(ax > 0.262 && p.y < 1.42) && !(front && ax < 0.075 && p.y < 1.5)) col = mix(col, uTint*(dot(col, vec3(0.3, 0.59, 0.11))*1.25 + 0.06), uTintK);
       diffuseColor.rgb = col;`; }
     else if (nm === 'Wolf3D_Outfit_Bottom'){ m.roughness = .9; body = `
       vec3 col = vec3(0.16, 0.22, 0.34)*(0.9 + 0.12*fract(sin(dot(floor(p.xy*350.0), vec2(12.9898, 78.233)))*43758.5));
       float sx = abs(abs(p.x) - 0.1) - 0.06; if (abs(sx) < 0.003 && p.y < 0.95) col *= 1.35;
       if (p.y < 0.13) col *= 0.82;
+      if (uTintK > 0.0) col = mix(col, uTint*(dot(col, vec3(0.3, 0.59, 0.11))*3.2 + 0.05), uTintK);
       diffuseColor.rgb = col;`; }
     else if (nm === 'Wolf3D_Outfit_Footwear'){ m.roughness = .65; body = `
       diffuseColor.rgb = p.y < 0.025 ? vec3(0.55) : vec3(0.93, 0.93, 0.91);`; }
@@ -2054,7 +2056,7 @@ function styleMale(av){
           float t = clamp(dot(vB - E, d)/dot(d, d), 0.0, 1.2), f = smoothstep(0.262, 0.3, abs(vB.x));
           vec3 c = E + d*t, nb = c + (vB - c)*mix(1.0, 0.62, f);
           transformed = (inverse(uBind)*vec4(nb, 1.0)).xyz; }` : ''}`);
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vB; uniform vec3 uSkinM;').replace('#include <map_fragment>', `#include <map_fragment>
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vB; uniform vec3 uSkinM, uTint; uniform float uTintK;').replace('#include <map_fragment>', `#include <map_fragment>
         { vec3 p = vB; ${body} }`); });
   });
   attachAtBind(av.model, /Head$/, maleHair(), new THREE.Vector3(0, 1.735, .018));
@@ -2102,9 +2104,22 @@ function maleHair(o = {}){
   const w = new THREE.Group(); w.add(g); return w;
 }
 let HERO_G = 'f'; try { HERO_G = localStorage.getItem('damteoHero') === 'm' ? 'm' : 'f'; } catch (e){}
-function makeHero(g){
-  if (g === 'f' && femSrc) return femAvatar(1.01, 'mom');   // 160 cm
-  return styleMale(new Avatar(avatarSrc, avatarClips, {}));
+/* each visitor gets their own outfit colours so people are easy to tell apart (the local hero keeps the original look) */
+const MP_PAL = [
+  { top:0xc0392b, inner:0xf2ece0, shorts:0x2c3e50, mTop:0xc0392b, mPants:0x2c3e50 },
+  { top:0x2e86c1, inner:0xf5f0e6, shorts:0x7d6b4f, mTop:0x2e86c1, mPants:0x6b5a40 },
+  { top:0x27ae60, inner:0xf0eadb, shorts:0x34495e, mTop:0x2f9e5a, mPants:0x2b2f3a },
+  { top:0xf1c40f, inner:0xffffff, shorts:0x3a3f4a, mTop:0xe0b020, mPants:0x3a3f4a },
+  { top:0x8e44ad, inner:0xf2e8f5, shorts:0x5d6d7e, mTop:0x8e44ad, mPants:0x5d6d7e },
+  { top:0xe67e22, inner:0xfdf2e3, shorts:0x1f3a5f, mTop:0xe67e22, mPants:0x1f3a5f },
+  { top:0x16a085, inner:0xe8f6f3, shorts:0x7f5539, mTop:0x16a085, mPants:0x7f5539 },
+  { top:0xe84393, inner:0xfff0f6, shorts:0x2d3436, mTop:0xe84393, mPants:0x2d3436 },
+  { top:0x3d4a5c, inner:0xe8e8e8, shorts:0xb8a27a, mTop:0x3d4a5c, mPants:0xb8a27a },
+  { top:0x6c7a2f, inner:0xf0ecd8, shorts:0x4a4a4a, mTop:0x6c7a2f, mPants:0x4a4a4a },
+];
+function makeHero(g, pal){
+  if (g === 'f' && femSrc) return femAvatar(1.01, 'mom', pal);   // 160 cm
+  return styleMale(new Avatar(avatarSrc, avatarClips, {}), pal);
 }
 /* the hero picker works from the first moment the intro is shown, also while the scene is still loading */
 function bindHeroPick(){
@@ -7744,7 +7759,8 @@ function mpBadge(){
 function mpAddPeer(id, d){
   if (id === MP.id || MP.peers.has(id) || MP.peers.size >= MP.MAX) return;
   let av;
-  try { av = makeHero(d.g === 'm' ? 'm' : 'f'); } catch (e){ av = null; }
+  let hsh = 0; for (const ch of String(id)) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
+  try { av = makeHero(d.g === 'm' ? 'm' : 'f', MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
   if (!av){ av = new Hiker({ jacket:0x3f6a8a, pants:0x2f3a45, cap:0x2f4b3c }); }
   const tag = mpTag(String(d.n || '손님').slice(0, 16));
   const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
