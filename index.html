@@ -5640,11 +5640,11 @@ function updateCamera(dt){
     camera.lookAt(camera.position.x + dx/hl*Math.cos(e), camera.position.y + Math.sin(e), camera.position.z + dz/hl*Math.cos(e));
   } else camera.lookAt(camTarget);
 }
-/* 하늘을 올려다보면(시선 약 25° 위부터) 위쪽 정보 카드·배치도·할 일 목록이 서서히 사라지고 메뉴 버튼만 남음 */
+/* 하늘을 올려다보면(시선 약 6° 위부터 서서히, 약 24°에서 다 사라짐) 위쪽 정보 카드·배치도·할 일 목록이 서서히 사라지고 메뉴 버튼만 남음 */
 const _hudDir = new THREE.Vector3(); let hudFadeV = -1;
 function hudSkyFade(){
   camera.getWorldDirection(_hudDir);
-  const f = (view === 'tp' || view === 'fp') ? clamp((_hudDir.y - .42)/.3, 0, 1) : 0;
+  const f = (view === 'tp' || view === 'fp') ? clamp((_hudDir.y - .1)/.3, 0, 1) : 0;
   if (Math.abs(f - hudFadeV) < .01) return; hudFadeV = f;
   for (const el of document.querySelectorAll('.brand, .mapwrap, .xp-quest, #xp-hud')){ el.style.opacity = f > 0 ? String(1 - f) : ''; el.style.pointerEvents = f > .7 ? 'none' : ''; }
 }
