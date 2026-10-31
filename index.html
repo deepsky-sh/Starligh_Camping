@@ -193,6 +193,7 @@ body.binoing #c{cursor:grab}
 }
 /* 체험하기 HUD */
 .btn-alt{background:var(--pine);color:#0f2416}
+.brand,.mapwrap,.xp-quest,#xp-hud{transition:opacity .3s}
 .hero-pick{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;color:var(--muted,#9aa7b5)}
 .hero-pick .seg{grid-template-columns:repeat(2,1fr)}
 .hero-pick .seg button{min-width:96px;padding:7px 12px}
@@ -378,6 +379,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
     <div class="places" id="places"></div>
   </section>
   <section class="row">
+    <button id="btn-con" aria-pressed="true">별자리 표시</button>
     <button id="btn-evac" aria-pressed="false">대피로 표시</button>
     <button id="btn-sound" aria-pressed="false">소리 켜기</button>
     <button id="btn-shopmenu">매점 가격표</button>
@@ -4990,26 +4992,127 @@ function eelUpdate(dt, t, night){
 
 /* ---------------- sky extras ---------------- */
 let stars, starsBright, clouds = [];
-function buildStars(){
-  const mk = (n, size, band) => {
-    const pos = new Float32Array(n*3), col = new Float32Array(n*3); const c = new THREE.Color();
-    const nrm = new THREE.Vector3(.35,.55,.76).normalize(), a1 = new THREE.Vector3(1,0,0).cross(nrm).normalize(), a2 = nrm.clone().cross(a1);
-    for (let i=0;i<n;i++){
-      let v;
-      if (band){ const t=rng()*Math.PI*2, off=(rng()+rng()+rng()-1.5)*.16; v = a1.clone().multiplyScalar(Math.cos(t)).add(a2.clone().multiplyScalar(Math.sin(t))).add(nrm.clone().multiplyScalar(off)).normalize(); }
-      else { v = new THREE.Vector3(R(-1,1), R(-1,1), R(-1,1)).normalize(); }
-      if (v.y < -.05) v.y = -v.y;
-      pos.set([v.x*5200, v.y*5200, v.z*5200], i*3);
-      const b = band ? R(.2,.55) : Math.pow(rng(), 2.2)*.9 + .1;
-      const temp = rng(); c.setRGB(b*(temp<.2?1:.85+.15*temp), b*.92, b*(temp>.8?1.1:.95)); col.set([c.r,c.g,c.b], i*3);
-    }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos,3)); g.setAttribute('color', new THREE.BufferAttribute(col,3));
-    const p = new THREE.Points(g, new THREE.PointsMaterial({ size, sizeAttenuation:false, vertexColors:true, transparent:true, opacity:0, depthWrite:false, fog:false, blending:THREE.AdditiveBlending }));
-    p.renderOrder = -1; p.frustumCulled = false; scene.add(p); return p;
+/* ---------------- 실제 밤하늘 (유니티 앱과 같은 자료): 맨눈 별 8,874개(6.5등급까지, Hipparcos·Yale BSC 기반 d3-celestial © Olaf Frohn, BSD-3),
+   별자리 선과 한글 이름, 1등성 이름. 포천 관인면(북위 38.16°, 동경 127.19°)에서 고른 계절의 날짜·시각에 보이는 그대로 놓음 ---------------- */
+const SKY = { g:null, key:'', show:true, lines:null, labels:[], ready:false };
+try { SKY.show = localStorage.getItem('damteoCon') !== '0'; } catch (e){}
+const SKY_R = 5200, D2Rd = Math.PI/180;
+function skyBv(bv){
+  bv = clamp(bv, -.4, 2); const T = 4600*(1/(.92*bv + 1.7) + 1/(.92*bv + .62)), t = T/100; let r, g, b;
+  if (t <= 66){ r = 255; g = 99.4708*Math.log(t) - 161.1196; b = t <= 19 ? 0 : 138.5177*Math.log(t - 10) - 305.0448; }
+  else { r = 329.6987*Math.pow(t - 60, -.1332); g = 288.1222*Math.pow(t - 60, -.0755); b = 255; }
+  const c = new THREE.Color(clamp(r/255, 0, 1), clamp(g/255, 0, 1), clamp(b/255, 0, 1)); return c.lerp(new THREE.Color(1, 1, 1), .35);
+}
+const eqV = (ra, de) => new THREE.Vector3(Math.cos(de)*Math.cos(ra), Math.cos(de)*Math.sin(ra), Math.sin(de));
+function horizonCut(m, isPoints){   // 지평선 아래(땅속)로 내려간 별·선은 그리지 않음
+  m.onBeforeCompile = sh => {
+    sh.vertexShader = 'varying float vWy;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n vWy = (modelMatrix*vec4(transformed, 1.0)).y;');
+    if (isPoints) sh.vertexShader = 'attribute float aSize;\n' + sh.vertexShader.replace('gl_PointSize = size;', 'gl_PointSize = size*aSize;');
+    sh.fragmentShader = 'varying float vWy;\n' + sh.fragmentShader.replace('void main() {', 'void main() {\n if (vWy < -40.0) discard;');
   };
-  stars = mk(Math.round(7000*Q)+1500, 1.6, false);
-  starsBright = mk(Math.round(16000*Q), 1.2, true);
-  stars.userData.extra = mk(260, 3.0, false);
+}
+function buildStars(){
+  SKY.g = new THREE.Group(); SKY.g.matrixAutoUpdate = false; scene.add(SKY.g);
+  const pts = (size) => {
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(3), 3)); g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(3), 3)); g.setAttribute('aSize', new THREE.BufferAttribute(new Float32Array(1), 1));
+    const m = new THREE.PointsMaterial({ size, sizeAttenuation:false, vertexColors:true, transparent:true, opacity:0, depthWrite:false, fog:false, blending:THREE.AdditiveBlending }); horizonCut(m, true);
+    const p = new THREE.Points(g, m); p.renderOrder = -1; p.frustumCulled = false; SKY.g.add(p); return p;
+  };
+  stars = pts(1.6); stars.userData.extra = pts(3.0);
+  // 은하수: 실제 은하면(은하 북극 RA 192.86°, Dec 27.13°)을 따라 흐릿한 빛 알갱이, 궁수자리 쪽(은하 중심)이 더 짙음
+  { const n = Math.round(16000*Q), pos = new Float32Array(n*3), col = new Float32Array(n*3), sz = new Float32Array(n).fill(1);
+    const np = eqV(192.85948*D2Rd, 27.12825*D2Rd), gc = eqV(266.405*D2Rd, -28.936*D2Rd), a1 = gc.clone(), a2 = np.clone().cross(a1).normalize(), c = new THREE.Color();
+    for (let i = 0; i < n; i++){
+      let t = rng()*Math.PI*2; if (rng() < .45) t = (rng() + rng() + rng() - 1.5)*1.3;   // 은하 중심 쪽에 더 많이
+      const off = (rng() + rng() + rng() - 1.5)*(.1 + .08*Math.cos(t)*Math.cos(t));
+      const v = a1.clone().multiplyScalar(Math.cos(t)).addScaledVector(a2, Math.sin(t)).addScaledVector(np, off).normalize();
+      pos.set([v.x*SKY_R, v.y*SKY_R, v.z*SKY_R], i*3);
+      const b = R(.18, .5)*(.75 + .35*Math.max(0, Math.cos(t))); c.setRGB(b, b*.95, b*1.02); col.set([c.r, c.g, c.b], i*3);
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
+    const m = new THREE.PointsMaterial({ size:1.2, sizeAttenuation:false, vertexColors:true, transparent:true, opacity:0, depthWrite:false, fog:false, blending:THREE.AdditiveBlending }); horizonCut(m, true);
+    starsBright = new THREE.Points(g, m); starsBright.renderOrder = -1; starsBright.frustumCulled = false; SKY.g.add(starsBright); }
+  skyLoad();
+}
+async function skyLoad(){
+  try {
+    const [sb, lb, nt] = await Promise.all([fetch('tex/sky/stars.bytes').then(r => r.arrayBuffer()), fetch('tex/sky/conlines.bytes').then(r => r.arrayBuffer()), fetch('tex/sky/skynames.txt').then(r => r.text())]);
+    // 별: ra, dec(라디안), 등급×100, B-V×1000
+    { const dv = new DataView(sb), n = dv.getInt32(0, true), pos = new Float32Array(n*3), col = new Float32Array(n*3), sz = new Float32Array(n);
+      for (let i = 0; i < n; i++){
+        const o = 4 + i*16, ra = dv.getFloat32(o, true), de = dv.getFloat32(o + 4, true), mag = dv.getInt16(o + 8, true)/100, bv = dv.getInt16(o + 10, true)/1000;
+        const v = eqV(ra, de); pos.set([v.x*SKY_R, v.y*SKY_R, v.z*SKY_R], i*3);
+        const br = clamp(1.25 - (mag + 1)*.14, .16, 1.25), c = skyBv(bv).multiplyScalar(br); col.set([c.r, c.g, c.b], i*3);
+        sz[i] = clamp(1 + (3 - mag)*.42, .55, 3.4);
+      }
+      const g = stars.geometry; g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1)); }
+    // 별자리 선: 대원(great circle)을 3° 이하 조각으로, 별 바로 옆은 조금 띄움
+    { const dv = new DataView(lb), n = dv.getInt32(0, true), arr = [];
+      for (let i = 0; i < n; i++){
+        const o = 4 + i*16, a = eqV(dv.getFloat32(o, true), dv.getFloat32(o + 4, true)), b = eqV(dv.getFloat32(o + 8, true), dv.getFloat32(o + 12, true));
+        const ang = a.angleTo(b)/D2Rd, gap = ang > 1.6 ? .45 : ang*.15, pieces = Math.max(1, Math.ceil((ang - 2*gap)/3));
+        const sl = (u) => { const t = (gap + u*(ang - 2*gap))/ang, q = new THREE.Quaternion().setFromUnitVectors(a, b); return a.clone().applyQuaternion(new THREE.Quaternion().slerp(q, t)); };
+        for (let k = 0; k < pieces; k++){ const p = sl(k/pieces), q = sl((k + 1)/pieces); arr.push(p.x*SKY_R*.995, p.y*SKY_R*.995, p.z*SKY_R*.995, q.x*SKY_R*.995, q.y*SKY_R*.995, q.z*SKY_R*.995); }
+      }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+      const m = new THREE.LineBasicMaterial({ color:0x88aaff, transparent:true, opacity:0, depthWrite:false, fog:false }); horizonCut(m, false);
+      SKY.lines = new THREE.LineSegments(g, m); SKY.lines.frustumCulled = false; SKY.lines.renderOrder = -1; SKY.g.add(SKY.lines); }
+    // 이름: 별자리(한글) + 1등성
+    for (const line of nt.split('\n')){
+      const f = line.trim().split('\t'); if (f.length < 6) continue;
+      const isC = f[0] === 'C', ra = +f[2]*D2Rd, de = +f[3]*D2Rd, name = f[4];
+      if (!isC && +f[5] > 1.6) continue;
+      const sp = skyLabel(name, isC); sp.position.copy(eqV(ra, de)).multiplyScalar(SKY_R*.99);
+      if (!isC) sp.center.set(-.08, 1.15);   // 별 이름은 별 오른쪽 위
+      SKY.g.add(sp); SKY.labels.push(sp);
+    }
+    SKY.ready = true; SKY.key = '';
+  } catch (e){ console.warn('real sky', e); }
+}
+function skyLabel(text, con){
+  const cv = document.createElement('canvas'), x = cv.getContext('2d'), fs = 40; x.font = `${con ? 600 : 500} ${fs}px "IBM Plex Sans KR", sans-serif`;
+  const w = Math.ceil(x.measureText(text).width) + 16; cv.width = w; cv.height = fs + 16;
+  x.font = `${con ? 600 : 500} ${fs}px "IBM Plex Sans KR", sans-serif`; x.textBaseline = 'middle'; x.textAlign = 'center';
+  x.shadowColor = 'rgba(0,0,0,.8)'; x.shadowBlur = 6; x.fillStyle = con ? 'rgba(170,196,255,1)' : 'rgba(255,236,200,1)'; x.fillText(text, w/2, cv.height/2);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:t, transparent:true, opacity:0, depthWrite:false, fog:false, sizeAttenuation:false }));
+  const h = con ? .028 : .022; sp.scale.set(h*w/cv.height, h, 1); sp.renderOrder = 2; sp.userData.con = con; return sp;
+}
+/* 적도좌표(J2000) → 이 장면의 월드: 세차 → 그날의 항성시로 지평좌표(동·북·위) → 장면 방위(−Z가 북서 320°) */
+function skyJD(){
+  const now = new Date(), cur = (m => m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter')(now.getMonth() + 1);
+  let Y = now.getFullYear(), M = now.getMonth() + 1, D = now.getDate();
+  if (season !== cur){ const mm = { spring:4, summer:7, autumn:10, winter:1 }[season]; let best = null, bd = 1e18;
+    for (let y = Y - 1; y <= Y + 1; y++){ const d = Date.UTC(y, mm - 1, 15), dd = Math.abs(d - now.getTime()); if (dd < bd){ bd = dd; best = [y, mm, 15]; } } [Y, M, D] = best; }
+  const ms = Date.UTC(Y, M - 1, D) + (hour - 9)*3600e3 + (hour < 12 ? 86400e3 : 0);   // 관측하는 밤: 0~12시는 다음날 새벽
+  return 2440587.5 + ms/86400e3;
+}
+function skyMatrix(jd){
+  const T = (jd - 2451545)/36525, mul = (A, B) => A.map((r, i) => B[0].map((_, j) => r.reduce((s, _, k) => s + A[i][k]*B[k][j], 0)));
+  const gmst = 280.46061837 + 360.98564736629*(jd - 2451545) + .000387933*T*T - T*T*T/38710000;
+  const lst = (((gmst + 127.19) % 360) + 360) % 360*D2Rd, phi = 38.163*D2Rd, cl = Math.cos(lst), sl = Math.sin(lst), sp = Math.sin(phi), cp = Math.cos(phi);
+  const Rz = [[cl, sl, 0], [-sl, cl, 0], [0, 0, 1]], A = [[0, 1, 0], [-sp, 0, cp], [cp, 0, sp]];
+  const E = bearingDir(90, 0, new THREE.Vector3()), N = bearingDir(0, 0, new THREE.Vector3()), B = [[E.x, N.x, 0], [E.y, N.y, 1], [E.z, N.z, 0]];
+  const as = D2Rd/3600, z0 = (2306.2181*T + .30188*T*T)*as, z = (2306.2181*T + 1.09468*T*T)*as, th = (2004.3109*T - .42665*T*T)*as;
+  const c0 = Math.cos(z0), s0 = Math.sin(z0), cz = Math.cos(z), sz = Math.sin(z), ct = Math.cos(th), st = Math.sin(th);
+  const P = [[c0*ct*cz - s0*sz, -s0*ct*cz - c0*sz, -st*cz], [c0*ct*sz + s0*cz, -s0*ct*sz + c0*cz, -st*sz], [c0*st, -s0*st, ct]];
+  const M = mul(B, mul(A, mul(Rz, P)));
+  return new THREE.Matrix4().set(M[0][0], M[0][1], M[0][2], 0, M[1][0], M[1][1], M[1][2], 0, M[2][0], M[2][1], M[2][2], 0, 0, 0, 0, 1);
+}
+function skyUpdate(){
+  if (!SKY.g) return;
+  const key = season + '|' + hour.toFixed(3);
+  if (key !== SKY.key){ SKY.key = key; SKY.g.matrix.copy(skyMatrix(skyJD())); SKY.g.matrixWorldNeedsUpdate = true; SKY.g.updateMatrixWorld(true);
+    for (const sp of SKY.labels){ sp.getWorldPosition(_skyW); sp.userData.up = _skyW.y > 120; } }
+  const on = SKY.show && SKY.ready && nightF > .02, a = on ? nightF : 0;
+  if (SKY.lines){ SKY.lines.visible = a > 0; SKY.lines.material.opacity = .38*a; }
+  for (const sp of SKY.labels){ sp.visible = a > 0 && sp.userData.up; sp.material.opacity = (sp.userData.con ? .8 : .9)*a; }
+}
+const _skyW = new THREE.Vector3();
+function skyToggle(){
+  SKY.show = !SKY.show; try { localStorage.setItem('damteoCon', SKY.show ? '1' : '0'); } catch (e){}
+  const b = document.getElementById('btn-con'); if (b) b.setAttribute('aria-pressed', String(SKY.show));
+  toast(SKY.show ? (nightF > .2 ? '<b>별자리</b> 선과 이름을 보여요 · N 키로 끄기' : '<b>별자리 표시</b>를 켰어요 · 해가 지고 별이 뜨면 나타나요') : '<b>별자리</b> 선과 이름을 숨겼어요');
 }
 function buildClouds(){
   const texs = [cloudTexture(1), cloudTexture(2), cloudTexture(3), cloudTexture(4)];
@@ -5478,7 +5581,7 @@ function binoClose(){
   if (!BN.on) return;
   BN.on = false; document.body.classList.remove('binoing'); $('#bino').hidden = true;
   view = BN.prev; camera.rotation.order = 'XYZ'; camera.fov = BN.fov; camera.updateProjectionMatrix();
-  hero.root.visible = view !== 'fp'; if (view === 'tp') camPitch = clamp(camPitch, -1.25, .35);
+  hero.root.visible = view !== 'fp'; if (view === 'tp') camPitch = clamp(camPitch, -1.25, 1.45);
   if (BN.deep) BN.deep.visible = false;
   stars.material.size = 1.6; starsBright.material.size = 1.2; stars.userData.extra.material.size = 3.0;
   helpUpdate();
@@ -5526,12 +5629,24 @@ function updateCamera(dt){
     return;
   }
   camTarget.set(p.x, p.y + 1.45 - SIT.drop, p.z);
-  const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
+  const pu = Math.min(camPitch, .35), cp = Math.cos(pu), sp = Math.sin(pu);
   camPos.set(camTarget.x + Math.sin(camYaw)*cp*camDist, camTarget.y - sp*camDist, camTarget.z + Math.cos(camYaw)*cp*camDist);
   const gmin = H(camPos.x, camPos.z) + .45; if (camPos.y < gmin) camPos.y = gmin;
   shopCamClamp(camTarget, camPos);
   camera.position.lerp(camPos, 1 - Math.exp(-dt*14));
-  camera.lookAt(camTarget);
+  if (camPitch > .35){   // 더 올려다보기: 카메라는 그 자리에 두고 시선만 하늘 쪽으로 (천정 가까이까지)
+    const dx = camTarget.x - camera.position.x, dy = camTarget.y - camera.position.y, dz = camTarget.z - camera.position.z, hl = Math.hypot(dx, dz) || 1;
+    const e = Math.min(1.53, Math.atan2(dy, hl) + (camPitch - .35)*1.3);
+    camera.lookAt(camera.position.x + dx/hl*Math.cos(e), camera.position.y + Math.sin(e), camera.position.z + dz/hl*Math.cos(e));
+  } else camera.lookAt(camTarget);
+}
+/* 하늘을 올려다보면(시선 약 25° 위부터) 위쪽 정보 카드·배치도·할 일 목록이 서서히 사라지고 메뉴 버튼만 남음 */
+const _hudDir = new THREE.Vector3(); let hudFadeV = -1;
+function hudSkyFade(){
+  camera.getWorldDirection(_hudDir);
+  const f = (view === 'tp' || view === 'fp') ? clamp((_hudDir.y - .42)/.3, 0, 1) : 0;
+  if (Math.abs(f - hudFadeV) < .01) return; hudFadeV = f;
+  for (const el of document.querySelectorAll('.brand, .mapwrap, .xp-quest, #xp-hud')){ el.style.opacity = f > 0 ? String(1 - f) : ''; el.style.pointerEvents = f > .7 ? 'none' : ''; }
 }
 function catView(){
   if (nightF > .4) setHour(14, true);
@@ -6145,6 +6260,7 @@ function scopeBindUI(){
   const S = SCOPE;
   $('#act-scope').addEventListener('click', scopeOpen);
   $('#act-sit').addEventListener('click', sitToggle);
+  $('#btn-con').addEventListener('click', skyToggle); $('#btn-con').setAttribute('aria-pressed', String(SKY.show));
   $('#sc-close').addEventListener('click', scopeClose);
   document.querySelectorAll('#sc-tgt button').forEach(b => b.addEventListener('click', () => scopeSetTarget(b.dataset.t)));
   document.querySelectorAll('#sc-ep button').forEach(b => b.addEventListener('click', () => scopeSetEyepiece(+b.dataset.e)));
@@ -7610,6 +7726,7 @@ function bindInput(){
     if (e.code === 'KeyB' && !e.repeat) binoToggle();
     if (e.code === 'Escape' && BN.on) binoClose();
     if (e.code === 'KeyQ' && !e.repeat) sitToggle();
+    if (e.code === 'KeyN' && !e.repeat) skyToggle();
     if (e.code === 'KeyV' && view !== 'bino') setView(view === 'tp' ? 'fp' : view === 'fp' ? 'air' : 'tp');
     if (e.code === 'KeyC'){ if (view === 'cat') setView('tp'); else catView(); }
     if (e.code === 'KeyT'){ const ks=['day','dusk','night']; const i=ks.findIndex(k=>Math.abs(presetHour(k)-hourTarget)<.05); setHour(presetHour(ks[(i+1)%3])); }
@@ -7630,7 +7747,7 @@ function bindInput(){
   });
   canvas.addEventListener('pointermove', e => {
     if (view === 'bino' && document.pointerLockElement === canvas){ const f = camera.fov/62; camYaw -= e.movementX*.0024*f; camPitch = clamp(camPitch - e.movementY*.002*f, -1.35, 1.5); return; }
-    if (document.pointerLockElement === canvas){ camYaw -= e.movementX*.0024; camPitch = clamp(camPitch - e.movementY*.002, -1.35, 1.3); return; }
+    if (document.pointerLockElement === canvas){ camYaw -= e.movementX*.0024; camPitch = clamp(camPitch - e.movementY*.002, -1.35, 1.55); return; }
     if (!drag || drag.id !== e.pointerId) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; drag.moved += Math.abs(dx)+Math.abs(dy);
     if (view === 'scope'){ scopeDrag(dx, dy); return; }
@@ -7639,7 +7756,7 @@ function bindInput(){
     if (view === 'xpcam') return;
     const s = e.pointerType === 'touch' ? .0065 : .0045;
     if (view === 'cat'){ catCam.yaw -= dx*s; catCam.pitch = clamp(catCam.pitch - dy*s*.85, -.3, .85); return; }
-    camYaw -= dx*s; camPitch = clamp(camPitch - dy*s*.85, view==='fp' ? -1.35 : -1.25, view==='fp' ? 1.3 : .35);
+    camYaw -= dx*s; camPitch = clamp(camPitch - dy*s*.85, view==='fp' ? -1.35 : -1.25, view==='fp' ? 1.55 : 1.45);
   });
   const end = e => { if (drag && drag.id === e.pointerId){ if (drag.moved < 6 && EXP.on){ if (HG.on && hgClick(e.clientX, e.clientY)){ drag = null; return; } if ((view === 'tp' || view === 'fp') && !EXP.lock && xpHit(e.clientX, e.clientY)){ drag = null; return; } } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && scopeHit(e.clientX, e.clientY)){ drag = null; if (Math.hypot(player.pos.x - SCOPE.x, player.pos.z - SCOPE.z) < 4.6) scopeOpen(); else toast('<b>망원경</b> · 가까이 가서 클릭(탭)하면 달과 토성을 볼 수 있어요'); return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && !(EXP.on && EXP.mode !== 'free') && shopHit(e.clientX, e.clientY)){ shopMenuOpen(); drag = null; return; } if (drag.moved < 6 && (view === 'tp' || view === 'fp') && catHit(e.clientX, e.clientY)){ catView(); drag = null; return; } if (drag.moved < 4 && view==='fp' && e.pointerType==='mouse') canvas.requestPointerLock?.()?.catch?.(()=>{}); drag = null; } };
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
@@ -8154,6 +8271,7 @@ function tick(dt, t){
   styledUpdate();
   helpUpdate();
   updateCamera(dt);
+  hudSkyFade();
   const focus = view === 'air' ? orbit.target : view === 'cat' ? CAT.root.position : player.pos;
   const dir = sun.userData.dir || sunDir;
   sun.position.set(focus.x + dir.x*220, focus.y + dir.y*220, focus.z + dir.z*220);
@@ -8165,7 +8283,7 @@ function tick(dt, t){
   updateCreek(dt, t);
   if (waterMat && SEASONS[season].water !== 'ice'){ waterMat.normalMap.offset.set(t*.02, -t*.25); }
   clouds.forEach(c => { c.position.x += c.userData.v*dt; if (c.position.x > 3000) c.position.x = -3000; });
-  if (stars){ stars.rotation.y = t*.004; starsBright.rotation.y = t*.004; stars.userData.extra.rotation.y = t*.004; }
+  skyUpdate();
   updateEnv(dt);
   renderFrame();
   frames++; fpsT += dt; if (fpsT > 1){ fps = frames/fpsT; frames = 0; fpsT = 0; adaptQuality(); }
