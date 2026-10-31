@@ -359,6 +359,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
     <button id="btn-sound" aria-pressed="false">소리 켜기</button>
     <button id="btn-shopmenu">매점 가격표</button>
     <button id="btn-info">캠핑장 정보</button>
+    <button id="btn-home">← 처음 화면으로</button>
   </section>
   <section class="row panel-foot">
     <button id="btn-close-menu">메뉴 닫기</button>
@@ -7530,6 +7531,13 @@ function bindInput(){
   $('#tb-jump').addEventListener('click', jump);
   document.querySelectorAll('#seg-view button').forEach(b => b.addEventListener('click', () => setView(b.dataset.v)));
   document.querySelectorAll('#seg-time button').forEach(b => b.addEventListener('click', () => setHour(presetHour(b.dataset.t))));
+  $('#btn-home').addEventListener('click', () => {
+    if (EXP.on){ location.hash = ''; location.reload(); return; }   // the experience has a lot of state: start clean
+    if (BN.on) binoClose(); if (SCOPE.on) scopeClose();
+    if (document.pointerLockElement) document.exitPointerLock?.();
+    $('#panel').classList.remove('open'); $('#menu-toggle').setAttribute('aria-expanded', 'false');
+    started = false; setView('air'); $('#intro').hidden = false; $('#btn-start').focus();
+  });
   $('#bino-btn').addEventListener('click', e => { e.currentTarget.blur(); binoToggle(); });
   $('#bino-x').addEventListener('click', binoClose); $('#bino-plus').addEventListener('click', () => binoZoom(1.2)); $('#bino-minus').addEventListener('click', () => binoZoom(1/1.2));
   document.querySelectorAll('#seg-season button').forEach(b => b.addEventListener('click', () => applySeason(b.dataset.s, true)));
