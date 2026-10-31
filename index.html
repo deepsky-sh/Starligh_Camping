@@ -2909,7 +2909,7 @@ function cabinShell(opt = {}){
 }
 /* camp furniture around a pitched tent */
 const furnM = { fabric:[0x2f3a30,0x6b4d33,0x2e3d52,0x7a6a52,0x3c3f44], frame: new THREE.MeshStandardMaterial({ color:0x1d1f22, roughness:.4, metalness:.7 }), alu: new THREE.MeshStandardMaterial({ color:0xb8bcc0, roughness:.35, metalness:.85 }) };
-const SEATS = [];   // 앉을 수 있는 캠핑의자 (등받이가 -z쪽, 앉으면 +z쪽을 봄)
+const SEATS = []; window.__seats = SEATS;   // 앉을 수 있는 캠핑의자 (등받이가 -z쪽, 앉으면 +z쪽을 봄)
 function chair(x, z, ry, color=0x3c4a3a){
   const g = new THREE.Group(); const f = new THREE.MeshStandardMaterial({ color, roughness:.85, side:THREE.DoubleSide });
   const seat = gridSurface(4,4,(u,v)=>[(u-.5)*.5, .34 - .05*Math.sin(Math.PI*u)*Math.sin(Math.PI*v) + v*.04, (v-.5)*.42]); g.add(new THREE.Mesh(seat, f));
