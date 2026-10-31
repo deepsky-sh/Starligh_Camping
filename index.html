@@ -7475,7 +7475,7 @@ function mapLayout(){
   const rb = br ? br.getBoundingClientRect() : null; r.setProperty('--brandb', (rb && rb.height ? Math.round(rb.bottom) : 110) + 'px');
   const mw = mm.getBoundingClientRect().width, narrow = innerWidth <= 760;
   r.setProperty('--mapx', (MAPSZ.cur === 'x' ? 96 : Math.round(mw)) + 'px');
-  r.setProperty('--mapb', (narrow ? 124 : Math.round(w.getBoundingClientRect().height)) + 'px');
+  r.setProperty('--mapb', (narrow || MAPSZ.cur === 'x' && false ? 14 : Math.round(w.getBoundingClientRect().height)) + 'px');
 }
 function mapSize(sz, save){
   if (!['l', 'm', 's', 'x'].includes(sz)) sz = 'm'; MAPSZ.cur = sz;
