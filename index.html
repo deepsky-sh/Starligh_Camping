@@ -5042,8 +5042,8 @@ async function skyLoad(){
       for (let i = 0; i < n; i++){
         const o = 4 + i*16, ra = dv.getFloat32(o, true), de = dv.getFloat32(o + 4, true), mag = dv.getInt16(o + 8, true)/100, bv = dv.getInt16(o + 10, true)/1000;
         const v = eqV(ra, de); pos.set([v.x*SKY_R, v.y*SKY_R, v.z*SKY_R], i*3);
-        const br = clamp(1.25 - (mag + 1)*.14, .16, 1.25), c = skyBv(bv).multiplyScalar(br); col.set([c.r, c.g, c.b], i*3);
-        sz[i] = clamp(1 + (3 - mag)*.42, .55, 3.4);
+        const br = clamp(1.4 - (mag + 1)*.15, .2, 1.45), c = skyBv(bv).multiplyScalar(br); col.set([c.r, c.g, c.b], i*3);
+        sz[i] = clamp(1.25 + (3 - mag)*.5, .65, 4.2);
       }
       const g = stars.geometry; g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1)); }
     // 별자리 선: 대원(great circle)을 3° 이하 조각으로, 별 바로 옆은 조금 띄움
@@ -5105,7 +5105,7 @@ function skyUpdate(){
   if (key !== SKY.key){ SKY.key = key; SKY.g.matrix.copy(skyMatrix(skyJD())); SKY.g.matrixWorldNeedsUpdate = true; SKY.g.updateMatrixWorld(true);
     for (const sp of SKY.labels){ sp.getWorldPosition(_skyW); sp.userData.up = _skyW.y > 120; } }
   const on = SKY.show && SKY.ready && nightF > .02, a = on ? nightF : 0;
-  if (SKY.lines){ SKY.lines.visible = a > 0; SKY.lines.material.opacity = .38*a; }
+  if (SKY.lines){ SKY.lines.visible = a > 0; SKY.lines.material.opacity = .3*a; }
   for (const sp of SKY.labels){ sp.visible = a > 0 && sp.userData.up; sp.material.opacity = (sp.userData.con ? .8 : .9)*a; }
 }
 const _skyW = new THREE.Vector3();
