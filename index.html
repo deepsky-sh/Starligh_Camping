@@ -1830,6 +1830,10 @@ class Avatar {
     this.phase = 0;
   }
   update(dt, speed){
+    // 매 프레임 뼈를 기본 자세로 되돌린 뒤 애니메이션을 입힘: 애니메이션이 없는 뼈(척추 등)에 앉기·인사 회전이 프레임마다 쌓여
+    // 몸이 점점 숙여지던 문제를 막음
+    if (!this._rest){ this._rest = []; this.model.traverse(o => { if (o.isBone) this._rest.push([o, o.quaternion.clone(), o.position.clone()]); }); }
+    for (const r of this._rest){ r[0].quaternion.copy(r[1]); r[0].position.copy(r[2]); }
     const w = smooth(.08, .9, speed), run = smooth(2.5, 4.6, speed);
     this.act.idle.setEffectiveWeight(1 - w);
     this.act.walk.setEffectiveWeight(w*(1 - run));
@@ -5361,11 +5365,18 @@ function sitApply(av, root, ry, sit, f, sx, sy, sz){   // root를 의자 위치(
   const k = av.k || 1, e = sit*sit*(3 - 2*sit);
   root.rotation.y = ry;
   if (!f.av || f.av !== av){ f.av = av; f.root = root; f.bones = null; }
+  if (sit >= 1 && f.frozen && Math.abs(Math.atan2(Math.sin(f.frozenRy - ry), Math.cos(f.frozenRy - ry))) < .02){   // 다 앉은 뒤에는 처음 잡은 자세 그대로 (숨쉬기·흔들림 없이 가만히)
+    for (const r of f.frozen){ r[0].quaternion.copy(r[1]); r[0].position.copy(r[2]); }
+    root.position.set(sx + f.frozenOff.x, sy + f.frozenOff.y, sz + f.frozenOff.z); root.updateMatrixWorld(true); return;
+  }
+  if (sit < 1) f.frozen = null;
+  if (sit >= 1 && av.mixer){ av.act.idle.setEffectiveWeight(1); for (const n in av.act) if (n !== 'idle') av.act[n].setEffectiveWeight(0); }
   f.k = k; poseSit(f, e, 0, 1, true);
   const B = f.bones; if (!B || !B.Hips) return;
   root.updateMatrixWorld(true); B.Hips.getWorldPosition(_sitH);
   const bx = sx - Math.sin(ry)*.04, bz = sz - Math.cos(ry)*.04, by = sy + SEAT_TOP + .085*k;   // 좌판 가운데에서 등받이 쪽으로 4cm, 좌판 위 골반 높이
   root.position.x += (bx - _sitH.x)*e; root.position.y += (by - _sitH.y)*e; root.position.z += (bz - _sitH.z)*e;
+  if (sit >= 1){ f.frozen = []; av.model.traverse(o => { if (o.isBone) f.frozen.push([o, o.quaternion.clone(), o.position.clone()]); }); f.frozenRy = ry; f.frozenOff = new THREE.Vector3(root.position.x - sx, root.position.y - sy, root.position.z - sz); root.updateMatrixWorld(true); }
 }
 function seatChair(x, z, ry){   // 휴대용 캠핑의자를 그 자리에 펴기 (일어나면 접어서 치움)
   const g = chair(x, z, ry, furnM.fabric[Math.floor(Math.random()*furnM.fabric.length)]); const s = SEATS[SEATS.length - 1]; s.own = true; g.scale.setScalar(.01); return s;
@@ -5406,8 +5417,7 @@ function sitUpdate(dt){
   if (SIT.k > 0 && SIT.seat){
     const e = SIT.k*SIT.k*(3 - 2*SIT.k), s = SIT.seat, gy = groundAt(s.x, s.z);
     hero.root.position.set(lerp(SIT.from.x, s.x, e), lerp(SIT.from.y, gy, e), lerp(SIT.from.z, s.z, e));
-    let d = s.ry - player.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); player.heading += d*(1 - Math.exp(-dt*10));
-    if (SIT.on && SIT.k >= 1 && hero.mixer) hero.mixer.setTime(0);   // 다 앉으면 숨쉬기·흔들림 없이 고정
+    let d = s.ry - player.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); player.heading = SIT.k >= 1 ? s.ry : player.heading + d*(1 - Math.exp(-dt*10));
     sitApply(hero, hero.root, player.heading, SIT.k, SIT.f || (SIT.f = {}), hero.root.position.x, hero.root.position.y, hero.root.position.z);
   }
 }
@@ -8117,7 +8127,6 @@ function mpUpdate(dt){
     p.sk = clamp((p.sk || 0) + (p.sit ? 1 : -1)*dt*3.2, 0, 1);
     if (p.sit === 2 && !p.chair && p.sk > 0){ p.chair = seatChair(p.x, p.z, p.h); p.chair.own = false; p.chair.peer = true; }
     if (p.chair){ const sc = clamp(p.sk*2, .01, 1); p.chair.g.scale.set(sc, sc, sc); if (p.sk <= 0 || p.sit !== 2 && p.sit){ seatDrop(p.chair); p.chair = null; } }
-    if (p.sit && p.sk >= 1 && p.av.mixer) p.av.mixer.setTime(0);
     if (p.sk > 0 && p.av.model) sitApply(p.av, p.av.root, p.h, p.sk, p.sf || (p.sf = {}), p.x, p.y, p.z);
     const pa = nowS - p.waveAt; mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
     if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + (p.g === 'm' ? 2.45 : 2.3), p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
