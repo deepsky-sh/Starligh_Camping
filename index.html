@@ -5339,26 +5339,39 @@ function updatePlayer(dt){
   hero.update(dt, player.speed, player.air);
 }
 
-/* ---------------- 앉기: 캠핑의자 가까이에서 '앉기'(Q) → 의자에 앉고, 이동 키·조이스틱으로 일어남 ---------------- */
-const SIT = { on:false, k:0, seat:null, from:new THREE.Vector3(), cand:null, f:null, drop:0 };
-function sitAvail(){ return started && !!hero.model && !SCOPE.on && !BN.on && (view === 'tp' || view === 'fp') && !(EXP.on && (EXP.mode !== 'free' || EXP.lock)); }
-function sitApply(av, root, ry, sit, f){   // 의자에 앉은 자세 (엉덩이를 낮추고 다리·팔을 접음) — 위치는 의자 기준으로 보정
+/* ---------------- 앉기: 어디서나 '앉기'(Q) → 가까운 캠핑의자에 앉거나, 없으면 그 자리에 캠핑의자를 펴고 앉음.
+   엉덩이가 좌판에 닿도록 자세를 잡은 뒤 골반 뼈 위치를 재서 좌판 위로 맞춤. 이동 키·조이스틱·일어서기로 일어나면 편 의자는 접힘 ---------------- */
+const SIT = { on:false, k:0, seat:null, from:new THREE.Vector3(), cand:null, f:null, drop:0, own:null };
+const SEAT_TOP = .31, _sitH = new THREE.Vector3();
+function sitAvail(){ return started && !!hero.model && !SCOPE.on && !BN.on && !player.air && (view === 'tp' || view === 'fp') && !(EXP.on && (EXP.mode !== 'free' || EXP.lock)); }
+function sitApply(av, root, ry, sit, f, sx, sy, sz){   // root를 의자 위치(sx,sy,sz = 의자 바닥 중심)에 두고 앉은 자세를 만든 뒤, 골반을 좌판 위로 옮김
   const k = av.k || 1, e = sit*sit*(3 - 2*sit);
-  root.position.x -= Math.sin(ry)*.1*k*e; root.position.z -= Math.cos(ry)*.1*k*e; root.position.y -= .42*k*e; root.rotation.y = ry;
+  root.rotation.y = ry;
   if (!f.av || f.av !== av){ f.av = av; f.root = root; f.bones = null; }
   f.k = k; poseSit(f, e, 0, 1, true);
+  const B = f.bones; if (!B || !B.Hips) return;
+  root.updateMatrixWorld(true); B.Hips.getWorldPosition(_sitH);
+  const bx = sx - Math.sin(ry)*.04, bz = sz - Math.cos(ry)*.04, by = sy + SEAT_TOP + .085*k;   // 좌판 가운데에서 등받이 쪽으로 4cm, 좌판 위 골반 높이
+  root.position.x += (bx - _sitH.x)*e; root.position.y += (by - _sitH.y)*e; root.position.z += (bz - _sitH.z)*e;
 }
+function seatChair(x, z, ry){   // 휴대용 캠핑의자를 그 자리에 펴기 (일어나면 접어서 치움)
+  const g = chair(x, z, ry, furnM.fabric[Math.floor(Math.random()*furnM.fabric.length)]); const s = SEATS[SEATS.length - 1]; s.own = true; g.scale.setScalar(.01); return s;
+}
+function seatDrop(s){ if (!s) return; scene.remove(s.g); const i = SEATS.indexOf(s); if (i >= 0) SEATS.splice(i, 1); }
 function sitStart(seat){
   SIT.from.copy(hero.root.position); SIT.seat = seat; SIT.on = true; SIT.f = {};
   const gy = groundAt(seat.x, seat.z); player.pos.set(seat.x, gy, seat.z); player.vel.set(0, 0, 0); player.speed = 0; player.air = false; player.vy = 0;
 }
 function sitStop(){
   const s = SIT.seat; SIT.on = false; if (!s) return;
-  const x = s.x + Math.sin(s.ry)*.85, z = s.z + Math.cos(s.ry)*.85; player.pos.set(x, groundAt(x, z), z); resolveCollisions(player.pos);
+  const x = s.x + Math.sin(s.ry)*(s.own ? .55 : .85), z = s.z + Math.cos(s.ry)*(s.own ? .55 : .85); player.pos.set(x, groundAt(x, z), z); resolveCollisions(player.pos);
 }
 function sitToggle(){
   if (SIT.on){ sitStop(); return; }
-  if (!SIT.cand || !sitAvail()) return; sitStart(SIT.cand);
+  if (!sitAvail() || SIT.k > 0) return;
+  if (SIT.cand){ sitStart(SIT.cand); return; }
+  const h = player.heading, x = player.pos.x - Math.sin(h)*.12, z = player.pos.z - Math.cos(h)*.12;   // 지금 보는 방향으로 의자를 펴고 앉음
+  SIT.own = seatChair(x, z, h); sitStart(SIT.own); toast('캠핑의자를 펴고 앉았어요 · 움직이면 접어요');
 }
 function sitUpdate(dt){
   const ok = sitAvail();
@@ -5367,18 +5380,19 @@ function sitUpdate(dt){
     if (!ok || mv || !SIT.seat.g.parent) sitStop();
   }
   SIT.k = clamp(SIT.k + (SIT.on ? 1 : -1)*dt*3.2, 0, 1);
+  if (SIT.own){ const sc = clamp(SIT.on ? SIT.k*2.2 : SIT.k*1.6, .01, 1); SIT.own.g.scale.set(sc, sc, sc); if (!SIT.on && SIT.k <= 0){ seatDrop(SIT.own); SIT.own = null; } }
   let near = null;
-  if (!SIT.on && ok){ let bd = 1.7; for (const s of SEATS){ if (!s.g.parent) continue; const d = Math.hypot(s.x - player.pos.x, s.z - player.pos.z); if (d < bd && Math.abs(groundAt(s.x, s.z) - player.pos.y) < 1) { bd = d; near = s; } } }
+  if (!SIT.on && ok){ let bd = 1.7; for (const s of SEATS){ if (!s.g.parent || s.own || s.peer) continue; const d = Math.hypot(s.x - player.pos.x, s.z - player.pos.z); if (d < bd && Math.abs(groundAt(s.x, s.z) - player.pos.y) < 1) { bd = d; near = s; } } }
   SIT.cand = near;
-  const btn = $('#act-sit'); const show = ok && (SIT.on || !!near) && !$('#act-scope').offsetParent;
+  const btn = $('#act-sit'); const show = ok && (SIT.on || SIT.k <= 0) && !$('#act-scope').offsetParent;
   if (btn.hidden === show){ btn.hidden = !show; }
-  if (show){ const l = SIT.on ? '일어서기' : '앉기'; if ($('#sit-lbl').textContent !== l) $('#sit-lbl').textContent = l; }
-  SIT.drop = SIT.k > 0 ? .42*(hero.k || 1)*SIT.k*SIT.k*(3 - 2*SIT.k) : 0;
+  if (show){ const l = SIT.on ? '일어서기' : near ? '의자에 앉기' : '의자 펴고 앉기'; if ($('#sit-lbl').textContent !== l) $('#sit-lbl').textContent = l; }
+  SIT.drop = SIT.k > 0 ? .44*(hero.k || 1)*SIT.k*SIT.k*(3 - 2*SIT.k) : 0;
   if (SIT.k > 0 && SIT.seat){
     const e = SIT.k*SIT.k*(3 - 2*SIT.k), s = SIT.seat, gy = groundAt(s.x, s.z);
     hero.root.position.set(lerp(SIT.from.x, s.x, e), lerp(SIT.from.y, gy, e), lerp(SIT.from.z, s.z, e));
     let d = s.ry - player.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); player.heading += d*(1 - Math.exp(-dt*10));
-    sitApply(hero, hero.root, player.heading, SIT.k, SIT.f || (SIT.f = {}));
+    sitApply(hero, hero.root, player.heading, SIT.k, SIT.f || (SIT.f = {}), hero.root.position.x, hero.root.position.y, hero.root.position.z);
   }
 }
 /* ---------------- 쌍안경 (10×50) — 유니티 앱과 같은 방식: 65° 접안 시야 ÷ 배율, 둥근 시야, 배율 7~20× ---------------- */
@@ -7994,14 +8008,14 @@ function mpAddPeer(id, d){
 }
 function mpDropPeer(id){
   const p = MP.peers.get(id); if (!p) return;
-  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
+  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.chair) seatDrop(p.chair); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
 }
 function mpApply(id, d){
   if (!d || id === MP.id) return;
   if (d.t && Date.now() - d.t > 120000){ try { MP.fb.remove(MP.fb.ref(MP.db, 'p/' + id)); } catch (e){} return; }   // left-over entry of a closed tab (the live ones refresh every few seconds)
   const p = MP.peers.get(id);
   if (!p){ mpAddPeer(id, d); return; }
-  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr; p.sit = !!d.sit;
+  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr; p.sit = d.sit | 0;
   if ((d.w || 0) !== p.w){ p.w = d.w || 0; p.waveAt = performance.now()/1000; if (p.bub) scene.remove(p.bub); p.bub = mpBubble(MP_HELLO[(p.w|0) % MP_HELLO.length]); }
 }
 let mpStarted = false;
@@ -8039,10 +8053,10 @@ function mpUpdate(dt){
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
   const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
-  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? 1 : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
+  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
-    const rec = { n:MP.name, g:HERO_G, sit:SIT.k > .5 ? 1 : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
+    const rec = { n:MP.name, g:HERO_G, sit:SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
     if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
     MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
   }
@@ -8060,7 +8074,10 @@ function mpUpdate(dt){
     if (!show) continue;
     p.av.root.position.set(p.x, p.y, p.z); p.av.root.rotation.y = p.h;
     p.av.update(dt, p.sit ? 0 : p.s < .15 ? 0 : p.s, false);
-    p.sk = clamp((p.sk || 0) + (p.sit ? 1 : -1)*dt*3.2, 0, 1); if (p.sk > 0 && p.av.model) sitApply(p.av, p.av.root, p.h, p.sk, p.sf || (p.sf = {}));
+    p.sk = clamp((p.sk || 0) + (p.sit ? 1 : -1)*dt*3.2, 0, 1);
+    if (p.sit === 2 && !p.chair && p.sk > 0){ p.chair = seatChair(p.x, p.z, p.h); p.chair.own = false; p.chair.peer = true; }
+    if (p.chair){ const sc = clamp(p.sk*2, .01, 1); p.chair.g.scale.set(sc, sc, sc); if (p.sk <= 0 || p.sit !== 2 && p.sit){ seatDrop(p.chair); p.chair = null; } }
+    if (p.sk > 0 && p.av.model) sitApply(p.av, p.av.root, p.h, p.sk, p.sf || (p.sf = {}), p.x, p.y, p.z);
     const pa = nowS - p.waveAt; mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
     if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + (p.g === 'm' ? 2.45 : 2.3), p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
     const d = Math.hypot(p.x - pos.x, p.z - pos.z);
