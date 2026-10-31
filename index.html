@@ -173,7 +173,6 @@ body.binoing #c{cursor:grab}
 .hero-pick{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;color:var(--muted,#9aa7b5)}
 .hero-pick .seg{grid-template-columns:repeat(2,1fr)}
 .hero-pick .seg button{min-width:96px;padding:7px 12px}
-.hero-pick.clo{flex-wrap:wrap;gap:6px 8px}.sw{display:flex;gap:5px;flex-wrap:wrap}.sw button{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.25);padding:0;cursor:pointer;background:var(--c)}.sw button[aria-pressed=true]{border-color:#f4b35a;box-shadow:0 0 0 2px rgba(244,179,90,.4)}.sw button.orig{background:conic-gradient(#ddd 0 50%,#555 0)}
 .xp-quest{position:fixed;left:16px;top:calc(158px + env(safe-area-inset-top,0px));width:276px;padding:12px 14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:3}
 .xp-quest h3{margin:0 0 8px;font-size:12px;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;justify-content:space-between;font-weight:600}
 .xp-quest h3 button{border:0;background:transparent;color:var(--muted);font-size:11px;padding:2px 4px}
@@ -427,8 +426,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
       <img src="tex/photo2.jpg" alt="화로대 불멍 사이트">
       <img src="tex/photo3.jpg" alt="별빛존 소나무 아래 2번 사이트">
     </div>
-    <div class="hero-pick" role="group" aria-label="주인공 선택"><span>주인공</span><div class="seg" id="seg-hero"><button data-g="dad" aria-pressed="false">아빠</button><button data-g="mom" aria-pressed="true">엄마</button><button data-g="g1" aria-pressed="false">첫째</button><button data-g="g2" aria-pressed="false">둘째</button></div></div>
-    <div class="hero-pick clo" role="group" aria-label="옷 색 고르기"><span>상의</span><div class="sw" id="sw-top"></div><span>하의</span><div class="sw" id="sw-bot"></div></div>
+    <div class="hero-pick" role="group" aria-label="주인공 선택"><span>주인공</span><div class="seg" id="seg-hero"><button data-g="f" aria-pressed="true">30대 여성</button><button data-g="m" aria-pressed="false">30대 남성</button></div></div>
     <div class="intro-actions">
       <button class="btn-main" id="btn-start" disabled>불러오는 중…</button>
       <button class="btn-main btn-alt" id="btn-exp" disabled>체험하기</button>
@@ -1817,7 +1815,7 @@ class Avatar {
     this.phase += dt * speed / lerp(1.45, 2.9, run) * Math.PI * 2;
   }
 }
-let avatarSrc = null, avatarClips = null, femSrc = null, femClips = null, femTex = null, xbotSrc = null, xbotClips = null;
+let avatarSrc = null, avatarClips = null, femSrc = null, femClips = null, femTex = null;
 /* q_target = Rp_t^-1 · Rp_s · q_src · Rw_s^-1 · Rw_t  (rest world rotations of each bone and its parent in both rigs) */
 function retargetClips(tgt, src, clips){
   tgt.updateMatrixWorld(true); src.updateMatrixWorld(true);
@@ -1838,128 +1836,10 @@ async function loadAvatar(){
     const [f, x, ta] = await Promise.all([ new GLTFLoader().loadAsync('tex/Michelle.gltf.json'), new GLTFLoader().loadAsync('tex/Xbot.gltf.json'), tx('tex/fem_a.jpg') ]);
     // the body's armature is stored rotated +90° with the hips at -90°: fold the two rotations away so it matches the clips' upright armature
     f.scene.traverse(o => { if (o.isMesh) o.material.name = 'Fem_Body'; if (o.name === 'Character') o.quaternion.identity(); if (o.isBone && /Hips$/.test(o.name)){ o.quaternion.identity(); o.position.set(o.position.x, -o.position.z, o.position.y); } });
-    xbotSrc = x.scene; xbotClips = x.animations.filter(c => /^(idle|walk|run)$/.test(c.name));
-    femClips = retargetClips(f.scene, x.scene, xbotClips);
+    femClips = retargetClips(f.scene, x.scene, x.animations.filter(c => /^(idle|walk|run)$/.test(c.name)));
     if (femClips.length === 3){ femSrc = f.scene; femTex = ta; }
   } catch (e){ console.warn('female avatar fallback', e); }
   return true;
-}
-
-/* ---------------- 가족 캐릭터 (유니티 앱과 같은 모델: 아빠·엄마·첫째·둘째) ----------------
-   이미지→3D 모델을 Mixamo 뼈대로 리깅한 tex/chars/tour_*.glb. Xbot의 idle/walk/run을 뼈마다 리타깃하고,
-   유니티 Humanoid의 팔·걸음 보정(FixArms/FixSpread, 다리 길이에 맞춘 재생 속도)을 그대로 옮김. */
-const TOUR_KEYS = ['dad', 'mom', 'g1', 'g2'], TOUR_H = { dad:1.78, mom:1.62, g1:1.18, g2:1.04 }, TOUR_NAME = { dad:'아빠', mom:'엄마', g1:'첫째', g2:'둘째' };
-const TOUR = { src:{}, busy:{} };
-const TOUR_TUNE = { fwd:7, fwdW:17, fwdR:10, abMin:11, flexMin:10, calm:.75, idleSw:3, idleAb:8, idleFl:9, idleFab:3, twist:90, stepMin:.33, stepMax:.42, handMin:.8 };
-function tourKey(g){ return g === 'm' || g === 'dad' ? 'dad' : g === 'g1' ? 'g1' : g === 'g2' ? 'g2' : 'mom'; }
-function tourReady(g){ return !!TOUR.src[tourKey(g)]; }
-function loadTour(g){
-  const k = tourKey(g);
-  if (TOUR.src[k]) return Promise.resolve(true);
-  if (!xbotSrc) return Promise.resolve(false);
-  return TOUR.busy[k] || (TOUR.busy[k] = new GLTFLoader().loadAsync('tex/chars/tour_' + k + '.glb').then(gl => {
-    gl.scene.traverse(o => { if (o.isMesh) o.frustumCulled = false; if (o.isSkinnedMesh) cloMask(o); });
-    TOUR.src[k] = { scene:gl.scene, clips:retargetClips(gl.scene, xbotSrc, xbotClips) };
-    return true;
-  }).catch(e => { console.warn('tour model', k, e); TOUR.busy[k] = null; return false; }));
-}
-
-/* 옷 색 바꾸기: 뼈대 가중치로 상의(몸통·팔)/하의(엉덩이·다리) 정점을 표시해 두고, 그 부분의 색상(hue)만 셰이더에서 바꿈 (피부색·머리·모자·신발은 그대로) */
-const CLO_HUE = [-1, 0, 28, 52, 120, 175, 215, 268, 325], CLO_NAME = ['원래 색', '빨강', '주황', '노랑', '초록', '청록', '파랑', '보라', '분홍'];
-let HERO_CLO = [0, 0]; try { const q = JSON.parse(localStorage.getItem('damteoClo') || '[0,0]'); if (Array.isArray(q)) HERO_CLO = [q[0] | 0, q[1] | 0].map(v => v >= 0 && v < CLO_HUE.length ? v : 0); } catch (e){}
-function cloMask(m){
-  const g = m.geometry; if (g.getAttribute('cl') || !g.getAttribute('skinIndex')) return;
-  const top = /^(Spine|Spine1|Spine2|LeftShoulder|RightShoulder|LeftArm|RightArm|LeftForeArm|RightForeArm)$/, bot = /^(Hips|LeftUpLeg|RightUpLeg|LeftLeg|RightLeg)$/;
-  const kind = m.skeleton.bones.map(b => { const n = b.name.replace(/^mixamorig:?/, ''); return top.test(n) ? 1 : bot.test(n) ? 2 : 0; });
-  const si = g.getAttribute('skinIndex'), sw = g.getAttribute('skinWeight'), out = new Float32Array(si.count);
-  for (let i = 0; i < si.count; i++){ const w = [0, 0, 0]; for (let j = 0; j < 4; j++) w[kind[si.getComponent(i, j)]] += sw.getComponent(i, j); out[i] = w[1] > .5 ? 1 : w[2] > .5 ? 2 : 0; }
-  g.setAttribute('cl', new THREE.BufferAttribute(out, 1));
-}
-function cloApply(av, ti, bi){
-  if (!av || !av.tour) return; av.clo = [ti | 0, bi | 0];
-  if (!av.cloU){
-    const U = av.cloU = { uTH:{ value:-1 }, uBH:{ value:-1 } };
-    av.model.traverse(o => { if (!o.isMesh) return; const arr = Array.isArray(o.material) ? o.material : [o.material];
-      const nm = arr.map(mt => { if (mt.name !== 'Material_0') return mt; const c = mt.clone(); c.onBeforeCompile = sh => {
-        sh.uniforms.uTH = U.uTH; sh.uniforms.uBH = U.uBH;
-        sh.vertexShader = 'attribute float cl; varying float vCl;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vCl = cl;');
-        sh.fragmentShader = 'varying float vCl; uniform float uTH; uniform float uBH;\nvec3 rgb2hsl(vec3 c){ float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), l = (mx + mn)*.5, d = mx - mn, h = 0., s = 0.; if (d > 1e-4){ s = d/(1. - abs(2.*l - 1.) + 1e-4); if (mx == c.r) h = mod((c.g - c.b)/d, 6.); else if (mx == c.g) h = (c.b - c.r)/d + 2.; else h = (c.r - c.g)/d + 4.; h /= 6.; } return vec3(h, s, l); }\nvec3 hsl2rgb(vec3 c){ vec3 k = clamp(abs(mod(c.x*6. + vec3(0., 4., 2.), 6.) - 3.) - 1., 0., 1.); return c.z + c.y*(k - .5)*(1. - abs(2.*c.z - 1.)); }\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n { float th = vCl > .5 && vCl < 1.5 ? uTH : vCl > 1.5 ? uBH : -1.; if (th >= 0.){ vec3 hs = rgb2hsl(diffuseColor.rgb); float hh = hs.x*360.; bool skin = hh > 8. && hh < 42. && hs.y > .18 && hs.y < .62 && hs.z > .3; if (!skin){ hs.x = th/360.; hs.y = max(hs.y, .5); diffuseColor.rgb = hsl2rgb(hs); } } }'); }; c.customProgramCacheKey = () => 'clo1'; return c; });
-      o.material = Array.isArray(o.material) ? nm : nm[0]; });
-  }
-  av.cloU.uTH.value = CLO_HUE[ti | 0] ?? -1; av.cloU.uBH.value = CLO_HUE[bi | 0] ?? -1;
-}
-function cloBuild(){
-  const mk = (id, idx) => { const box = document.getElementById(id); if (!box) return; box.innerHTML = '';
-    CLO_HUE.forEach((h, i) => { const b = document.createElement('button'); b.type = 'button'; b.title = CLO_NAME[i]; b.setAttribute('aria-label', CLO_NAME[i]); if (h < 0) b.className = 'orig'; else b.style.setProperty('--c', 'hsl(' + h + ' 70% 52%)');
-      b.setAttribute('aria-pressed', String(HERO_CLO[idx] === i));
-      b.addEventListener('click', () => { HERO_CLO[idx] = i; try { localStorage.setItem('damteoClo', JSON.stringify(HERO_CLO)); } catch (e){} cloBuild(); cloApply(hero, HERO_CLO[0], HERO_CLO[1]); MP.lastSent = null; });
-      box.appendChild(b); }); };
-  mk('sw-top', 0); mk('sw-bot', 1);
-}
-const _tv = [0, 1, 2, 3, 4, 5].map(() => new THREE.Vector3()), _tq1 = new THREE.Quaternion(), _tq2 = new THREE.Quaternion(), D2R = Math.PI/180;
-function boneRotQ(bone, q){
-  bone.parent.getWorldQuaternion(_tq2); const P = _tq2.clone();
-  bone.quaternion.premultiply(P.clone().invert().multiply(q).multiply(P)); bone.updateMatrixWorld(true);
-}
-class TourAvatar extends Avatar {
-  constructor(key){
-    const S = TOUR.src[key]; super(S.scene, S.clips, {});
-    this.tour = true; this.key = key; this.heroG = key;
-    const H = TOUR_H[key]; this.root.updateMatrixWorld(true);
-    const box = new THREE.Box3();
-    this.model.traverse(o => { if (o.isSkinnedMesh){ o.computeBoundingBox(); box.union(o.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
-    const h = (box.max.y - box.min.y) || 1.75, k = H/h;
-    this.model.scale.multiplyScalar(k); this.model.position.y = -box.min.y*k;
-    this.kk = H/1.75; this.k = this.kk; this.H = H;
-    this.B = boneMap(this.model);
-    this.mixer.update(1e-4); this.root.updateMatrixWorld(true);
-    const B = this.B, wp = (b, o) => b.getWorldPosition(o), hp = wp(B.Hips, _tv[0].clone()), lf = wp(B.LeftFoot, _tv[1].clone());
-    this.legScale = clamp((hp.y - lf.y)/.84, .3, 1.3);
-    // resting lateral spread of feet and hands (they are pulled to one line by the retarget while walking)
-    const lat = (n) => Math.abs(wp(B[n], _tv[2]).x - hp.x);
-    this.legLat = (lat('LeftFoot') + lat('RightFoot'))/2; this.armLat = (lat('LeftHand') + lat('RightHand'))/2;
-    this.sitDrop = clamp(hp.y - .50, -.3, .42*this.kk);
-  }
-  update(dt, speed){ super.update(dt, Math.abs(speed)); }   // 예전 캐릭터와 같은 걷기·달리기 동작 (팔·걸음 보정은 쓰지 않음)
-  fix(wW, wR){
-    const B = this.B, T = TOUR_TUNE, root = this.root; root.updateMatrixWorld(true);
-    const f = _tv[0].set(0, 0, 1).applyQuaternion(root.getWorldQuaternion(_tq1)); f.y = 0; if (f.lengthSq() < 1e-6) return; f.normalize();
-    const r = new THREE.Vector3().crossVectors(f, UP), hips = B.Hips.getWorldPosition(new THREE.Vector3());
-    const P = b => b.getWorldPosition(new THREE.Vector3());
-    const dirTo = (side, sw, ab) => new THREE.Vector3(0, -1, 0).addScaledVector(f, Math.tan(sw)).addScaledVector(side, Math.tan(ab)).normalize();
-    const aim = (bone, from, to, w) => { const q = new THREE.Quaternion().setFromUnitVectors(from, to); if (w < 1) q.slerp(new THREE.Quaternion(), 1 - w); boneRotQ(bone, q); };
-    const dF = lerp(lerp(T.fwd, T.fwdW, wW), T.fwdR, wR)*D2R, kab = this.kk < .8 ? .35 : 1, wi = 1 - wW;
-    for (const nm of ['Left', 'Right']){
-      const s = B[nm + 'Arm'], e = B[nm + 'ForeArm'], h = B[nm + 'Hand']; if (!s || !e || !h) continue;
-      let ps = P(s), pe = P(e), ph = P(h);
-      const side = r.clone().multiplyScalar(Math.sign(r.dot(ps.clone().sub(hips))) || 1);
-      let u = pe.clone().sub(ps).normalize();
-      const sw = Math.atan2(u.dot(f), -u.y), ab = Math.atan2(u.dot(side), -u.y);
-      aim(s, u, dirTo(side, sw + dF, Math.max(ab, T.abMin*D2R)), 1);
-      pe = P(e); ph = P(h); u = pe.clone().sub(ps).normalize();
-      const l = ph.clone().sub(pe).normalize(), fl = Math.acos(clamp(u.dot(l), -1, 1))/D2R, calm = lerp(1, T.calm, wW*(1 - wR)), want = Math.max(T.flexMin, T.flexMin + (fl - T.flexMin)*calm);
-      if (Math.abs(want - fl) > .01){ _tq1.setFromAxisAngle(r, (want - fl)*D2R); boneRotQ(e, _tq1.clone()); }
-      if (wi > .001){
-        pe = P(e); ph = P(h); u = pe.clone().sub(ps).normalize();
-        aim(s, u, dirTo(side, T.idleSw*D2R, T.idleAb*kab*D2R), wi);
-        pe = P(e); ph = P(h); const l2 = ph.clone().sub(pe).normalize();
-        aim(e, l2, dirTo(side, (T.idleSw + T.idleFl)*D2R, T.idleFab*kab*D2R), wi);
-      }
-      if (T.twist){ pe = P(e); ph = P(h); const la = ph.clone().sub(pe).normalize(); _tq1.setFromAxisAngle(la, (nm === 'Left' ? 1 : -1)*T.twist*D2R); boneRotQ(e, _tq1.clone()); }
-    }
-    // while moving keep feet and hands a fraction of their resting spread away from the centre line
-    const m = wW*1; if (m > .001){
-      const spread = (upper, end, minLat, maxLat = 1e9) => {
-        const u = B[upper], e = B[end]; if (!u || !e || minLat <= 0) return;
-        const pu = P(u), pe = P(e), sg = Math.sign(r.dot(pe.clone().sub(hips))) || 1, lat = sg*r.dot(pe.clone().sub(hips));
-        const want = lat < minLat ? minLat : lat > maxLat ? maxLat : lat; if (Math.abs(want - lat) < 1e-5) return;
-        const len = Math.max(.1, pe.distanceTo(pu)), th = Math.asin(clamp((want - lat)/len, -.6, .6));
-        _tq1.setFromAxisAngle(f, -sg*th*m); boneRotQ(u, _tq1.clone());
-      };
-      spread('RightUpLeg', 'RightFoot', this.legLat*T.stepMin, this.legLat*T.stepMax); spread('LeftUpLeg', 'LeftFoot', this.legLat*T.stepMin, this.legLat*T.stepMax);
-      spread('RightArm', 'RightHand', this.armLat*T.handMin); spread('LeftArm', 'LeftHand', this.armLat*T.handMin);
-    }
-  }
 }
 /* everyday clothes on the stock avatar: the hat, beard and long coat go; short hair, a hip-length jacket or hoodie, jeans and trainers.
    vRest = vertex in the avatar's own frame (metres), because the stock mesh is quantized */
@@ -2224,8 +2104,7 @@ function maleHair(o = {}){
   g.rotation.y = P.sweep;   // parting / sweep to one side
   const w = new THREE.Group(); w.add(g); return w;
 }
-let HERO_G = 'mom', HERO_EYE = 1.63, HERO_TGT = 1.45; try { HERO_G = tourKey(localStorage.getItem('damteoHero') || 'mom'); } catch (e){}
-function heroDims(){ if (hero && hero.tour){ HERO_EYE = hero.H*.92; HERO_TGT = hero.H*.815; } else { HERO_EYE = 1.63; HERO_TGT = 1.45; } }
+let HERO_G = 'f'; try { HERO_G = localStorage.getItem('damteoHero') === 'm' ? 'm' : 'f'; } catch (e){}
 /* each visitor gets their own outfit colours so people are easy to tell apart (the local hero keeps the original look) */
 const MP_PAL = [
   { top:0xc0392b, inner:0xf2ece0, shorts:0x2c3e50, mTop:0xc0392b, mPants:0x2c3e50 },
@@ -2240,30 +2119,22 @@ const MP_PAL = [
   { top:0x6c7a2f, inner:0xf0ecd8, shorts:0x4a4a4a, mTop:0x6c7a2f, mPants:0x4a4a4a },
 ];
 function makeHero(g, pal){
-  const tk = tourKey(g);
-  if (tourReady(tk)){ const a = new TourAvatar(tk); if (!pal) cloApply(a, HERO_CLO[0], HERO_CLO[1]); return a; }
-  let av;
-  if (tk !== 'dad' && femSrc) av = femAvatar(1.01, 'mom', pal);   // 160 cm (until the family model has loaded)
-  else av = styleMale(new Avatar(avatarSrc, avatarClips, {}), pal);
-  av.heroG = tk; return av;
+  if (g === 'f' && femSrc) return femAvatar(1.01, 'mom', pal);   // 160 cm
+  return styleMale(new Avatar(avatarSrc, avatarClips, {}), pal);
 }
 /* the hero picker works from the first moment the intro is shown, also while the scene is still loading */
 function bindHeroPick(){
-  cloBuild();
   const bs = document.querySelectorAll('#seg-hero button'), mark = () => bs.forEach(x => x.setAttribute('aria-pressed', String(x.dataset.g === HERO_G)));
   mark(); bs.forEach(b => b.addEventListener('click', () => { setHero(b.dataset.g); mark(); }));
 }
 function setHero(g){
-  HERO_G = tourKey(g); try { localStorage.setItem('damteoHero', HERO_G); } catch (e){}
+  HERO_G = g === 'm' ? 'm' : 'f'; try { localStorage.setItem('damteoHero', HERO_G); } catch (e){}
   if (!avatarSrc || !hero.root.parent) return;   // still loading: boot builds the chosen hero
-  const want = HERO_G, swap = () => {
-    if (HERO_G !== want || hero.heroG === want) return;
-    const old = hero, nh = makeHero(want);
-    nh.root.position.copy(old.root.position); nh.root.rotation.copy(old.root.rotation); nh.root.visible = old.root.visible;
-    if (old.root.parent){ old.root.parent.add(nh.root); old.root.parent.remove(old.root); }
-    hero = nh; heroDims();
-  };
-  if (tourReady(want)) swap(); else { swap(); loadTour(want).then(ok => { if (ok) swap(); }); }
+  if ((HERO_G === 'f') === !!hero.fem) return;
+  const old = hero, nh = makeHero(HERO_G);
+  nh.root.position.copy(old.root.position); nh.root.rotation.copy(old.root.rotation); nh.root.visible = old.root.visible;
+  if (old.root.parent){ old.root.parent.add(nh.root); old.root.parent.remove(old.root); }
+  hero = nh;
 }
 bindHeroPick();
 
@@ -5524,7 +5395,7 @@ function binoCam(dt){
   }
   BN.sway += dt;
   const t = BN.sway, sx = (Math.sin(t*1.3) + .6*Math.sin(t*2.9 + 1))*.0006*(65/BN.magShown/6.5), sy = (Math.sin(t*1.1 + 2) + .6*Math.sin(t*3.3))*.0005*(65/BN.magShown/6.5);
-  camera.position.set(p.x, p.y + HERO_EYE, p.z);
+  camera.position.set(p.x, p.y + 1.63, p.z);
   camera.rotation.set(camPitch + sy, camYaw + sx, 0);
   const H = innerHeight, D = 2*(BN.rad || .43*H), F = THREE.MathUtils.degToRad(65/BN.magShown);
   const vf = THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(F/2)*H/D));
@@ -5551,11 +5422,11 @@ function updateCamera(dt){
   const p = player.pos;
   if (view === 'fp'){
     const bob = Math.sin(hero.phase*2)*.035*smooth(.2,2,player.speed);
-    camera.position.set(p.x, p.y + HERO_EYE + bob, p.z);
+    camera.position.set(p.x, p.y + 1.63 + bob, p.z);
     camera.rotation.set(camPitch, camYaw, 0);
     return;
   }
-  camTarget.set(p.x, p.y + HERO_TGT, p.z);
+  camTarget.set(p.x, p.y + 1.45, p.z);
   const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
   camPos.set(camTarget.x + Math.sin(camYaw)*cp*camDist, camTarget.y - sp*camDist, camTarget.z + Math.cos(camYaw)*cp*camDist);
   const gmin = H(camPos.x, camPos.z) + .45; if (camPos.y < gmin) camPos.y = gmin;
@@ -6411,7 +6282,7 @@ function xpHud(){
     ['fire', '빨간 벽돌 위에 모닥불 피우기'],
     ['grill', '고기 굽기'],
     ['fish', '계곡에서 물고기 잡기'],
-    ['hg', xpKinNames() + '과 할리갈리 한 판'],
+    ['hg', '아윤·하윤과 할리갈리 한 판'],
     ['tube', '튜브 타고 계곡 물놀이'],
     ['recycle', '분리수거장에서 분리수거 → 체험 마치기', true]];
   $('#xp-quest-list').innerHTML = q.map(([k, t, req]) => `<li class="${EXP.done[k] ? 'ok' : ''}"><span class="ck">${EXP.done[k] ? '✓' : ''}</span>${t}${req ? ' <em>필수</em>' : ''}</li>`).join('');
@@ -6567,7 +6438,7 @@ function xpPitch(s, kind){
   EXP.camp = camp;
   xpProgress(`${TENTS.find(t => t.id === kind).name} 설치 중 · 펙 박기 → 폴 세우기 → 타프 → 테이블·의자`, 3.4, () => {
     EXP.done.tent = true; EXP.stats.tents++; xpFriends(true); xpHud();
-    toast(`<b>${s.id}</b> 피칭 완료 · ${xpKinNames()}이 의자에 앉았어요`); xpAddTrash({ n:'텐트 펙 포장 비닐', c:'plastic', i:'🛍️' });
+    toast(`<b>${s.id}</b> 피칭 완료 · 딸 아윤·하윤이 의자에 앉았어요`); xpAddTrash({ n:'텐트 펙 포장 비닐', c:'plastic', i:'🛍️' });
   });
   xpHud();
 }
@@ -6583,9 +6454,6 @@ function xpStrike(){
 }
 /* friends: two seated/standing companions for Halli Galli */
 const FRIEND_DEF = [{ name:'아윤', v:'ayun' }, { name:'하윤', v:'hayun' }];
-/* 체험하기에서 같이 온 가족: 내가 고른 사람을 뺀 두 명 */
-function xpKin(){ const o = { dad:['mom', 'g1', 'g2'], mom:['dad', 'g1', 'g2'], g1:['mom', 'g2', 'dad'], g2:['mom', 'g1', 'dad'] }[tourKey(HERO_G)]; return [o[0], o[1]]; }
-function xpKinNames(){ return xpKin().map(k => TOUR_NAME[k]).join('·'); }
 /* the two daughters who came along */
 function makeTeen(d){
   const V = FEM_V[d.v];
@@ -6599,17 +6467,14 @@ function xpFriends(on){
   for (const f of c.friends){ scene.remove(f.root); const k = colliders.indexOf(f.col); if (k >= 0) colliders.splice(k, 1); }
   c.friends = [];
   if (!on) return;
-  const kin = xpKin(); let miss = false;
-  FRIEND_DEF.forEach((d0, i) => {
-    const seat = c.seats[i + 1], x = seat.x, z = seat.z, kk = kin[i], d = { name:TOUR_NAME[kk], v:d0.v };
-    let av; if (tourReady(kk)) av = new TourAvatar(kk); else { av = makeTeen(d0); miss = true; }
-    if (av.mixer) av.mixer.update(Math.random()*3);
-    const root = new THREE.Group(); root.add(av.root); const lb = labelSprite(d.name); lb.position.y = av.tour ? av.H + .2 : 1.55; lb.scale.multiplyScalar(.8); root.add(lb);
+  FRIEND_DEF.forEach((d, i) => {
+    const seat = c.seats[i + 1], x = seat.x, z = seat.z;
+    const av = makeTeen(d); if (av.mixer) av.mixer.update(Math.random()*3);
+    const root = new THREE.Group(); root.add(av.root); const lb = labelSprite(d.name); lb.position.y = 1.55; lb.scale.multiplyScalar(.8); root.add(lb);
     place(root, x, groundAt(x, z), z, seat.ry);
     const f = { name:d.name, av, root, seat, stand:{ x, z }, sit:1, sitting:true, k:av.k || 1, reach:0, label:lb, col:{ x, z, r:.3 } };
     colliders.push(f.col); c.friends.push(f); xpGrow([root], i*.3, .5, 1);
   });
-  if (miss) Promise.all(kin.map(loadTour)).then(() => { if (EXP.camp === c && c.friends.length && !c.friends.some(f => f.av.tour)) xpFriends(true); });
 }
 /* world-space bone rotation on top of the animation clip (used for sitting and reaching for the bell) */
 const _bq = new THREE.Quaternion(), _bq2 = new THREE.Quaternion(), _bax = new THREE.Vector3();
@@ -6625,7 +6490,7 @@ function poseSit(f, sit, reach, side, keepRoot){
   av.root.updateMatrixWorld(true);
   const ry = f.root.rotation.y, right = _bax.set(Math.cos(ry), 0, -Math.sin(ry)).clone(), up = new THREE.Vector3(0, 1, 0);
   if (sit > 0){
-    const k = f.k || av.k || 1; if (!keepRoot) av.root.position.set(0, -(av.sitDrop !== undefined ? av.sitDrop : .42*k)*sit, (av.tour && k < .9 ? .06 : -.1*k)*sit);
+    const k = f.k || av.k || 1; if (!keepRoot) av.root.position.set(0, -.42*sit*k, -.1*sit*k);
     for (const s of ['Left', 'Right']){ if (B[s + 'UpLeg']) boneRot(B[s + 'UpLeg'], right, -1.45*sit); if (B[s + 'Leg']) boneRot(B[s + 'Leg'], right, 1.5*sit); }
     if (B.Spine) boneRot(B.Spine, right, .08*sit);
     for (const s of ['Left', 'Right']){ if (B[s + 'Arm']) boneRot(B[s + 'Arm'], right, -.55*sit); if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -.7*sit); }
@@ -8033,19 +7898,16 @@ function mpBadge(){
   const wv = document.getElementById('mp-wave'); if (wv) wv.hidden = !MP.on;
   el.hidden = !MP.on; if (MP.on) el.textContent = '👥 ' + MP.count + '명 · ' + MP.name;
 }
-function mpClo(av, c){ const q = String(c || '0,0').split(',').map(v => v | 0); cloApply(av, q[0], q[1]); }
-function mpTop(g){ return (TOUR_H[tourKey(g)] || 1.7) + .1; }
 function mpAddPeer(id, d){
   if (id === MP.id || MP.peers.has(id) || MP.peers.size >= MP.MAX) return;
   let av;
   let hsh = 0; for (const ch of String(id)) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
-  try { av = makeHero(d.g, MP_PAL[hsh % MP_PAL.length]); if (av.tour) mpClo(av, d.c); } catch (e){ av = null; }
+  try { av = makeHero(d.g === 'm' ? 'm' : 'f', MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
   if (!av){ av = new Hiker({ jacket:0x3f6a8a, pants:0x2f3a45, cap:0x2f4b3c }); }
   const tag = mpTag(String(d.n || '손님').slice(0, 16));
-  const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, c:d.c, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
+  const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
   av.root.position.set(p.x, p.y, p.z); av.root.visible = false; scene.add(av.root); scene.add(tag);
   MP.peers.set(id, p); MP.count = MP.peers.size + 1; mpBadge();
-  if (av.heroG && !tourReady(av.heroG)) loadTour(av.heroG).then(ok => { const q = MP.peers.get(id); if (!ok || !q || q.av.tour) return; const nv = new TourAvatar(tourKey(q.g)); nv.root.position.copy(q.av.root.position); nv.root.rotation.copy(q.av.root.rotation); nv.root.visible = q.av.root.visible; scene.remove(q.av.root); scene.add(nv.root); mpClo(nv, q.c); q.av = nv; });
   toast('<b>' + p.name + '</b> 님이 들어왔어요');
 }
 function mpDropPeer(id){
@@ -8058,7 +7920,6 @@ function mpApply(id, d){
   const p = MP.peers.get(id);
   if (!p){ mpAddPeer(id, d); return; }
   p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr;
-  if (d.c !== p.c){ p.c = d.c; if (p.av.tour) mpClo(p.av, d.c); }
   if ((d.w || 0) !== p.w){ p.w = d.w || 0; p.waveAt = performance.now()/1000; if (p.bub) scene.remove(p.bub); p.bub = mpBubble(MP_HELLO[(p.w|0) % MP_HELLO.length]); }
 }
 let mpStarted = false;
@@ -8092,14 +7953,14 @@ function mpUpdate(dt){
   const now = performance.now(), nowS = now/1000, xp = !!EXP.on;
   const d0 = q => Math.hypot(q.x - player.pos.x, q.z - player.pos.z);
   { const ma = nowS - MP.myWave; mpWavePose(hero, hero.root.rotation.y, mpWaveW(ma), nowS);
-    if (MP.myBubble){ const on = ma >= 0 && ma < MP_WAVE_S + .4; MP.myBubble.visible = on; if (on) MP.myBubble.position.set(player.pos.x, player.pos.y + mpTop(HERO_G) + .35, player.pos.z); else if (ma > MP_WAVE_S + .4){ scene.remove(MP.myBubble); MP.myBubble = null; } } }
+    if (MP.myBubble){ const on = ma >= 0 && ma < MP_WAVE_S + .4; MP.myBubble.visible = on; if (on) MP.myBubble.position.set(player.pos.x, player.pos.y + (HERO_G === 'm' ? 2.45 : 2.3), player.pos.z); else if (ma > MP_WAVE_S + .4){ scene.remove(MP.myBubble); MP.myBubble = null; } } }
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
   const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
-  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, HERO_CLO.join(''), MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
+  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
-    const rec = { n:MP.name, g:HERO_G, c:HERO_CLO.join(), x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
+    const rec = { n:MP.name, g:HERO_G, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
     if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
     MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
   }
@@ -8118,9 +7979,9 @@ function mpUpdate(dt){
     p.av.root.position.set(p.x, p.y, p.z); p.av.root.rotation.y = p.h;
     p.av.update(dt, p.s < .15 ? 0 : p.s, false);
     const pa = nowS - p.waveAt; mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
-    if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + mpTop(p.g) + .35, p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
+    if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + (p.g === 'm' ? 2.45 : 2.3), p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
     const d = Math.hypot(p.x - pos.x, p.z - pos.z);
-    p.tag.position.set(p.x, p.y + mpTop(p.g) + .1, p.z);
+    p.tag.position.set(p.x, p.y + (p.g === 'm' ? 2.1 : 1.95), p.z);
     p.tag.material.opacity = d < 14 ? 1 : Math.max(0, 1 - (d - 14)/16); p.tag.visible = p.tag.material.opacity > .02;
   }
 }
@@ -8172,7 +8033,7 @@ async function boot(){
   setMsg('배치도대로 사이트와 시설 짓는 중'); await buildCamp(); await frame();
   setMsg('하늘과 별 띄우는 중'); buildStars(); buildGlows(); occGlow();   // clouds are now drawn procedurally in the sky shader buildWeather(); await frame();
   setMsg('캐릭터 불러오는 중');
-  if (await loadAvatar()){ await loadTour(HERO_G); hero = makeHero(HERO_G); heroDims(); }
+  if (await loadAvatar()){ hero = makeHero(HERO_G); }
   { const m = occBegin(); addCampers(); try { multiEelPeople(); } catch (e){ console.error('eelPeople', e); } occEnd(m); }
   buildRafting();
   catBuild(); npcs.push({ update: dt => catUpdate(dt, U.uTime.value) });
