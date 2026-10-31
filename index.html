@@ -134,6 +134,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .act svg{width:20px;height:20px;flex:none;color:var(--amber)}
 .act kbd{font-family:var(--f-ui);font-size:11px;background:rgba(255,255,255,.1);border-radius:4px;padding:1px 6px;color:var(--muted)}
 .act:hover{border-color:var(--amber)}
+.act.sit{z-index:5}
 .fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .26s ease;z-index:8}
 .fade.on{opacity:1}
 body.scoping .brand,body.scoping #menu-toggle,body.scoping .panel,body.scoping .mapwrap,body.scoping .help,body.scoping .joy,body.scoping .tbtns,body.scoping .act{display:none!important}
@@ -383,6 +384,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 </div>
 <div class="help" id="help"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 · <kbd>Shift</kbd> 달리기 · <kbd>Space</kbd> 점프 · 드래그 둘러보기 · 휠 줌 · <kbd>C</kbd> 봄이 · <kbd>E</kbd> 망원경(밤) · <kbd>B</kbd> 쌍안경 · <kbd>V</kbd> 시점 · <kbd>T</kbd> 시간 · <kbd>Y</kbd> 계절</div>
 <div class="toast" id="toast"></div>
+<button class="act sit" id="act-sit" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v9h10M7 12l-2 9M17 12l2 9M7 12h10"/></svg><span id="sit-lbl">앉기</span> <kbd>Q</kbd></button>
 <button class="act" id="act-scope" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.5l13-5.2 1.6 4-13 5.2z"/><path d="M18.1 10.3l2.2-.9-1.6-4-2.2.9"/><path d="M10 13.3l-3 7.2M12 12.6l3 7.9M11 13v7.5"/></svg>망원경 들여다보기<kbd>E</kbd></button>
 <div class="fade" id="fade"></div>
 <section class="bino" id="bino" hidden aria-label="쌍안경 시야"><div class="bino-ring" id="bino-ring"></div><div class="bino-read" id="bino-read"></div><div class="bino-bar"><div class="bino-chips" id="bino-chips"></div><div class="bino-ctl"><button id="bino-minus" aria-label="배율 낮추기">－</button><button id="bino-plus" aria-label="배율 높이기">＋</button><button id="bino-x">내리기 <kbd>B</kbd></button></div></div></section>
@@ -2907,12 +2909,13 @@ function cabinShell(opt = {}){
 }
 /* camp furniture around a pitched tent */
 const furnM = { fabric:[0x2f3a30,0x6b4d33,0x2e3d52,0x7a6a52,0x3c3f44], frame: new THREE.MeshStandardMaterial({ color:0x1d1f22, roughness:.4, metalness:.7 }), alu: new THREE.MeshStandardMaterial({ color:0xb8bcc0, roughness:.35, metalness:.85 }) };
+const SEATS = [];   // 앉을 수 있는 캠핑의자 (등받이가 -z쪽, 앉으면 +z쪽을 봄)
 function chair(x, z, ry, color=0x3c4a3a){
   const g = new THREE.Group(); const f = new THREE.MeshStandardMaterial({ color, roughness:.85, side:THREE.DoubleSide });
   const seat = gridSurface(4,4,(u,v)=>[(u-.5)*.5, .34 - .05*Math.sin(Math.PI*u)*Math.sin(Math.PI*v) + v*.04, (v-.5)*.42]); g.add(new THREE.Mesh(seat, f));
   const back = gridSurface(4,4,(u,v)=>[(u-.5)*.5, .4 + v*.5, -.22 - v*.12 + .04*Math.sin(Math.PI*u)]); g.add(new THREE.Mesh(back, f));
   for (const s of [-1,1]){ g.add(tubeAlong([V3(s*.26,0,.24),V3(s*.26,.36,.2),V3(s*.27,.92,-.36)], .012, furnM.frame)); g.add(tubeAlong([V3(s*.26,0,-.24),V3(s*.26,.34,-.2),V3(s*.26,.55,.15)], .012, furnM.frame)); const arm = box(.05,.03,.4,furnM.frame); arm.position.set(s*.28,.56,0); g.add(arm); }
-  shadowAll(g); place(g, x, groundAt(x,z), z, ry); return g;
+  shadowAll(g); place(g, x, groundAt(x,z), z, ry); SEATS.push({ g, x, z, ry }); return g;
 }
 function campTable(x, z, ry=0){
   const g = new THREE.Group();
@@ -5312,7 +5315,7 @@ function updatePlayer(dt){
   if (joy.active){ ix += joy.x; iz += -joy.y; }
   if (view === 'air') { ix = 0; iz = 0; }
   if (view === 'cat'){ if (Math.hypot(ix, iz) > .2) setView('tp'); ix = 0; iz = 0; }
-  if (view === 'scope' || view === 'bino' || view === 'xpcam' || EXP.lock){ ix = 0; iz = 0; }
+  if (view === 'scope' || view === 'bino' || view === 'xpcam' || EXP.lock || SIT.on){ ix = 0; iz = 0; }
   const il = Math.hypot(ix,iz); if (il > 1){ ix/=il; iz/=il; }
   const running = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || (joy.active && Math.hypot(joy.x,joy.y) > .92);
   const maxS = (running ? 5.4 : 2.1) * (season === 'winter' ? .9 : 1);
@@ -5336,6 +5339,48 @@ function updatePlayer(dt){
   hero.update(dt, player.speed, player.air);
 }
 
+/* ---------------- 앉기: 캠핑의자 가까이에서 '앉기'(Q) → 의자에 앉고, 이동 키·조이스틱으로 일어남 ---------------- */
+const SIT = { on:false, k:0, seat:null, from:new THREE.Vector3(), cand:null, f:null, drop:0 };
+function sitAvail(){ return started && !!hero.model && !SCOPE.on && !BN.on && (view === 'tp' || view === 'fp') && !(EXP.on && (EXP.mode !== 'free' || EXP.lock)); }
+function sitApply(av, root, ry, sit, f){   // 의자에 앉은 자세 (엉덩이를 낮추고 다리·팔을 접음) — 위치는 의자 기준으로 보정
+  const k = av.k || 1, e = sit*sit*(3 - 2*sit);
+  root.position.x -= Math.sin(ry)*.1*k*e; root.position.z -= Math.cos(ry)*.1*k*e; root.position.y -= .42*k*e; root.rotation.y = ry;
+  if (!f.av || f.av !== av){ f.av = av; f.root = root; f.bones = null; }
+  f.k = k; poseSit(f, e, 0, 1, true);
+}
+function sitStart(seat){
+  SIT.from.copy(hero.root.position); SIT.seat = seat; SIT.on = true; SIT.f = {};
+  const gy = groundAt(seat.x, seat.z); player.pos.set(seat.x, gy, seat.z); player.vel.set(0, 0, 0); player.speed = 0; player.air = false; player.vy = 0;
+}
+function sitStop(){
+  const s = SIT.seat; SIT.on = false; if (!s) return;
+  const x = s.x + Math.sin(s.ry)*.85, z = s.z + Math.cos(s.ry)*.85; player.pos.set(x, groundAt(x, z), z); resolveCollisions(player.pos);
+}
+function sitToggle(){
+  if (SIT.on){ sitStop(); return; }
+  if (!SIT.cand || !sitAvail()) return; sitStart(SIT.cand);
+}
+function sitUpdate(dt){
+  const ok = sitAvail();
+  if (SIT.on){
+    const mv = keys.has('KeyW') || keys.has('KeyS') || keys.has('KeyA') || keys.has('KeyD') || keys.has('ArrowUp') || keys.has('ArrowDown') || keys.has('ArrowLeft') || keys.has('ArrowRight') || (joy.active && Math.hypot(joy.x, joy.y) > .3);
+    if (!ok || mv || !SIT.seat.g.parent) sitStop();
+  }
+  SIT.k = clamp(SIT.k + (SIT.on ? 1 : -1)*dt*3.2, 0, 1);
+  let near = null;
+  if (!SIT.on && ok){ let bd = 1.7; for (const s of SEATS){ if (!s.g.parent) continue; const d = Math.hypot(s.x - player.pos.x, s.z - player.pos.z); if (d < bd && Math.abs(groundAt(s.x, s.z) - player.pos.y) < 1) { bd = d; near = s; } } }
+  SIT.cand = near;
+  const btn = $('#act-sit'); const show = ok && (SIT.on || !!near) && !$('#act-scope').offsetParent;
+  if (btn.hidden === show){ btn.hidden = !show; }
+  if (show){ const l = SIT.on ? '일어서기' : '앉기'; if ($('#sit-lbl').textContent !== l) $('#sit-lbl').textContent = l; }
+  SIT.drop = SIT.k > 0 ? .42*(hero.k || 1)*SIT.k*SIT.k*(3 - 2*SIT.k) : 0;
+  if (SIT.k > 0 && SIT.seat){
+    const e = SIT.k*SIT.k*(3 - 2*SIT.k), s = SIT.seat, gy = groundAt(s.x, s.z);
+    hero.root.position.set(lerp(SIT.from.x, s.x, e), lerp(SIT.from.y, gy, e), lerp(SIT.from.z, s.z, e));
+    let d = s.ry - player.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); player.heading += d*(1 - Math.exp(-dt*10));
+    sitApply(hero, hero.root, player.heading, SIT.k, SIT.f || (SIT.f = {}));
+  }
+}
 /* ---------------- 쌍안경 (10×50) — 유니티 앱과 같은 방식: 65° 접안 시야 ÷ 배율, 둥근 시야, 배율 7~20× ---------------- */
 const BN = { on:false, prev:'tp', mag:10, magShown:10, goal:null, sway:0, deep:null, fov:62, chips:[] };
 function binoOk(){ return started && !SCOPE.on && !$('#intro').hidden === false && (view === 'tp' || view === 'fp') && !(EXP.on && (EXP.mode !== 'free' || EXP.lock)); }
@@ -5433,11 +5478,11 @@ function updateCamera(dt){
   const p = player.pos;
   if (view === 'fp'){
     const bob = Math.sin(hero.phase*2)*.035*smooth(.2,2,player.speed);
-    camera.position.set(p.x, p.y + 1.63 + bob, p.z);
+    camera.position.set(p.x, p.y + 1.63 - SIT.drop + bob, p.z);
     camera.rotation.set(camPitch, camYaw, 0);
     return;
   }
-  camTarget.set(p.x, p.y + 1.45, p.z);
+  camTarget.set(p.x, p.y + 1.45 - SIT.drop, p.z);
   const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
   camPos.set(camTarget.x + Math.sin(camYaw)*cp*camDist, camTarget.y - sp*camDist, camTarget.z + Math.cos(camYaw)*cp*camDist);
   const gmin = H(camPos.x, camPos.z) + .45; if (camPos.y < gmin) camPos.y = gmin;
@@ -6056,6 +6101,7 @@ function scopeDrag(dx, dy){
 function scopeBindUI(){
   const S = SCOPE;
   $('#act-scope').addEventListener('click', scopeOpen);
+  $('#act-sit').addEventListener('click', sitToggle);
   $('#sc-close').addEventListener('click', scopeClose);
   document.querySelectorAll('#sc-tgt button').forEach(b => b.addEventListener('click', () => scopeSetTarget(b.dataset.t)));
   document.querySelectorAll('#sc-ep button').forEach(b => b.addEventListener('click', () => scopeSetEyepiece(+b.dataset.e)));
@@ -7520,6 +7566,7 @@ function bindInput(){
     if (e.code === 'Escape' && SHOP.menuOpen) shopMenuClose();
     if (e.code === 'KeyB' && !e.repeat) binoToggle();
     if (e.code === 'Escape' && BN.on) binoClose();
+    if (e.code === 'KeyQ' && !e.repeat) sitToggle();
     if (e.code === 'KeyV' && view !== 'bino') setView(view === 'tp' ? 'fp' : view === 'fp' ? 'air' : 'tp');
     if (e.code === 'KeyC'){ if (view === 'cat') setView('tp'); else catView(); }
     if (e.code === 'KeyT'){ const ks=['day','dusk','night']; const i=ks.findIndex(k=>Math.abs(presetHour(k)-hourTarget)<.05); setHour(presetHour(ks[(i+1)%3])); }
@@ -7954,7 +8001,7 @@ function mpApply(id, d){
   if (d.t && Date.now() - d.t > 120000){ try { MP.fb.remove(MP.fb.ref(MP.db, 'p/' + id)); } catch (e){} return; }   // left-over entry of a closed tab (the live ones refresh every few seconds)
   const p = MP.peers.get(id);
   if (!p){ mpAddPeer(id, d); return; }
-  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr;
+  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr; p.sit = !!d.sit;
   if ((d.w || 0) !== p.w){ p.w = d.w || 0; p.waveAt = performance.now()/1000; if (p.bub) scene.remove(p.bub); p.bub = mpBubble(MP_HELLO[(p.w|0) % MP_HELLO.length]); }
 }
 let mpStarted = false;
@@ -7992,10 +8039,10 @@ function mpUpdate(dt){
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
   const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
-  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
+  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? 1 : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
-    const rec = { n:MP.name, g:HERO_G, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
+    const rec = { n:MP.name, g:HERO_G, sit:SIT.k > .5 ? 1 : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
     if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
     MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
   }
@@ -8012,7 +8059,8 @@ function mpUpdate(dt){
     p.av.root.visible = show; p.tag.visible = show;
     if (!show) continue;
     p.av.root.position.set(p.x, p.y, p.z); p.av.root.rotation.y = p.h;
-    p.av.update(dt, p.s < .15 ? 0 : p.s, false);
+    p.av.update(dt, p.sit ? 0 : p.s < .15 ? 0 : p.s, false);
+    p.sk = clamp((p.sk || 0) + (p.sit ? 1 : -1)*dt*3.2, 0, 1); if (p.sk > 0 && p.av.model) sitApply(p.av, p.av.root, p.h, p.sk, p.sf || (p.sf = {}));
     const pa = nowS - p.waveAt; mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
     if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + (p.g === 'm' ? 2.45 : 2.3), p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
     const d = Math.hypot(p.x - pos.x, p.z - pos.z);
@@ -8027,6 +8075,7 @@ function tick(dt, t){
   U.uTime.value = t;
   if (Math.abs(hour - hourTarget) > .001){ hour = lerp(hour, hourTarget, 1 - Math.exp(-dt*2.2)); if (Math.abs(hour-hourTarget) < .005) hour = hourTarget; applyTime(hour); }
   if (started) updatePlayer(dt); else { hero.update(dt, 0); hero.root.position.copy(player.pos); }
+  if (started) sitUpdate(dt);
   if (started) mpUpdate(dt);
   npcs.forEach(n => n.update(dt, 0));
   scopeUpdate(dt);
