@@ -426,7 +426,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
       <img src="tex/photo2.jpg" alt="화로대 불멍 사이트">
       <img src="tex/photo3.jpg" alt="별빛존 소나무 아래 2번 사이트">
     </div>
-    <div class="hero-pick" role="group" aria-label="주인공 선택"><span>주인공</span><div class="seg" id="seg-hero"><button data-g="f" aria-pressed="true">30대 여성</button><button data-g="m" aria-pressed="false">30대 남성</button></div></div>
+    <div class="hero-pick" role="group" aria-label="주인공 선택"><span>주인공</span><div class="seg" id="seg-hero"><button data-g="dad" aria-pressed="false">아빠</button><button data-g="mom" aria-pressed="true">엄마</button><button data-g="g1" aria-pressed="false">첫째</button><button data-g="g2" aria-pressed="false">둘째</button></div></div>
     <div class="intro-actions">
       <button class="btn-main" id="btn-start" disabled>불러오는 중…</button>
       <button class="btn-main btn-alt" id="btn-exp" disabled>체험하기</button>
@@ -1815,7 +1815,7 @@ class Avatar {
     this.phase += dt * speed / lerp(1.45, 2.9, run) * Math.PI * 2;
   }
 }
-let avatarSrc = null, avatarClips = null, femSrc = null, femClips = null, femTex = null;
+let avatarSrc = null, avatarClips = null, femSrc = null, femClips = null, femTex = null, xbotSrc = null, xbotClips = null;
 /* q_target = Rp_t^-1 · Rp_s · q_src · Rw_s^-1 · Rw_t  (rest world rotations of each bone and its parent in both rigs) */
 function retargetClips(tgt, src, clips){
   tgt.updateMatrixWorld(true); src.updateMatrixWorld(true);
@@ -1836,10 +1836,103 @@ async function loadAvatar(){
     const [f, x, ta] = await Promise.all([ new GLTFLoader().loadAsync('tex/Michelle.gltf.json'), new GLTFLoader().loadAsync('tex/Xbot.gltf.json'), tx('tex/fem_a.jpg') ]);
     // the body's armature is stored rotated +90° with the hips at -90°: fold the two rotations away so it matches the clips' upright armature
     f.scene.traverse(o => { if (o.isMesh) o.material.name = 'Fem_Body'; if (o.name === 'Character') o.quaternion.identity(); if (o.isBone && /Hips$/.test(o.name)){ o.quaternion.identity(); o.position.set(o.position.x, -o.position.z, o.position.y); } });
-    femClips = retargetClips(f.scene, x.scene, x.animations.filter(c => /^(idle|walk|run)$/.test(c.name)));
+    xbotSrc = x.scene; xbotClips = x.animations.filter(c => /^(idle|walk|run)$/.test(c.name));
+    femClips = retargetClips(f.scene, x.scene, xbotClips);
     if (femClips.length === 3){ femSrc = f.scene; femTex = ta; }
   } catch (e){ console.warn('female avatar fallback', e); }
   return true;
+}
+
+/* ---------------- 가족 캐릭터 (유니티 앱과 같은 모델: 아빠·엄마·첫째·둘째) ----------------
+   이미지→3D 모델을 Mixamo 뼈대로 리깅한 tex/chars/tour_*.glb. Xbot의 idle/walk/run을 뼈마다 리타깃하고,
+   유니티 Humanoid의 팔·걸음 보정(FixArms/FixSpread, 다리 길이에 맞춘 재생 속도)을 그대로 옮김. */
+const TOUR_KEYS = ['dad', 'mom', 'g1', 'g2'], TOUR_H = { dad:1.78, mom:1.62, g1:1.18, g2:1.04 }, TOUR_NAME = { dad:'아빠', mom:'엄마', g1:'첫째', g2:'둘째' };
+const TOUR = { src:{}, busy:{} };
+const TOUR_TUNE = { fwd:7, fwdW:17, fwdR:10, abMin:11, flexMin:10, calm:.75, idleSw:3, idleAb:8, idleFl:9, idleFab:3, twist:90, stepMin:.33, stepMax:.42, handMin:.8 };
+function tourKey(g){ return g === 'm' || g === 'dad' ? 'dad' : g === 'g1' ? 'g1' : g === 'g2' ? 'g2' : 'mom'; }
+function tourReady(g){ return !!TOUR.src[tourKey(g)]; }
+function loadTour(g){
+  const k = tourKey(g);
+  if (TOUR.src[k]) return Promise.resolve(true);
+  if (!xbotSrc) return Promise.resolve(false);
+  return TOUR.busy[k] || (TOUR.busy[k] = new GLTFLoader().loadAsync('tex/chars/tour_' + k + '.glb').then(gl => {
+    gl.scene.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
+    TOUR.src[k] = { scene:gl.scene, clips:retargetClips(gl.scene, xbotSrc, xbotClips) };
+    return true;
+  }).catch(e => { console.warn('tour model', k, e); TOUR.busy[k] = null; return false; }));
+}
+const _tv = [0, 1, 2, 3, 4, 5].map(() => new THREE.Vector3()), _tq1 = new THREE.Quaternion(), _tq2 = new THREE.Quaternion(), D2R = Math.PI/180;
+function boneRotQ(bone, q){
+  bone.parent.getWorldQuaternion(_tq2); const P = _tq2.clone();
+  bone.quaternion.premultiply(P.clone().invert().multiply(q).multiply(P)); bone.updateMatrixWorld(true);
+}
+class TourAvatar extends Avatar {
+  constructor(key){
+    const S = TOUR.src[key]; super(S.scene, S.clips, {});
+    this.tour = true; this.key = key; this.heroG = key;
+    const H = TOUR_H[key]; this.root.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    this.model.traverse(o => { if (o.isSkinnedMesh){ o.computeBoundingBox(); box.union(o.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
+    const h = (box.max.y - box.min.y) || 1.75, k = H/h;
+    this.model.scale.multiplyScalar(k); this.model.position.y = -box.min.y*k;
+    this.kk = H/1.75; this.k = this.kk; this.H = H;
+    this.B = boneMap(this.model);
+    this.mixer.update(1e-4); this.root.updateMatrixWorld(true);
+    const B = this.B, wp = (b, o) => b.getWorldPosition(o), hp = wp(B.Hips, _tv[0].clone()), lf = wp(B.LeftFoot, _tv[1].clone());
+    this.legScale = clamp((hp.y - lf.y)/.84, .3, 1.3);
+    // resting lateral spread of feet and hands (they are pulled to one line by the retarget while walking)
+    const lat = (n) => Math.abs(wp(B[n], _tv[2]).x - hp.x);
+    this.legLat = (lat('LeftFoot') + lat('RightFoot'))/2; this.armLat = (lat('LeftHand') + lat('RightHand'))/2;
+    this.sitDrop = clamp(hp.y - .50, -.3, .42*this.kk);
+  }
+  update(dt, speed){
+    speed = Math.abs(speed);
+    const sp = speed/Math.max(.5, this.kk), wW = smooth(.1, .4, sp), wR = smooth(2.1, 2.5, sp), a = this.act;
+    a.idle.setEffectiveWeight(1 - wW); a.walk.setEffectiveWeight(wW*(1 - wR)); a.run.setEffectiveWeight(wW*wR);
+    const rate = sp < .05 ? 1 : lerp(speed/(1.45*this.legScale), speed/(4.4*this.legScale), wR);
+    a.walk.setEffectiveTimeScale(clamp(rate, .6, 2.6)); a.run.setEffectiveTimeScale(clamp(rate*1.25, .5, 2.7));
+    this.mixer.update(dt); this.phase += dt*rate*Math.PI*2*.9;
+    this.fix(wW, wR);
+  }
+  fix(wW, wR){
+    const B = this.B, T = TOUR_TUNE, root = this.root; root.updateMatrixWorld(true);
+    const f = _tv[0].set(0, 0, 1).applyQuaternion(root.getWorldQuaternion(_tq1)); f.y = 0; if (f.lengthSq() < 1e-6) return; f.normalize();
+    const r = new THREE.Vector3().crossVectors(f, UP), hips = B.Hips.getWorldPosition(new THREE.Vector3());
+    const P = b => b.getWorldPosition(new THREE.Vector3());
+    const dirTo = (side, sw, ab) => new THREE.Vector3(0, -1, 0).addScaledVector(f, Math.tan(sw)).addScaledVector(side, Math.tan(ab)).normalize();
+    const aim = (bone, from, to, w) => { const q = new THREE.Quaternion().setFromUnitVectors(from, to); if (w < 1) q.slerp(new THREE.Quaternion(), 1 - w); boneRotQ(bone, q); };
+    const dF = lerp(lerp(T.fwd, T.fwdW, wW), T.fwdR, wR)*D2R, kab = this.kk < .8 ? .35 : 1, wi = 1 - wW;
+    for (const nm of ['Left', 'Right']){
+      const s = B[nm + 'Arm'], e = B[nm + 'ForeArm'], h = B[nm + 'Hand']; if (!s || !e || !h) continue;
+      let ps = P(s), pe = P(e), ph = P(h);
+      const side = r.clone().multiplyScalar(Math.sign(r.dot(ps.clone().sub(hips))) || 1);
+      let u = pe.clone().sub(ps).normalize();
+      const sw = Math.atan2(u.dot(f), -u.y), ab = Math.atan2(u.dot(side), -u.y);
+      aim(s, u, dirTo(side, sw + dF, Math.max(ab, T.abMin*D2R)), 1);
+      pe = P(e); ph = P(h); u = pe.clone().sub(ps).normalize();
+      const l = ph.clone().sub(pe).normalize(), fl = Math.acos(clamp(u.dot(l), -1, 1))/D2R, calm = lerp(1, T.calm, wW*(1 - wR)), want = Math.max(T.flexMin, T.flexMin + (fl - T.flexMin)*calm);
+      if (Math.abs(want - fl) > .01){ _tq1.setFromAxisAngle(r, (want - fl)*D2R); boneRotQ(e, _tq1.clone()); }
+      if (wi > .001){
+        pe = P(e); ph = P(h); u = pe.clone().sub(ps).normalize();
+        aim(s, u, dirTo(side, T.idleSw*D2R, T.idleAb*kab*D2R), wi);
+        pe = P(e); ph = P(h); const l2 = ph.clone().sub(pe).normalize();
+        aim(e, l2, dirTo(side, (T.idleSw + T.idleFl)*D2R, T.idleFab*kab*D2R), wi);
+      }
+      if (T.twist){ pe = P(e); ph = P(h); const la = ph.clone().sub(pe).normalize(); _tq1.setFromAxisAngle(la, (nm === 'Left' ? 1 : -1)*T.twist*D2R); boneRotQ(e, _tq1.clone()); }
+    }
+    // while moving keep feet and hands a fraction of their resting spread away from the centre line
+    const m = wW*1; if (m > .001){
+      const spread = (upper, end, minLat, maxLat = 1e9) => {
+        const u = B[upper], e = B[end]; if (!u || !e || minLat <= 0) return;
+        const pu = P(u), pe = P(e), sg = Math.sign(r.dot(pe.clone().sub(hips))) || 1, lat = sg*r.dot(pe.clone().sub(hips));
+        const want = lat < minLat ? minLat : lat > maxLat ? maxLat : lat; if (Math.abs(want - lat) < 1e-5) return;
+        const len = Math.max(.1, pe.distanceTo(pu)), th = Math.asin(clamp((want - lat)/len, -.6, .6));
+        _tq1.setFromAxisAngle(f, -sg*th*m); boneRotQ(u, _tq1.clone());
+      };
+      spread('RightUpLeg', 'RightFoot', this.legLat*T.stepMin, this.legLat*T.stepMax); spread('LeftUpLeg', 'LeftFoot', this.legLat*T.stepMin, this.legLat*T.stepMax);
+      spread('RightArm', 'RightHand', this.armLat*T.handMin); spread('LeftArm', 'LeftHand', this.armLat*T.handMin);
+    }
+  }
 }
 /* everyday clothes on the stock avatar: the hat, beard and long coat go; short hair, a hip-length jacket or hoodie, jeans and trainers.
    vRest = vertex in the avatar's own frame (metres), because the stock mesh is quantized */
@@ -2104,7 +2197,8 @@ function maleHair(o = {}){
   g.rotation.y = P.sweep;   // parting / sweep to one side
   const w = new THREE.Group(); w.add(g); return w;
 }
-let HERO_G = 'f'; try { HERO_G = localStorage.getItem('damteoHero') === 'm' ? 'm' : 'f'; } catch (e){}
+let HERO_G = 'mom', HERO_EYE = 1.63, HERO_TGT = 1.45; try { HERO_G = tourKey(localStorage.getItem('damteoHero') || 'mom'); } catch (e){}
+function heroDims(){ if (hero && hero.tour){ HERO_EYE = hero.H*.92; HERO_TGT = hero.H*.815; } else { HERO_EYE = 1.63; HERO_TGT = 1.45; } }
 /* each visitor gets their own outfit colours so people are easy to tell apart (the local hero keeps the original look) */
 const MP_PAL = [
   { top:0xc0392b, inner:0xf2ece0, shorts:0x2c3e50, mTop:0xc0392b, mPants:0x2c3e50 },
@@ -2119,8 +2213,12 @@ const MP_PAL = [
   { top:0x6c7a2f, inner:0xf0ecd8, shorts:0x4a4a4a, mTop:0x6c7a2f, mPants:0x4a4a4a },
 ];
 function makeHero(g, pal){
-  if (g === 'f' && femSrc) return femAvatar(1.01, 'mom', pal);   // 160 cm
-  return styleMale(new Avatar(avatarSrc, avatarClips, {}), pal);
+  const tk = tourKey(g);
+  if (tourReady(tk)) return new TourAvatar(tk);
+  let av;
+  if (tk !== 'dad' && femSrc) av = femAvatar(1.01, 'mom', pal);   // 160 cm (until the family model has loaded)
+  else av = styleMale(new Avatar(avatarSrc, avatarClips, {}), pal);
+  av.heroG = tk; return av;
 }
 /* the hero picker works from the first moment the intro is shown, also while the scene is still loading */
 function bindHeroPick(){
@@ -2128,13 +2226,16 @@ function bindHeroPick(){
   mark(); bs.forEach(b => b.addEventListener('click', () => { setHero(b.dataset.g); mark(); }));
 }
 function setHero(g){
-  HERO_G = g === 'm' ? 'm' : 'f'; try { localStorage.setItem('damteoHero', HERO_G); } catch (e){}
+  HERO_G = tourKey(g); try { localStorage.setItem('damteoHero', HERO_G); } catch (e){}
   if (!avatarSrc || !hero.root.parent) return;   // still loading: boot builds the chosen hero
-  if ((HERO_G === 'f') === !!hero.fem) return;
-  const old = hero, nh = makeHero(HERO_G);
-  nh.root.position.copy(old.root.position); nh.root.rotation.copy(old.root.rotation); nh.root.visible = old.root.visible;
-  if (old.root.parent){ old.root.parent.add(nh.root); old.root.parent.remove(old.root); }
-  hero = nh;
+  const want = HERO_G, swap = () => {
+    if (HERO_G !== want || hero.heroG === want) return;
+    const old = hero, nh = makeHero(want);
+    nh.root.position.copy(old.root.position); nh.root.rotation.copy(old.root.rotation); nh.root.visible = old.root.visible;
+    if (old.root.parent){ old.root.parent.add(nh.root); old.root.parent.remove(old.root); }
+    hero = nh; heroDims();
+  };
+  if (tourReady(want)) swap(); else { swap(); loadTour(want).then(ok => { if (ok) swap(); }); }
 }
 bindHeroPick();
 
@@ -5395,7 +5496,7 @@ function binoCam(dt){
   }
   BN.sway += dt;
   const t = BN.sway, sx = (Math.sin(t*1.3) + .6*Math.sin(t*2.9 + 1))*.0006*(65/BN.magShown/6.5), sy = (Math.sin(t*1.1 + 2) + .6*Math.sin(t*3.3))*.0005*(65/BN.magShown/6.5);
-  camera.position.set(p.x, p.y + 1.63, p.z);
+  camera.position.set(p.x, p.y + HERO_EYE, p.z);
   camera.rotation.set(camPitch + sy, camYaw + sx, 0);
   const H = innerHeight, D = 2*(BN.rad || .43*H), F = THREE.MathUtils.degToRad(65/BN.magShown);
   const vf = THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(F/2)*H/D));
@@ -5422,11 +5523,11 @@ function updateCamera(dt){
   const p = player.pos;
   if (view === 'fp'){
     const bob = Math.sin(hero.phase*2)*.035*smooth(.2,2,player.speed);
-    camera.position.set(p.x, p.y + 1.63 + bob, p.z);
+    camera.position.set(p.x, p.y + HERO_EYE + bob, p.z);
     camera.rotation.set(camPitch, camYaw, 0);
     return;
   }
-  camTarget.set(p.x, p.y + 1.45, p.z);
+  camTarget.set(p.x, p.y + HERO_TGT, p.z);
   const cp = Math.cos(camPitch), sp = Math.sin(camPitch);
   camPos.set(camTarget.x + Math.sin(camYaw)*cp*camDist, camTarget.y - sp*camDist, camTarget.z + Math.cos(camYaw)*cp*camDist);
   const gmin = H(camPos.x, camPos.z) + .45; if (camPos.y < gmin) camPos.y = gmin;
@@ -6490,7 +6591,7 @@ function poseSit(f, sit, reach, side, keepRoot){
   av.root.updateMatrixWorld(true);
   const ry = f.root.rotation.y, right = _bax.set(Math.cos(ry), 0, -Math.sin(ry)).clone(), up = new THREE.Vector3(0, 1, 0);
   if (sit > 0){
-    const k = f.k || av.k || 1; if (!keepRoot) av.root.position.set(0, -.42*sit*k, -.1*sit*k);
+    const k = f.k || av.k || 1; if (!keepRoot) av.root.position.set(0, -(av.sitDrop !== undefined ? av.sitDrop : .42*k)*sit, (av.tour && k < .9 ? .06 : -.1*k)*sit);
     for (const s of ['Left', 'Right']){ if (B[s + 'UpLeg']) boneRot(B[s + 'UpLeg'], right, -1.45*sit); if (B[s + 'Leg']) boneRot(B[s + 'Leg'], right, 1.5*sit); }
     if (B.Spine) boneRot(B.Spine, right, .08*sit);
     for (const s of ['Left', 'Right']){ if (B[s + 'Arm']) boneRot(B[s + 'Arm'], right, -.55*sit); if (B[s + 'ForeArm']) boneRot(B[s + 'ForeArm'], right, -.7*sit); }
@@ -8033,7 +8134,7 @@ async function boot(){
   setMsg('배치도대로 사이트와 시설 짓는 중'); await buildCamp(); await frame();
   setMsg('하늘과 별 띄우는 중'); buildStars(); buildGlows(); occGlow();   // clouds are now drawn procedurally in the sky shader buildWeather(); await frame();
   setMsg('캐릭터 불러오는 중');
-  if (await loadAvatar()){ hero = makeHero(HERO_G); }
+  if (await loadAvatar()){ await loadTour(HERO_G); hero = makeHero(HERO_G); heroDims(); }
   { const m = occBegin(); addCampers(); try { multiEelPeople(); } catch (e){ console.error('eelPeople', e); } occEnd(m); }
   buildRafting();
   catBuild(); npcs.push({ update: dt => catUpdate(dt, U.uTime.value) });
