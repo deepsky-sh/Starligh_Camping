@@ -6383,7 +6383,7 @@ function xpHud(){
     ['fire', '빨간 벽돌 위에 모닥불 피우기'],
     ['grill', '고기 굽기'],
     ['fish', '계곡에서 물고기 잡기'],
-    ['hg', '아윤·하윤과 할리갈리 한 판'],
+    ['hg', xpKinNames() + '과 할리갈리 한 판'],
     ['tube', '튜브 타고 계곡 물놀이'],
     ['recycle', '분리수거장에서 분리수거 → 체험 마치기', true]];
   $('#xp-quest-list').innerHTML = q.map(([k, t, req]) => `<li class="${EXP.done[k] ? 'ok' : ''}"><span class="ck">${EXP.done[k] ? '✓' : ''}</span>${t}${req ? ' <em>필수</em>' : ''}</li>`).join('');
@@ -6539,7 +6539,7 @@ function xpPitch(s, kind){
   EXP.camp = camp;
   xpProgress(`${TENTS.find(t => t.id === kind).name} 설치 중 · 펙 박기 → 폴 세우기 → 타프 → 테이블·의자`, 3.4, () => {
     EXP.done.tent = true; EXP.stats.tents++; xpFriends(true); xpHud();
-    toast(`<b>${s.id}</b> 피칭 완료 · 딸 아윤·하윤이 의자에 앉았어요`); xpAddTrash({ n:'텐트 펙 포장 비닐', c:'plastic', i:'🛍️' });
+    toast(`<b>${s.id}</b> 피칭 완료 · ${xpKinNames()}이 의자에 앉았어요`); xpAddTrash({ n:'텐트 펙 포장 비닐', c:'plastic', i:'🛍️' });
   });
   xpHud();
 }
@@ -6555,6 +6555,9 @@ function xpStrike(){
 }
 /* friends: two seated/standing companions for Halli Galli */
 const FRIEND_DEF = [{ name:'아윤', v:'ayun' }, { name:'하윤', v:'hayun' }];
+/* 체험하기에서 같이 온 가족: 내가 고른 사람을 뺀 두 명 */
+function xpKin(){ const o = { dad:['mom', 'g1', 'g2'], mom:['dad', 'g1', 'g2'], g1:['mom', 'g2', 'dad'], g2:['mom', 'g1', 'dad'] }[tourKey(HERO_G)]; return [o[0], o[1]]; }
+function xpKinNames(){ return xpKin().map(k => TOUR_NAME[k]).join('·'); }
 /* the two daughters who came along */
 function makeTeen(d){
   const V = FEM_V[d.v];
@@ -6568,14 +6571,17 @@ function xpFriends(on){
   for (const f of c.friends){ scene.remove(f.root); const k = colliders.indexOf(f.col); if (k >= 0) colliders.splice(k, 1); }
   c.friends = [];
   if (!on) return;
-  FRIEND_DEF.forEach((d, i) => {
-    const seat = c.seats[i + 1], x = seat.x, z = seat.z;
-    const av = makeTeen(d); if (av.mixer) av.mixer.update(Math.random()*3);
-    const root = new THREE.Group(); root.add(av.root); const lb = labelSprite(d.name); lb.position.y = 1.55; lb.scale.multiplyScalar(.8); root.add(lb);
+  const kin = xpKin(); let miss = false;
+  FRIEND_DEF.forEach((d0, i) => {
+    const seat = c.seats[i + 1], x = seat.x, z = seat.z, kk = kin[i], d = { name:TOUR_NAME[kk], v:d0.v };
+    let av; if (tourReady(kk)) av = new TourAvatar(kk); else { av = makeTeen(d0); miss = true; }
+    if (av.mixer) av.mixer.update(Math.random()*3);
+    const root = new THREE.Group(); root.add(av.root); const lb = labelSprite(d.name); lb.position.y = av.tour ? av.H + .2 : 1.55; lb.scale.multiplyScalar(.8); root.add(lb);
     place(root, x, groundAt(x, z), z, seat.ry);
     const f = { name:d.name, av, root, seat, stand:{ x, z }, sit:1, sitting:true, k:av.k || 1, reach:0, label:lb, col:{ x, z, r:.3 } };
     colliders.push(f.col); c.friends.push(f); xpGrow([root], i*.3, .5, 1);
   });
+  if (miss) Promise.all(kin.map(loadTour)).then(() => { if (EXP.camp === c && c.friends.length && !c.friends.some(f => f.av.tour)) xpFriends(true); });
 }
 /* world-space bone rotation on top of the animation clip (used for sitting and reaching for the bell) */
 const _bq = new THREE.Quaternion(), _bq2 = new THREE.Quaternion(), _bax = new THREE.Vector3();
@@ -7999,16 +8005,18 @@ function mpBadge(){
   const wv = document.getElementById('mp-wave'); if (wv) wv.hidden = !MP.on;
   el.hidden = !MP.on; if (MP.on) el.textContent = '👥 ' + MP.count + '명 · ' + MP.name;
 }
+function mpTop(g){ return (TOUR_H[tourKey(g)] || 1.7) + .1; }
 function mpAddPeer(id, d){
   if (id === MP.id || MP.peers.has(id) || MP.peers.size >= MP.MAX) return;
   let av;
   let hsh = 0; for (const ch of String(id)) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
-  try { av = makeHero(d.g === 'm' ? 'm' : 'f', MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
+  try { av = makeHero(d.g, MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
   if (!av){ av = new Hiker({ jacket:0x3f6a8a, pants:0x2f3a45, cap:0x2f4b3c }); }
   const tag = mpTag(String(d.n || '손님').slice(0, 16));
   const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
   av.root.position.set(p.x, p.y, p.z); av.root.visible = false; scene.add(av.root); scene.add(tag);
   MP.peers.set(id, p); MP.count = MP.peers.size + 1; mpBadge();
+  if (av.heroG && !tourReady(av.heroG)) loadTour(av.heroG).then(ok => { const q = MP.peers.get(id); if (!ok || !q || q.av.tour) return; const nv = new TourAvatar(tourKey(q.g)); nv.root.position.copy(q.av.root.position); nv.root.rotation.copy(q.av.root.rotation); nv.root.visible = q.av.root.visible; scene.remove(q.av.root); scene.add(nv.root); q.av = nv; });
   toast('<b>' + p.name + '</b> 님이 들어왔어요');
 }
 function mpDropPeer(id){
@@ -8054,7 +8062,7 @@ function mpUpdate(dt){
   const now = performance.now(), nowS = now/1000, xp = !!EXP.on;
   const d0 = q => Math.hypot(q.x - player.pos.x, q.z - player.pos.z);
   { const ma = nowS - MP.myWave; mpWavePose(hero, hero.root.rotation.y, mpWaveW(ma), nowS);
-    if (MP.myBubble){ const on = ma >= 0 && ma < MP_WAVE_S + .4; MP.myBubble.visible = on; if (on) MP.myBubble.position.set(player.pos.x, player.pos.y + (HERO_G === 'm' ? 2.45 : 2.3), player.pos.z); else if (ma > MP_WAVE_S + .4){ scene.remove(MP.myBubble); MP.myBubble = null; } } }
+    if (MP.myBubble){ const on = ma >= 0 && ma < MP_WAVE_S + .4; MP.myBubble.visible = on; if (on) MP.myBubble.position.set(player.pos.x, player.pos.y + mpTop(HERO_G) + .35, player.pos.z); else if (ma > MP_WAVE_S + .4){ scene.remove(MP.myBubble); MP.myBubble = null; } } }
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
   const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
@@ -8080,9 +8088,9 @@ function mpUpdate(dt){
     p.av.root.position.set(p.x, p.y, p.z); p.av.root.rotation.y = p.h;
     p.av.update(dt, p.s < .15 ? 0 : p.s, false);
     const pa = nowS - p.waveAt; mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
-    if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + (p.g === 'm' ? 2.45 : 2.3), p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
+    if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + mpTop(p.g) + .35, p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
     const d = Math.hypot(p.x - pos.x, p.z - pos.z);
-    p.tag.position.set(p.x, p.y + (p.g === 'm' ? 2.1 : 1.95), p.z);
+    p.tag.position.set(p.x, p.y + mpTop(p.g) + .1, p.z);
     p.tag.material.opacity = d < 14 ? 1 : Math.max(0, 1 - (d - 14)/16); p.tag.visible = p.tag.material.opacity > .02;
   }
 }
