@@ -173,6 +173,7 @@ body.binoing #c{cursor:grab}
 .hero-pick{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;color:var(--muted,#9aa7b5)}
 .hero-pick .seg{grid-template-columns:repeat(2,1fr)}
 .hero-pick .seg button{min-width:96px;padding:7px 12px}
+.hero-pick.clo{flex-wrap:wrap;gap:6px 8px}.sw{display:flex;gap:5px;flex-wrap:wrap}.sw button{width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.25);padding:0;cursor:pointer;background:var(--c)}.sw button[aria-pressed=true]{border-color:#f4b35a;box-shadow:0 0 0 2px rgba(244,179,90,.4)}.sw button.orig{background:conic-gradient(#ddd 0 50%,#555 0)}
 .xp-quest{position:fixed;left:16px;top:calc(158px + env(safe-area-inset-top,0px));width:276px;padding:12px 14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:3}
 .xp-quest h3{margin:0 0 8px;font-size:12px;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;justify-content:space-between;font-weight:600}
 .xp-quest h3 button{border:0;background:transparent;color:var(--muted);font-size:11px;padding:2px 4px}
@@ -427,6 +428,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
       <img src="tex/photo3.jpg" alt="별빛존 소나무 아래 2번 사이트">
     </div>
     <div class="hero-pick" role="group" aria-label="주인공 선택"><span>주인공</span><div class="seg" id="seg-hero"><button data-g="dad" aria-pressed="false">아빠</button><button data-g="mom" aria-pressed="true">엄마</button><button data-g="g1" aria-pressed="false">첫째</button><button data-g="g2" aria-pressed="false">둘째</button></div></div>
+    <div class="hero-pick clo" role="group" aria-label="옷 색 고르기"><span>상의</span><div class="sw" id="sw-top"></div><span>하의</span><div class="sw" id="sw-bot"></div></div>
     <div class="intro-actions">
       <button class="btn-main" id="btn-start" disabled>불러오는 중…</button>
       <button class="btn-main btn-alt" id="btn-exp" disabled>체험하기</button>
@@ -1856,10 +1858,43 @@ function loadTour(g){
   if (TOUR.src[k]) return Promise.resolve(true);
   if (!xbotSrc) return Promise.resolve(false);
   return TOUR.busy[k] || (TOUR.busy[k] = new GLTFLoader().loadAsync('tex/chars/tour_' + k + '.glb').then(gl => {
-    gl.scene.traverse(o => { if (o.isMesh) o.frustumCulled = false; });
+    gl.scene.traverse(o => { if (o.isMesh) o.frustumCulled = false; if (o.isSkinnedMesh) cloMask(o); });
     TOUR.src[k] = { scene:gl.scene, clips:retargetClips(gl.scene, xbotSrc, xbotClips) };
     return true;
   }).catch(e => { console.warn('tour model', k, e); TOUR.busy[k] = null; return false; }));
+}
+
+/* 옷 색 바꾸기: 뼈대 가중치로 상의(몸통·팔)/하의(엉덩이·다리) 정점을 표시해 두고, 그 부분의 색상(hue)만 셰이더에서 바꿈 (피부색·머리·모자·신발은 그대로) */
+const CLO_HUE = [-1, 0, 28, 52, 120, 175, 215, 268, 325], CLO_NAME = ['원래 색', '빨강', '주황', '노랑', '초록', '청록', '파랑', '보라', '분홍'];
+let HERO_CLO = [0, 0]; try { const q = JSON.parse(localStorage.getItem('damteoClo') || '[0,0]'); if (Array.isArray(q)) HERO_CLO = [q[0] | 0, q[1] | 0].map(v => v >= 0 && v < CLO_HUE.length ? v : 0); } catch (e){}
+function cloMask(m){
+  const g = m.geometry; if (g.getAttribute('cl') || !g.getAttribute('skinIndex')) return;
+  const top = /^(Spine|Spine1|Spine2|LeftShoulder|RightShoulder|LeftArm|RightArm|LeftForeArm|RightForeArm)$/, bot = /^(Hips|LeftUpLeg|RightUpLeg|LeftLeg|RightLeg)$/;
+  const kind = m.skeleton.bones.map(b => { const n = b.name.replace(/^mixamorig:?/, ''); return top.test(n) ? 1 : bot.test(n) ? 2 : 0; });
+  const si = g.getAttribute('skinIndex'), sw = g.getAttribute('skinWeight'), out = new Float32Array(si.count);
+  for (let i = 0; i < si.count; i++){ const w = [0, 0, 0]; for (let j = 0; j < 4; j++) w[kind[si.getComponent(i, j)]] += sw.getComponent(i, j); out[i] = w[1] > .5 ? 1 : w[2] > .5 ? 2 : 0; }
+  g.setAttribute('cl', new THREE.BufferAttribute(out, 1));
+}
+function cloApply(av, ti, bi){
+  if (!av || !av.tour) return; av.clo = [ti | 0, bi | 0];
+  if (!av.cloU){
+    const U = av.cloU = { uTH:{ value:-1 }, uBH:{ value:-1 } };
+    av.model.traverse(o => { if (!o.isMesh) return; const arr = Array.isArray(o.material) ? o.material : [o.material];
+      const nm = arr.map(mt => { if (mt.name !== 'Material_0') return mt; const c = mt.clone(); c.onBeforeCompile = sh => {
+        sh.uniforms.uTH = U.uTH; sh.uniforms.uBH = U.uBH;
+        sh.vertexShader = 'attribute float cl; varying float vCl;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n vCl = cl;');
+        sh.fragmentShader = 'varying float vCl; uniform float uTH; uniform float uBH;\nvec3 rgb2hsl(vec3 c){ float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), l = (mx + mn)*.5, d = mx - mn, h = 0., s = 0.; if (d > 1e-4){ s = d/(1. - abs(2.*l - 1.) + 1e-4); if (mx == c.r) h = mod((c.g - c.b)/d, 6.); else if (mx == c.g) h = (c.b - c.r)/d + 2.; else h = (c.r - c.g)/d + 4.; h /= 6.; } return vec3(h, s, l); }\nvec3 hsl2rgb(vec3 c){ vec3 k = clamp(abs(mod(c.x*6. + vec3(0., 4., 2.), 6.) - 3.) - 1., 0., 1.); return c.z + c.y*(k - .5)*(1. - abs(2.*c.z - 1.)); }\n' + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n { float th = vCl > .5 && vCl < 1.5 ? uTH : vCl > 1.5 ? uBH : -1.; if (th >= 0.){ vec3 hs = rgb2hsl(diffuseColor.rgb); float hh = hs.x*360.; bool skin = hh > 8. && hh < 42. && hs.y > .18 && hs.y < .62 && hs.z > .3; if (!skin){ hs.x = th/360.; hs.y = max(hs.y, .5); diffuseColor.rgb = hsl2rgb(hs); } } }'); }; c.customProgramCacheKey = () => 'clo1'; return c; });
+      o.material = Array.isArray(o.material) ? nm : nm[0]; });
+  }
+  av.cloU.uTH.value = CLO_HUE[ti | 0] ?? -1; av.cloU.uBH.value = CLO_HUE[bi | 0] ?? -1;
+}
+function cloBuild(){
+  const mk = (id, idx) => { const box = document.getElementById(id); if (!box) return; box.innerHTML = '';
+    CLO_HUE.forEach((h, i) => { const b = document.createElement('button'); b.type = 'button'; b.title = CLO_NAME[i]; b.setAttribute('aria-label', CLO_NAME[i]); if (h < 0) b.className = 'orig'; else b.style.setProperty('--c', 'hsl(' + h + ' 70% 52%)');
+      b.setAttribute('aria-pressed', String(HERO_CLO[idx] === i));
+      b.addEventListener('click', () => { HERO_CLO[idx] = i; try { localStorage.setItem('damteoClo', JSON.stringify(HERO_CLO)); } catch (e){} cloBuild(); cloApply(hero, HERO_CLO[0], HERO_CLO[1]); MP.lastSent = null; });
+      box.appendChild(b); }); };
+  mk('sw-top', 0); mk('sw-bot', 1);
 }
 const _tv = [0, 1, 2, 3, 4, 5].map(() => new THREE.Vector3()), _tq1 = new THREE.Quaternion(), _tq2 = new THREE.Quaternion(), D2R = Math.PI/180;
 function boneRotQ(bone, q){
@@ -2214,7 +2249,7 @@ const MP_PAL = [
 ];
 function makeHero(g, pal){
   const tk = tourKey(g);
-  if (tourReady(tk)) return new TourAvatar(tk);
+  if (tourReady(tk)){ const a = new TourAvatar(tk); if (!pal) cloApply(a, HERO_CLO[0], HERO_CLO[1]); return a; }
   let av;
   if (tk !== 'dad' && femSrc) av = femAvatar(1.01, 'mom', pal);   // 160 cm (until the family model has loaded)
   else av = styleMale(new Avatar(avatarSrc, avatarClips, {}), pal);
@@ -2222,6 +2257,7 @@ function makeHero(g, pal){
 }
 /* the hero picker works from the first moment the intro is shown, also while the scene is still loading */
 function bindHeroPick(){
+  cloBuild();
   const bs = document.querySelectorAll('#seg-hero button'), mark = () => bs.forEach(x => x.setAttribute('aria-pressed', String(x.dataset.g === HERO_G)));
   mark(); bs.forEach(b => b.addEventListener('click', () => { setHero(b.dataset.g); mark(); }));
 }
@@ -8005,18 +8041,19 @@ function mpBadge(){
   const wv = document.getElementById('mp-wave'); if (wv) wv.hidden = !MP.on;
   el.hidden = !MP.on; if (MP.on) el.textContent = '👥 ' + MP.count + '명 · ' + MP.name;
 }
+function mpClo(av, c){ const q = String(c || '0,0').split(',').map(v => v | 0); cloApply(av, q[0], q[1]); }
 function mpTop(g){ return (TOUR_H[tourKey(g)] || 1.7) + .1; }
 function mpAddPeer(id, d){
   if (id === MP.id || MP.peers.has(id) || MP.peers.size >= MP.MAX) return;
   let av;
   let hsh = 0; for (const ch of String(id)) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
-  try { av = makeHero(d.g, MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
+  try { av = makeHero(d.g, MP_PAL[hsh % MP_PAL.length]); if (av.tour) mpClo(av, d.c); } catch (e){ av = null; }
   if (!av){ av = new Hiker({ jacket:0x3f6a8a, pants:0x2f3a45, cap:0x2f4b3c }); }
   const tag = mpTag(String(d.n || '손님').slice(0, 16));
-  const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
+  const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, c:d.c, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
   av.root.position.set(p.x, p.y, p.z); av.root.visible = false; scene.add(av.root); scene.add(tag);
   MP.peers.set(id, p); MP.count = MP.peers.size + 1; mpBadge();
-  if (av.heroG && !tourReady(av.heroG)) loadTour(av.heroG).then(ok => { const q = MP.peers.get(id); if (!ok || !q || q.av.tour) return; const nv = new TourAvatar(tourKey(q.g)); nv.root.position.copy(q.av.root.position); nv.root.rotation.copy(q.av.root.rotation); nv.root.visible = q.av.root.visible; scene.remove(q.av.root); scene.add(nv.root); q.av = nv; });
+  if (av.heroG && !tourReady(av.heroG)) loadTour(av.heroG).then(ok => { const q = MP.peers.get(id); if (!ok || !q || q.av.tour) return; const nv = new TourAvatar(tourKey(q.g)); nv.root.position.copy(q.av.root.position); nv.root.rotation.copy(q.av.root.rotation); nv.root.visible = q.av.root.visible; scene.remove(q.av.root); scene.add(nv.root); mpClo(nv, q.c); q.av = nv; });
   toast('<b>' + p.name + '</b> 님이 들어왔어요');
 }
 function mpDropPeer(id){
@@ -8029,6 +8066,7 @@ function mpApply(id, d){
   const p = MP.peers.get(id);
   if (!p){ mpAddPeer(id, d); return; }
   p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr;
+  if (d.c !== p.c){ p.c = d.c; if (p.av.tour) mpClo(p.av, d.c); }
   if ((d.w || 0) !== p.w){ p.w = d.w || 0; p.waveAt = performance.now()/1000; if (p.bub) scene.remove(p.bub); p.bub = mpBubble(MP_HELLO[(p.w|0) % MP_HELLO.length]); }
 }
 let mpStarted = false;
@@ -8066,10 +8104,10 @@ function mpUpdate(dt){
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
   const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
-  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
+  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, HERO_CLO.join(''), MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
-    const rec = { n:MP.name, g:HERO_G, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
+    const rec = { n:MP.name, g:HERO_G, c:HERO_CLO.join(), x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:Date.now() };
     if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
     MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
   }
