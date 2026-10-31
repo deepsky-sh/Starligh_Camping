@@ -4075,7 +4075,7 @@ const catEyeU = { pupilW:{ value:.22 }, pupilH:{ value:.29 }, lidU:{ value:0 }, 
 const catHeadU = { uJaw:{ value:0 }, uFaceTex:{ value:null }, uFaceOn:{ value:0 } };
 const gf = v => { const s = String(+v.toFixed(6)); return /[.e]/.test(s) ? s : s + '.0'; };
 function catFurMat(pat, len, n, comb, den = 495, face = false){
-  const m = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.86, alphaToCoverage:true });
+  const m = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.86 });
   const u = m.userData; u.uPat = { value:pat }; u.uLen = { value:len }; u.uN = { value:n }; u.uComb = { value:comb || new THREE.Vector3(0, -.3, -.55) }; u.uDen = { value:den }; u.uSeg = { value:0 };
   return patchMat(m, face ? 'catFurFace' : 'catFur', sh => {
     Object.assign(sh.uniforms, { uPat:u.uPat, uLen:u.uLen, uN:u.uN, uComb:u.uComb, uDen:u.uDen, uSeg:u.uSeg });
@@ -4149,8 +4149,9 @@ function catFurMat(pat, len, n, comb, den = 495, face = false){
         float ffw = length(fwidth(fq));
         float favg = clamp((1.0 - hgt)*(1.0 - hgt)*0.95 + 0.03, 0.0, 1.0)*step(hgt, 1.0);
         float fa = vSh < 0.001 ? 1.0 : mix(strand, favg, smoothstep(0.7, 2.0, ffw));
-        if (fa < 0.03) discard;
-        diffuseColor.a = fa;
+        float fdth = fract(52.9829189*fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));   // 유니티 앱과 같은 화면 디더링(털 올이 선명하게 남음)
+        if (fa < fdth*0.94 + 0.03) discard;
+        diffuseColor.a = 1.0;
         diffuseColor.rgb *= cc*mix(1.0, mix(0.7, 1.06, sqrt(vSh)), smoothstep(0.15, 0.6, fmask))*(0.97 + 0.06*fhv);`)
       .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
         { vec3 V = normalize(vViewPosition); float rim = pow(1.0 - max(dot(normal, V), 0.0), 2.5);
