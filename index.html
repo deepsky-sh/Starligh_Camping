@@ -7942,6 +7942,9 @@ function mpWavePose(av, yaw, w, t){
     const ang = Math.atan2(new THREE.Vector3().crossVectors(pa, pr).dot(ax), pa.dot(pr));
     boneRotQ(F, _wq.setFromAxisAngle(ax, ang*w));
   }
+  // 손가락을 펴서 손바닥이 보이게 (엄지는 살짝만)
+  const hd2 = H.getWorldPosition(new THREE.Vector3()).sub(F.getWorldPosition(new THREE.Vector3())).normalize();
+  for (const fn of ['Index', 'Middle', 'Ring', 'Pinky']) for (let j = 1; j <= 2; j++){ const b = B['RightHand' + fn + j], c = B['RightHand' + fn + (j + 1)]; if (b && c) boneAim(b, c, hd2, w*.9); }
 }
 function mpGreet(){
   if (!MP.on || !started || view === 'drive' || (EXP.on && EXP.mode !== 'free')) return;
