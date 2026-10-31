@@ -1920,15 +1920,7 @@ class TourAvatar extends Avatar {
     this.legLat = (lat('LeftFoot') + lat('RightFoot'))/2; this.armLat = (lat('LeftHand') + lat('RightHand'))/2;
     this.sitDrop = clamp(hp.y - .50, -.3, .42*this.kk);
   }
-  update(dt, speed){
-    speed = Math.abs(speed);
-    const sp = speed/Math.max(.5, this.kk), wW = smooth(.1, .4, sp), wR = smooth(2.1, 2.5, sp), a = this.act;
-    a.idle.setEffectiveWeight(1 - wW); a.walk.setEffectiveWeight(wW*(1 - wR)); a.run.setEffectiveWeight(wW*wR);
-    const rate = sp < .05 ? 1 : lerp(speed/(1.45*this.legScale), speed/(4.4*this.legScale), wR);
-    a.walk.setEffectiveTimeScale(clamp(rate, .6, 2.6)); a.run.setEffectiveTimeScale(clamp(rate*1.25, .5, 2.7));
-    this.mixer.update(dt); this.phase += dt*rate*Math.PI*2*.9;
-    this.fix(wW, wR);
-  }
+  update(dt, speed){ super.update(dt, Math.abs(speed)); }   // 예전 캐릭터와 같은 걷기·달리기 동작 (팔·걸음 보정은 쓰지 않음)
   fix(wW, wR){
     const B = this.B, T = TOUR_TUNE, root = this.root; root.updateMatrixWorld(true);
     const f = _tv[0].set(0, 0, 1).applyQuaternion(root.getWorldQuaternion(_tq1)); f.y = 0; if (f.lengthSq() < 1e-6) return; f.normalize();
