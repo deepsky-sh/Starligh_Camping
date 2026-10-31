@@ -1834,6 +1834,9 @@ class Avatar {
     // 몸이 점점 숙여지던 문제를 막음
     if (!this._rest){ this._rest = []; this.model.traverse(o => { if (o.isBone) this._rest.push([o, o.quaternion.clone(), o.position.clone()]); }); }
     for (const r of this._rest){ r[0].quaternion.copy(r[1]); r[0].position.copy(r[2]); }
+    // three.js 믹서는 값이 지난 프레임과 같으면 뼈에 다시 쓰지 않음 → 위에서 기본 자세로 되돌린 뼈가 기본 자세와 애니메이션 사이를 오가며
+    // 떨려 보였음. 비교용 버퍼를 무효화해서 매 프레임 애니메이션 값을 다시 쓰게 함
+    for (const b of this.mixer._bindings || []){ const st = b.valueSize, buf = b.buffer; if (buf){ buf[st] = NaN; buf[2*st] = NaN; } }
     const w = smooth(.08, .9, speed), run = smooth(2.5, 4.6, speed);
     this.act.idle.setEffectiveWeight(1 - w);
     this.act.walk.setEffectiveWeight(w*(1 - run));
