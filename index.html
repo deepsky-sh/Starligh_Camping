@@ -5407,6 +5407,7 @@ function sitUpdate(dt){
     const e = SIT.k*SIT.k*(3 - 2*SIT.k), s = SIT.seat, gy = groundAt(s.x, s.z);
     hero.root.position.set(lerp(SIT.from.x, s.x, e), lerp(SIT.from.y, gy, e), lerp(SIT.from.z, s.z, e));
     let d = s.ry - player.heading; d = Math.atan2(Math.sin(d), Math.cos(d)); player.heading += d*(1 - Math.exp(-dt*10));
+    if (SIT.on && SIT.k >= 1 && hero.mixer) hero.mixer.setTime(0);   // 다 앉으면 숨쉬기·흔들림 없이 고정
     sitApply(hero, hero.root, player.heading, SIT.k, SIT.f || (SIT.f = {}), hero.root.position.x, hero.root.position.y, hero.root.position.z);
   }
 }
@@ -7912,15 +7913,35 @@ function mpBubble(text){
 }
 const MP_HELLO = ['안녕하세요! 👋', '반가워요! 👋', '안녕~ 👋'];
 function mpWaveW(age){ return age < 0 || age > MP_WAVE_S ? 0 : Math.min(1, age/.25, (MP_WAVE_S - age)/.35); }
+/* 인사: 오른팔을 옆으로 들어 아래팔을 세우고 좌우로 흔듦. 손가락은 위로, 손바닥은 마주 보는 사람(앞) 쪽으로 — 뼈 방향을 월드 기준으로 맞춰서 리그 축과 상관없이 동작 */
+const _wq = new THREE.Quaternion(), _wq2 = new THREE.Quaternion();
+function boneRotQ(bone, q){ bone.parent.getWorldQuaternion(_wq2); const P = _wq2.clone(); bone.quaternion.premultiply(P.clone().invert().multiply(q).multiply(P)); bone.updateMatrixWorld(true); }
+function boneAim(bone, child, dir, w){
+  const a = bone.getWorldPosition(new THREE.Vector3()), b = child.getWorldPosition(new THREE.Vector3()), cur = b.sub(a).normalize();
+  const q = new THREE.Quaternion().setFromUnitVectors(cur, dir); if (w < 1) q.slerp(new THREE.Quaternion(), 1 - w); boneRotQ(bone, q);
+}
 function mpWavePose(av, yaw, w, t){
   if (!av || !av.model || w <= 0) return;
   const B = av._mpB || (av._mpB = boneMap(av.model));
-  if (!B.RightArm || !B.RightForeArm) return;
+  const A = B.RightArm, F = B.RightForeArm, H = B.RightHand; if (!A || !F || !H) return;
   av.root.updateMatrixWorld(true);
-  const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
-  boneRot(B.RightArm, fwd, -2.25*w);
-  boneRot(B.RightForeArm, fwd, -(.3 + .55*Math.sin(t*11))*w);
-  if (B.RightHand) boneRot(B.RightHand, fwd, -.25*Math.sin(t*11 + 1)*w);
+  const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)), R = new THREE.Vector3().crossVectors(fwd, UP);   // 캐릭터의 오른쪽
+  const sw = Math.sin(t*10);
+  boneAim(A, F, R.clone().multiplyScalar(.8).addScaledVector(UP, .5).addScaledVector(fwd, .2).normalize(), w);             // 위팔: 옆으로 들어 올림
+  boneAim(F, H, UP.clone().addScaledVector(R, .42*sw).addScaledVector(fwd, .12).normalize(), w);                          // 아래팔: 세워서 좌우로 흔들기
+  const tip = B.RightHandMiddle1 || B.RightHandIndex1;
+  if (tip){ const fd = F.getWorldPosition(new THREE.Vector3()), hd = H.getWorldPosition(new THREE.Vector3()); boneAim(H, tip, hd.sub(fd).normalize(), w); }   // 손목은 곧게
+  // 손바닥이 앞을 보도록 아래팔을 축으로 비틀기: 검지→새끼 방향이 캐릭터 오른쪽(바깥)을 향하면 손바닥이 앞을 봄
+  const i1 = B.RightHandIndex1, p1 = B.RightHandPinky1, th = B.RightHandThumb1;
+  let across = null;
+  if (i1 && p1) across = p1.getWorldPosition(new THREE.Vector3()).sub(i1.getWorldPosition(new THREE.Vector3()));
+  else if (th) across = H.getWorldPosition(new THREE.Vector3()).sub(th.getWorldPosition(new THREE.Vector3()));
+  if (across){
+    const ax = H.getWorldPosition(new THREE.Vector3()).sub(F.getWorldPosition(new THREE.Vector3())).normalize();
+    const pa = across.addScaledVector(ax, -across.dot(ax)).normalize(), pr = R.clone().addScaledVector(ax, -R.dot(ax)).normalize();
+    const ang = Math.atan2(new THREE.Vector3().crossVectors(pa, pr).dot(ax), pa.dot(pr));
+    boneRotQ(F, _wq.setFromAxisAngle(ax, ang*w));
+  }
 }
 function mpGreet(){
   if (!MP.on || !started || view === 'drive' || (EXP.on && EXP.mode !== 'free')) return;
@@ -8093,6 +8114,7 @@ function mpUpdate(dt){
     p.sk = clamp((p.sk || 0) + (p.sit ? 1 : -1)*dt*3.2, 0, 1);
     if (p.sit === 2 && !p.chair && p.sk > 0){ p.chair = seatChair(p.x, p.z, p.h); p.chair.own = false; p.chair.peer = true; }
     if (p.chair){ const sc = clamp(p.sk*2, .01, 1); p.chair.g.scale.set(sc, sc, sc); if (p.sk <= 0 || p.sit !== 2 && p.sit){ seatDrop(p.chair); p.chair = null; } }
+    if (p.sit && p.sk >= 1 && p.av.mixer) p.av.mixer.setTime(0);
     if (p.sk > 0 && p.av.model) sitApply(p.av, p.av.root, p.h, p.sk, p.sf || (p.sf = {}), p.x, p.y, p.z);
     const pa = nowS - p.waveAt; mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
     if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + (p.g === 'm' ? 2.45 : 2.3), p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
