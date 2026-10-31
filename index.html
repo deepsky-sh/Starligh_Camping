@@ -69,7 +69,16 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 
 .mapwrap{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:4px;align-items:flex-end}
 .map-cap{font-size:10px;letter-spacing:.08em;color:var(--muted);pointer-events:none;padding-right:2px}
-#minimap{width:276px;height:103px;border-radius:12px;border:1px solid var(--line);background:var(--glass-strong);cursor:crosshair;display:block}
+#minimap{width:var(--mapw,400px);height:calc(var(--mapw,400px)*.3732);border-radius:12px;border:1px solid var(--line);background:var(--glass-strong);cursor:crosshair;display:block}
+.mapwrap{--mapw:400px}
+.mapwrap.ms-l{--mapw:min(600px,46vw)}.mapwrap.ms-m{--mapw:400px}.mapwrap.ms-s{--mapw:276px}
+.mapwrap.ms-x #minimap,.mapwrap.ms-x .map-cap{display:none}
+.map-ctl{display:flex;gap:4px;align-items:center}
+.map-ctl button{border:1px solid var(--line);background:var(--glass-strong);color:var(--muted);border-radius:8px;min-width:36px;height:28px;padding:0 9px;font-size:12px;line-height:1;cursor:pointer}
+.map-ctl button[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+.map-ctl .mp-lbl{font-size:10px;letter-spacing:.08em;color:var(--muted);margin-right:4px;display:none}
+.mapwrap.ms-x .map-ctl .mp-lbl{display:inline}
+@media (pointer:coarse){.map-ctl button{height:34px;min-width:42px;font-size:13px}}
 
 .help{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));padding:8px 14px;background:var(--glass);border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted);white-space:nowrap;max-width:calc(100vw - 340px);overflow:hidden;text-overflow:ellipsis}
 .help kbd{font-family:var(--f-ui);font-size:11px;color:var(--ink);background:rgba(255,255,255,.1);border-radius:4px;padding:1px 5px;margin:0 1px}
@@ -80,7 +89,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 
 .joy{position:fixed;left:24px;bottom:calc(28px + env(safe-area-inset-bottom,0px));width:128px;height:128px;border-radius:50%;border:1px solid var(--line);background:rgba(13,20,32,.4);touch-action:none}
 .joy .knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(242,179,91,.85);box-shadow:0 2px 10px rgba(0,0,0,.4)}
-.tbtns{position:fixed;right:20px;bottom:calc(140px + env(safe-area-inset-bottom,0px));display:flex;gap:10px}
+.tbtns{position:fixed;right:20px;bottom:calc(var(--mapb,124px) + 16px + env(safe-area-inset-bottom,0px));display:flex;gap:10px}
 .tbtns button{width:62px;height:62px;border-radius:50%;border:1px solid var(--line);background:var(--glass);font-size:12px}
 .tbtns button[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
 
@@ -277,7 +286,7 @@ body.xp-busy .help,body.scoping .help{display:none}
 body.scoping #xp-hud,body.scoping .xp-quest{display:none!important}
 body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .tbtns,body.xp-drive .tbtns{display:none!important}
 @media (max-width:760px){
-  .xp-quest{top:calc(138px + env(safe-area-inset-top,0px));width:calc(100vw - 228px);padding:9px 11px}
+  .xp-quest{top:calc(var(--brandb,110px) + 8px);width:calc(100vw - var(--mapx,200px) - 44px);padding:9px 11px}
   .xp-quest:not(.min){width:auto;right:16px;z-index:4}
   .xp-actions{bottom:calc(214px + env(safe-area-inset-bottom,0px))}
   .xp-panel{top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:none;right:12px;left:12px;width:auto}
@@ -289,8 +298,8 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
   .brand h1{font-size:18px;margin:1px 0 4px}
   .brand .eyebrow{font-size:10px}
   .panel{top:calc(60px + env(safe-area-inset-top,0px));width:auto;left:16px;max-height:calc(100% - 300px)}
-  .mapwrap{bottom:auto;top:calc(116px + env(safe-area-inset-top,0px))}
-  #minimap{width:184px;height:69px}
+  .mapwrap{bottom:auto;top:calc(var(--brandb,110px) + 8px);--mapw:200px}
+  .mapwrap.ms-l{--mapw:min(320px,calc(100vw - 32px))}.mapwrap.ms-m{--mapw:200px}.mapwrap.ms-s{--mapw:140px}
   .map-cap{display:none}
   .help{display:none}
   .intro-card h2{font-size:24px}
@@ -368,6 +377,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 </aside>
 
 <div class="mapwrap">
+  <div class="map-ctl" id="map-ctl" role="group" aria-label="배치도 크기"><span class="mp-lbl">배치도</span><button data-s="l" aria-pressed="false" title="크게">대</button><button data-s="m" aria-pressed="true" title="보통">중</button><button data-s="s" aria-pressed="false" title="작게">소</button><button data-s="x" aria-pressed="false" title="최소화">─</button></div>
   <div class="map-cap">배치도 · 클릭하여 이동 · 오른쪽이 진입로</div>
   <canvas id="minimap" width="552" height="206" aria-label="캠핑장 배치도"></canvas>
 </div>
@@ -7381,6 +7391,30 @@ const mm = $('#minimap'), mctx = mm.getContext('2d');
 const MAP = { x0:-38, x1:62, z0:-165, z1:125 };
 const w2m = (x,z) => [(MAP.z1 - z)/(MAP.z1-MAP.z0)*mm.width, (x - MAP.x0)/(MAP.x1-MAP.x0)*mm.height];
 const m2w = (u,v) => [MAP.x0 + v*(MAP.x1-MAP.x0), MAP.z1 - u*(MAP.z1-MAP.z0)];
+/* 배치도 크기: 대·중·소·최소화 (기억해 둠), 휴대폰 세로에서는 상단 카드 바로 아래로 자리를 잡음 */
+const MAPSZ = { cur:'m' };
+function mapLayout(){
+  const w = document.querySelector('.mapwrap'), br = document.querySelector('.brand'), r = document.documentElement.style;
+  if (!w) return;
+  const rb = br ? br.getBoundingClientRect() : null; r.setProperty('--brandb', (rb && rb.height ? Math.round(rb.bottom) : 110) + 'px');
+  const mw = mm.getBoundingClientRect().width, narrow = innerWidth <= 760;
+  r.setProperty('--mapx', (MAPSZ.cur === 'x' ? 96 : Math.round(mw)) + 'px');
+  r.setProperty('--mapb', (narrow ? 124 : Math.round(w.getBoundingClientRect().height)) + 'px');
+}
+function mapSize(sz, save){
+  if (!['l', 'm', 's', 'x'].includes(sz)) sz = 'm'; MAPSZ.cur = sz;
+  const w = document.querySelector('.mapwrap'); w.classList.remove('ms-l', 'ms-m', 'ms-s', 'ms-x'); w.classList.add('ms-' + sz);
+  document.querySelectorAll('#map-ctl button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === sz)));
+  if (save) try { localStorage.setItem('damteoMap', sz); } catch (e){}
+  mapLayout();
+}
+(function(){
+  let sz = null; try { sz = localStorage.getItem('damteoMap'); } catch (e){}
+  document.querySelectorAll('#map-ctl button').forEach(b => b.addEventListener('click', () => mapSize(b.dataset.s, true)));
+  mapSize(sz || 'm');
+  addEventListener('resize', mapLayout);
+  try { const ro = new ResizeObserver(mapLayout); const br = document.querySelector('.brand'); if (br) ro.observe(br); ro.observe(document.querySelector('.mapwrap')); } catch (e){}
+})();
 let mapBase;
 function drawMapBase(){
   mapBase = document.createElement('canvas'); mapBase.width = mm.width; mapBase.height = mm.height; const g = mapBase.getContext('2d');
