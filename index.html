@@ -2922,7 +2922,7 @@ function cabinShell(opt = {}){
 }
 /* camp furniture around a pitched tent */
 const furnM = { fabric:[0x2f3a30,0x6b4d33,0x2e3d52,0x7a6a52,0x3c3f44], frame: new THREE.MeshStandardMaterial({ color:0x1d1f22, roughness:.4, metalness:.7 }), alu: new THREE.MeshStandardMaterial({ color:0xb8bcc0, roughness:.35, metalness:.85 }) };
-const SEATS = []; window.__seats = SEATS;   // 앉을 수 있는 캠핑의자 (등받이가 -z쪽, 앉으면 +z쪽을 봄)
+const SEATS = [];   // 앉을 수 있는 캠핑의자 (등받이가 -z쪽, 앉으면 +z쪽을 봄)
 function chair(x, z, ry, color=0x3c4a3a){
   const g = new THREE.Group(); const f = new THREE.MeshStandardMaterial({ color, roughness:.85, side:THREE.DoubleSide });
   const seat = gridSurface(4,4,(u,v)=>[(u-.5)*.5, .34 - .05*Math.sin(Math.PI*u)*Math.sin(Math.PI*v) + v*.04, (v-.5)*.42]); g.add(new THREE.Mesh(seat, f));
@@ -7912,7 +7912,7 @@ function mpBubble(text){
   sp.scale.set(1.5, .375, 1); sp.renderOrder = 10; sp.visible = false; scene.add(sp); return sp;
 }
 const MP_HELLO = ['안녕하세요! 👋', '반가워요! 👋', '안녕~ 👋'];
-function mpWaveW(age){ if (window.__waveHold && age >= 0 && age < 600) return 1; return age < 0 || age > MP_WAVE_S ? 0 : Math.min(1, age/.25, (MP_WAVE_S - age)/.35); }
+function mpWaveW(age){ return age < 0 || age > MP_WAVE_S ? 0 : Math.min(1, age/.25, (MP_WAVE_S - age)/.35); }
 /* 인사: 오른팔을 옆으로 들어 아래팔을 세우고 좌우로 흔듦. 손가락은 위로, 손바닥은 마주 보는 사람(앞) 쪽으로 — 뼈 방향을 월드 기준으로 맞춰서 리그 축과 상관없이 동작 */
 const _wq = new THREE.Quaternion(), _wq2 = new THREE.Quaternion();
 function boneRotQ(bone, q){ bone.parent.getWorldQuaternion(_wq2); const P = _wq2.clone(); bone.quaternion.premultiply(P.clone().invert().multiply(q).multiply(P)); bone.updateMatrixWorld(true); }
