@@ -89,9 +89,22 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 
 .joy{position:fixed;left:24px;bottom:calc(28px + env(safe-area-inset-bottom,0px));width:128px;height:128px;border-radius:50%;border:1px solid var(--line);background:rgba(13,20,32,.4);touch-action:none}
 .joy .knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(242,179,91,.85);box-shadow:0 2px 10px rgba(0,0,0,.4)}
-.tbtns{position:fixed;right:20px;bottom:calc(var(--mapb,124px) + 16px + env(safe-area-inset-bottom,0px));display:flex;gap:10px}
-.tbtns button{width:62px;height:62px;border-radius:50%;border:1px solid var(--line);background:var(--glass);font-size:12px}
-.tbtns button[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+/* 모바일 게임식 동작 버튼: 큰 '앉기' 버튼을 모서리에, '인사'·'달리기'를 그 둘레에 호 모양으로 */
+.tbtns{position:fixed;right:18px;bottom:calc(var(--mapb,124px) + 14px + env(safe-area-inset-bottom,0px));width:172px;height:164px;pointer-events:none;z-index:4}
+.tbtns .tb{position:absolute;pointer-events:auto;border-radius:50%;border:1.5px solid rgba(255,255,255,.22);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.16),rgba(13,20,32,.62) 70%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-shadow:0 6px 18px rgba(0,0,0,.35),inset 0 -3px 0 rgba(0,0,0,.25);touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;transition:transform .08s,opacity .2s,border-color .2s}
+.tbtns .tb:active{transform:scale(.92)}
+.tbtns .tb i{font-style:normal;line-height:1;display:flex}
+.tbtns .tb small{font-size:10.5px;color:var(--muted);line-height:1.1}
+.tbtns .tb.l{width:82px;height:82px;right:0;bottom:0;border-color:rgba(242,179,91,.65)}
+.tbtns .tb.l i{font-size:0}.tbtns .tb.l svg{width:30px;height:30px;color:var(--amber)}
+.tbtns .tb.s{width:58px;height:58px}.tbtns .tb.s i{font-size:22px}
+#tb-wave{right:12px;bottom:98px}
+#tb-run{right:96px;bottom:10px}
+.tbtns .tb[aria-pressed="true"]{border-color:var(--amber);background:radial-gradient(circle at 35% 30%,rgba(242,179,91,.45),rgba(60,40,12,.7) 70%)}
+.tbtns .tb[aria-pressed="true"] small{color:var(--amber)}
+.tbtns .tb:disabled{opacity:.38}
+.tbtns .tb[hidden]{display:none}
+#act-sit{display:none!important}
 
 .intro{position:fixed;inset:0;display:flex;align-items:flex-end;justify-content:flex-start;padding:16px 16px calc(24px + env(safe-area-inset-bottom,0px));background:linear-gradient(90deg,rgba(8,12,20,.55),rgba(8,12,20,0) 60%);z-index:5}
 .intro-card{width:min(500px,100%);background:var(--glass-strong);border:1px solid var(--line);border-radius:18px;padding:22px 22px 18px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;flex-direction:column;gap:14px}
@@ -412,7 +425,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
 <button class="act" id="act-shop" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>매점 가격표 보기<kbd>E</kbd></button>
 <div class="modal" id="shop-menu" hidden><div class="modal-card shop-card" role="dialog" aria-labelledby="shop-menu-h"><h3 id="shop-menu-h">매점 가격표</h3><div class="sub">관리동 매점 · 현장 가격표 기준이며 바뀔 수 있어요</div><div class="shop-grid" id="shop-menu-body"></div><button class="modal-close" id="shop-menu-x">닫기</button></div></div>
-<div class="tbtns" id="tbtns" hidden><button id="tb-run" aria-pressed="false">달리기</button><button id="tb-jump">점프</button></div>
+<div class="tbtns" id="tbtns" hidden><button id="tb-wave" class="tb s" aria-label="인사"><i>👋</i><small>인사</small></button><button id="tb-run" class="tb s" aria-pressed="false" aria-label="달리기"><i>🏃</i><small>달리기</small></button><button id="tb-sit" class="tb l" aria-pressed="false" aria-label="앉기"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v9h10M7 12l-2 9M17 12l2 9M7 12h10"/></svg></i><small id="tb-sit-lbl">앉기</small></button></div>
 
 <div id="xp-hud" hidden>
   <section class="xp-quest" id="xp-quest"><h3>캠핑 체험 <button id="xp-quest-tg">접기</button></h3><ul id="xp-quest-list"></ul><div class="xp-inv" id="xp-inv"></div></section>
@@ -5386,7 +5399,9 @@ function sitUpdate(dt){
   SIT.cand = near;
   const btn = $('#act-sit'); const show = ok && (SIT.on || SIT.k <= 0) && !$('#act-scope').offsetParent;
   if (btn.hidden === show){ btn.hidden = !show; }
-  if (show){ const l = SIT.on ? '일어서기' : near ? '의자에 앉기' : '의자 펴고 앉기'; if ($('#sit-lbl').textContent !== l) $('#sit-lbl').textContent = l; }
+  { const tb = $('#tb-sit'), l = SIT.on ? '일어서기' : '앉기', dis = !show; if (tb.disabled !== dis) tb.disabled = dis; if ($('#tb-sit-lbl').textContent !== l) $('#tb-sit-lbl').textContent = l; tb.setAttribute('aria-pressed', String(SIT.on)); tb.title = SIT.on ? '일어서기 (Q)' : near ? '의자에 앉기 (Q)' : '의자 펴고 앉기 (Q)';
+    if ($('#tbtns').hidden) $('#tbtns').hidden = false;
+    const tw = $('#tb-wave'); if (tw.hidden === !!MP.on) tw.hidden = !MP.on; }
   SIT.drop = SIT.k > 0 ? .44*(hero.k || 1)*SIT.k*SIT.k*(3 - 2*SIT.k) : 0;
   if (SIT.k > 0 && SIT.seat){
     const e = SIT.k*SIT.k*(3 - 2*SIT.k), s = SIT.seat, gy = groundAt(s.x, s.z);
@@ -7616,7 +7631,7 @@ function bindInput(){
   canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('wheel', e => { if (view === 'bino'){ binoZoom(Math.exp(-e.deltaY*.0012)); e.preventDefault(); return; } if (view === 'scope'){ scopeFocus(SCOPE.focus - e.deltaY*.0011); e.preventDefault(); return; } if (view === 'cat'){ catCam.dist = clamp(catCam.dist + e.deltaY*.0012, .42, 2.6); e.preventDefault(); return; } if (view === 'tp'){ camDist = clamp(camDist + e.deltaY*.006, 2.2, 14); e.preventDefault(); } }, { passive:false });
   const joyEl = $('#joy'), knob = $('#knob');
-  if (isTouch){ joyEl.hidden = false; $('#tbtns').hidden = false; }
+  if (isTouch){ joyEl.hidden = false; } else $('#tb-run').hidden = true;
   let jid = null;
   joyEl.addEventListener('pointerdown', e => { jid = e.pointerId; joyEl.setPointerCapture(e.pointerId); joy.active = true; moveJoy(e); });
   joyEl.addEventListener('pointermove', e => { if (e.pointerId === jid) moveJoy(e); });
@@ -7624,7 +7639,8 @@ function bindInput(){
   joyEl.addEventListener('pointerup', jend); joyEl.addEventListener('pointercancel', jend);
   function moveJoy(e){ const r = joyEl.getBoundingClientRect(); let x=(e.clientX-r.left-r.width/2)/(r.width/2), y=(e.clientY-r.top-r.height/2)/(r.height/2); const l=Math.hypot(x,y); if(l>1){x/=l;y/=l;} joy.x=x; joy.y=y; knob.style.transform=`translate(${x*40}px,${y*40}px)`; }
   $('#tb-run').addEventListener('click', e => { runToggle = !runToggle; e.currentTarget.setAttribute('aria-pressed', String(runToggle)); });
-  $('#tb-jump').addEventListener('click', jump);
+  $('#tb-sit').addEventListener('click', sitToggle);
+  $('#tb-wave').addEventListener('click', () => { if (MP.on) mpGreet(); });
   document.querySelectorAll('#seg-view button').forEach(b => b.addEventListener('click', () => setView(b.dataset.v)));
   document.querySelectorAll('#seg-time button').forEach(b => b.addEventListener('click', () => setHour(presetHour(b.dataset.t))));
   $('#btn-home').addEventListener('click', () => {
