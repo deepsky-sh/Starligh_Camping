@@ -8026,7 +8026,7 @@ const MP_ADJ = ['별빛','달빛','포근한','씩씩한','느긋한','반짝','
 const MP_NOUN = ['토끼','다람쥐','고라니','올빼미','너구리','곰돌이','반딧불','캠퍼','별지기','산새','오소리','청설모'];
 /* ---- 서버에서 받은 값은 모두 '남이 보낸 입력'으로 취급: HTML로 넣기 전에 이스케이프, 숫자·종류는 허용 범위로 정리 ---- */
 function escH(t){ return String(t == null ? '' : t).replace(/[&<>"'`]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;', '`':'&#96;' })[c]); }
-function cleanName(t){ return String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069<>]/g, '').trim().slice(0, 12) || '손님'; }
+function cleanName(t){ return String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069<>"'`&]/g, '').trim().slice(0, 12) || '손님'; }
 const mpNum = (v, lo, hi, d = 0) => { v = +v; return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
 const own = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
 function mpCleanP(d){
