@@ -505,6 +505,8 @@ const frame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0
 
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const Q = isTouch ? 0.55 : 1;
+// 메모리가 적은 폰(4GB 이하로 알려진 기기)은 처음부터 가볍게 — 브라우저가 메모리 부족으로 탭을 강제 종료(튕김)하는 일을 줄임
+const LOWMEM = isTouch && ((navigator.deviceMemory || 4) <= 4 || Math.min(screen.width, screen.height) < 500);
 
 /* ---------------- math & noise ---------------- */
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
@@ -732,7 +734,7 @@ const arrowTex = canvasTex(128,256,(g)=>{
 /* ---------------- renderer / scene ---------------- */
 const canvas = $('#c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:false, powerPreference:'high-performance' });  // MSAA happens in the post target
-renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, LOWMEM ? 1.15 : isTouch ? 1.35 : 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.6;
@@ -7848,7 +7850,7 @@ function bindInput(){
 
 /* ---------------- post-processing (hand-written GLSL): screen-space AO from the depth buffer, height-fog aerial perspective with sun in-scatter,
    dual-Kawase bloom, ACES + film grade. The scene renders once into an MSAA half-float target that keeps its depth texture. ---------------- */
-const POST = { on:true, ao:!isTouch, bloom:true, level: isTouch ? 'std' : 'high', aoStr:.82, bloomStr:.2, hazeA:.00026, hazeB:1/380, hazeGain:2.2, vig:.28 };
+const POST = { on:true, ao:!isTouch, bloom:true, level: LOWMEM ? 'lite' : isTouch ? 'std' : 'high', aoStr:.82, bloomStr:.2, hazeA:.00026, hazeB:1/380, hazeGain:2.2, vig:.28 };
 const FSQ_VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 const POST_COMMON = `
 varying vec2 vUv;
@@ -8258,6 +8260,34 @@ function mpUpdate(dt){
 
 let simT = 0;
 function loop(){ const dt = Math.min(clock.getDelta(), .05); simT += dt; tick(dt, simT); }
+/* 폰 안정성: ① 보고 있는 동안 화면이 꺼지지(잠기지) 않게 Wake Lock, ② 다른 앱으로 가면 그리기를 멈춰 배터리·메모리 아끼기,
+   ③ 그래픽 메모리가 부족해 WebGL 화면이 끊기면(context lost) 위치·계절·시간을 기억해 두고 '가볍게'로 자동 다시 불러오기 */
+let loopOn = false, wakeLk = null;
+function loopStart(){ loopOn = true; if (!document.hidden){ clock.getDelta(); renderer.setAnimationLoop(loop); } }
+async function wakeOn(){ try { if (started && !document.hidden && 'wakeLock' in navigator && !wakeLk){ wakeLk = await navigator.wakeLock.request('screen'); wakeLk.addEventListener('release', () => { wakeLk = null; }); } } catch (e){} }
+document.addEventListener('visibilitychange', () => {
+  if (!loopOn) return;
+  if (document.hidden) renderer.setAnimationLoop(null);
+  else { clock.getDelta(); renderer.setAnimationLoop(loop); wakeOn(); }
+});
+const RESUME_KEY = 'damteoResume';
+canvas.addEventListener('webglcontextlost', e => {
+  e.preventDefault(); renderer.setAnimationLoop(null); loopOn = false;
+  try { sessionStorage.setItem(RESUME_KEY, JSON.stringify({ x:player.pos.x, z:player.pos.z, h:player.heading, season, hour:hourTarget, xp:!!EXP.on, started, t:Date.now() })); } catch (err){}
+  const d = document.createElement('div'); d.textContent = '화면을 다시 불러오는 중…';
+  d.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,12,20,.85);color:#e9e4d8;font:600 16px "IBM Plex Sans KR",sans-serif;z-index:99';
+  document.body.appendChild(d); setTimeout(() => location.reload(), 900);
+}, false);
+function resumeAfterReload(){
+  let r = null; try { r = JSON.parse(sessionStorage.getItem(RESUME_KEY) || 'null'); sessionStorage.removeItem(RESUME_KEY); } catch (e){}
+  if (!r || !r.started || Date.now() - r.t > 120000) return false;
+  setGfx('lite'); renderer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1));
+  if (r.season && r.season !== season) applySeason(r.season);
+  $('#intro').hidden = true; started = true; mpInit(); wakeOn();
+  setView('tp'); teleport(r.x, r.z, r.h); setHour(r.hour, true); canvas.focus();
+  toast(r.xp ? '화면이 끊겨 다시 불러왔어요 · 체험하기는 처음부터 다시 시작해야 해요 · 그래픽은 <b>가볍게</b>로 낮췄어요' : '화면이 끊겨 <b>그 자리</b>로 다시 불러왔어요 · 그래픽은 <b>가볍게</b>로 낮췄어요');
+  return true;
+}
 function tick(dt, t){
   U.uTime.value = t;
   if (Math.abs(hour - hourTarget) > .001){ hour = lerp(hour, hourTarget, 1 - Math.exp(-dt*2.2)); if (Math.abs(hour-hourTarget) < .005) hour = hourTarget; applyTime(hour); }
@@ -8317,22 +8347,23 @@ async function boot(){
   setView('air');
   applySeason(season);
   setHour(13, true); updateEnv(1);
-  renderer.setAnimationLoop(loop);
+  loopStart();
   setMsg('준비 완료');
   const btn = $('#btn-start'); btn.disabled = false; btn.textContent = '둘러보기 시작';
   btn.addEventListener('click', () => {
-    $('#intro').hidden = true; started = true; mpInit();
+    $('#intro').hidden = true; started = true; mpInit(); wakeOn();
     if (innerWidth >= 1100){ $('#panel').classList.add('open'); $('#menu-toggle').setAttribute('aria-expanded','true'); }
     teleport(8, -126, Math.PI); setView('tp'); canvas.focus();
     toast('<b>담터 별빛캠핑장</b>에 오신 것을 환영합니다');
   });
   const bx = $('#btn-exp'); bx.disabled = false;
   bx.addEventListener('click', () => {
-    $('#intro').hidden = true; started = true; mpInit();
+    $('#intro').hidden = true; started = true; mpInit(); wakeOn();
     setView('tp'); expStart(); canvas.focus();
   });
+  resumeAfterReload();
   window.__camp = {
-    freeze:()=>renderer.setAnimationLoop(null), resume:()=>{ clock.getDelta(); renderer.setAnimationLoop(loop); },
+    freeze:()=>{ loopOn = false; renderer.setAnimationLoop(null); }, resume:()=>{ loopStart(); },
     step:(n=1,dt=1/30)=>{ for(let i=0;i<n;i++){ simT+=dt; tick(dt, simT); } return renderer.info.render.triangles; },
     setView, setHour, teleport, setHero, player, getHero:()=>hero, femAvatar, makeHero, chiefRoot:()=>CHIEF.root, sceneAdd:o=>scene.add(o), groundAt, applySeason, look:(y,p)=>{ camYaw=y; camPitch=p; }, start:()=>btn.click(),
     evac:(v)=>{ evacGroup.visible = v; },
