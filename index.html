@@ -327,6 +327,15 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 }
 @media (pointer:coarse){ .act kbd{display:none} }
 @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+
+/* 폰·태블릿: 활동 명령 버튼을 화면 가운데가 아니라 오른쪽 옆, 동작 버튼 묶음 위로 세로로 쌓음 (가운데 시야를 가리지 않게) */
+@media (pointer:coarse){
+  .xp-actions{left:auto;right:12px;transform:none;flex-direction:column;align-items:flex-end;flex-wrap:nowrap;gap:6px;max-width:min(64vw,300px);bottom:calc(var(--mapb,14px) + 192px + env(safe-area-inset-bottom,0px))}
+  .xp-actions button{padding:8px 13px;font-size:13px;white-space:normal;text-align:right;line-height:1.3}
+  body.xp-drive .xp-actions{bottom:calc(var(--mapb,14px) + 16px + env(safe-area-inset-bottom,0px))}
+  .act,body.xp .act{left:auto;right:12px;transform:none;bottom:calc(var(--mapb,14px) + 192px + env(safe-area-inset-bottom,0px));padding:8px 13px;font-size:13px}
+  body.xp .act{bottom:calc(var(--mapb,14px) + 192px + 46px + env(safe-area-inset-bottom,0px))}
+}
 </style>
 
 <canvas id="c" tabindex="0" aria-label="담터 별빛캠핑장 3D 장면"></canvas>
