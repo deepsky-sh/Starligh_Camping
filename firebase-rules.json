@@ -1,20 +1,88 @@
 {
   "rules": {
+    ".read": false,
+    ".write": false,
     "p": {
-      ".read": true,
-      "$id": {
-        ".write": true,
-        ".validate": "newData.hasChildren(['n','x','z'])",
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "$uid.length <= 128 && newData.hasChildren(['n','g','x','y','z','h','s','t']) && newData.child('t').val() === now && (!data.exists() || now - data.child('t').val() >= 150)",
         "n": {
-          ".validate": "newData.isString() && newData.val().length <= 16"
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16 && !newData.val().matches(/[<>\"'`&]/)"
+        },
+        "g": {
+          ".validate": "newData.val() === 'm' || newData.val() === 'f'"
+        },
+        "sit": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
+        },
+        "x": {
+          ".validate": "newData.isNumber() && newData.val() >= -300 && newData.val() <= 300"
+        },
+        "y": {
+          ".validate": "newData.isNumber() && newData.val() >= -30 && newData.val() <= 60"
+        },
+        "z": {
+          ".validate": "newData.isNumber() && newData.val() >= -300 && newData.val() <= 300"
+        },
+        "h": {
+          ".validate": "newData.isNumber() && newData.val() >= -10000 && newData.val() <= 10000"
+        },
+        "s": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10"
+        },
+        "xp": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "w": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+        },
+        "t": {
+          ".validate": "newData.isNumber()"
+        },
+        "cx": {
+          ".validate": "newData.isNumber() && newData.val() >= -300 && newData.val() <= 300"
+        },
+        "cz": {
+          ".validate": "newData.isNumber() && newData.val() >= -300 && newData.val() <= 300"
+        },
+        "ch": {
+          ".validate": "newData.isNumber() && newData.val() >= -10000 && newData.val() <= 10000"
+        },
+        "ck": {
+          ".validate": "newData.val() === 'luxSUV' || newData.val() === 'execSedan' || newData.val() === 'fullSedan' || newData.val() === 'midSUV' || newData.val() === 'minivan' || newData.val() === 'compactSUV'"
+        },
+        "dr": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     },
     "s": {
-      ".read": true,
-      "$id": {
-        ".write": true,
-        ".validate": "newData.hasChildren(['by'])"
+      ".read": "auth != null",
+      "$site": {
+        ".write": "auth != null && $site.length <= 16 && (!data.exists() || data.child('by').val() === auth.uid || now - data.child('t').val() > 120000)",
+        ".validate": "newData.hasChildren(['by','t']) && newData.child('by').val() === auth.uid",
+        "by": {
+          ".validate": "newData.isString()"
+        },
+        "n": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16 && !newData.val().matches(/[<>\"'`&]/)"
+        },
+        "k": {
+          ".validate": "newData.val() === '' || newData.val() === 'tunnel' || newData.val() === 'air' || newData.val() === 'bell' || newData.val() === 'teepee' || newData.val() === 'dome' || newData.val() === 'cabin'"
+        },
+        "f": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "t": {
+          ".validate": "newData.isNumber() && newData.val() > now - 600000 && newData.val() < now + 600000"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     }
   }
