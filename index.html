@@ -196,6 +196,10 @@ body.binoing #c{cursor:grab}
 .brand,.mapwrap,.xp-quest,#xp-hud{transition:opacity .3s}
 .hero-pick{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:14px;color:var(--muted,#9aa7b5)}
 .hero-pick .seg{grid-template-columns:repeat(2,1fr)}
+.hero-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:rgba(255,255,255,.05);border-radius:9px;padding:3px;flex:1;min-width:0}
+.hero-grid button{border:0;background:transparent;padding:7px 0;border-radius:7px;font-size:13px;color:var(--muted);white-space:nowrap}
+.hero-grid button[aria-pressed="true"]{background:var(--amber);color:#24170a;font-weight:600}
+.hero-grid button:hover:not([aria-pressed="true"]){color:var(--ink);background:rgba(255,255,255,.07)}
 .hero-pick .seg button{min-width:96px;padding:7px 12px}
 .xp-quest{position:fixed;left:16px;top:calc(158px + env(safe-area-inset-top,0px));width:276px;padding:12px 14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:3}
 .xp-quest h3{margin:0 0 8px;font-size:12px;letter-spacing:.1em;color:var(--muted);display:flex;align-items:center;justify-content:space-between;font-weight:600}
@@ -462,7 +466,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
       <img src="tex/photo2.jpg" alt="화로대 불멍 사이트">
       <img src="tex/photo3.jpg" alt="별빛존 소나무 아래 2번 사이트">
     </div>
-    <div class="hero-pick" role="group" aria-label="주인공 선택"><span>주인공</span><div class="seg" id="seg-hero"><button data-g="f" aria-pressed="true">30대 여성</button><button data-g="m" aria-pressed="false">30대 남성</button></div></div>
+    <div class="hero-pick" role="group" aria-label="주인공 선택"><span>주인공</span><div class="hero-grid" id="seg-hero"><button data-g="camper_m1" aria-pressed="false">도현</button><button data-g="camper_m2" aria-pressed="false">준서</button><button data-g="camper_m3" aria-pressed="false">성민</button><button data-g="camper_m4" aria-pressed="false">우진</button><button data-g="camper_m5" aria-pressed="false">현우</button><button data-g="camper_f1" aria-pressed="true">소희</button><button data-g="camper_f2" aria-pressed="false">지아</button><button data-g="camper_f3" aria-pressed="false">하은</button><button data-g="camper_f4" aria-pressed="false">유진</button><button data-g="camper_f5" aria-pressed="false">민서</button></div></div>
     <div class="intro-actions">
       <button class="btn-main" id="btn-start" disabled>불러오는 중…</button>
       <button class="btn-main btn-alt" id="btn-exp" disabled>체험하기</button>
@@ -1871,6 +1875,18 @@ function retargetClips(tgt, src, clips){
     for (let i = 0; i < v.length; i += 4){ q.fromArray(v, i); q.premultiply(A).multiply(B); q.toArray(v, i); }
     return true; }); return c; });
 }
+/* the ten campers of the Unity app (Mixamo rig, flat colours): retargeted onto the same Xbot idle / walk / run clips */
+const CAMP_KEYS = ['camper_m1','camper_m2','camper_m3','camper_m4','camper_m5','camper_f1','camper_f2','camper_f3','camper_f4','camper_f5'];
+const CAMP_NAMES = { camper_m1:'도현', camper_m2:'준서', camper_m3:'성민', camper_m4:'우진', camper_m5:'현우', camper_f1:'소희', camper_f2:'지아', camper_f3:'하은', camper_f4:'유진', camper_f5:'민서' };
+const campers = {};
+async function loadCampers(xb){
+  const idle = xb.animations.filter(c => /^(idle|walk|run)$/.test(c.name));
+  if (idle.length !== 3) return;
+  const L = new GLTFLoader();
+  const got = await Promise.all(CAMP_KEYS.map(k => L.loadAsync('tex/chars/' + k + '.glb').then(g => [k, g]).catch(e => { console.warn('camper ' + k, e); return null; })));
+  for (const r of got) if (r){ const [k, g] = r; campers[k] = { src:g.scene, clips:retargetClips(g.scene, xb.scene, idle), fem:k.startsWith('camper_f') }; }
+}
+function camperAvatar(k){ const c = campers[k], av = new Avatar(c.src, c.clips, {}); av.key = k; av.fem = c.fem; return av; }
 async function loadAvatar(){
   try {
     const [g, cj] = await Promise.all([ new GLTFLoader().loadAsync('tex/hiker.gltf.json'), fetch('tex/hiker_anims.json').then(r => r.json()) ]);
@@ -1883,6 +1899,7 @@ async function loadAvatar(){
     f.scene.traverse(o => { if (o.isMesh) o.material.name = 'Fem_Body'; if (o.name === 'Character') o.quaternion.identity(); if (o.isBone && /Hips$/.test(o.name)){ o.quaternion.identity(); o.position.set(o.position.x, -o.position.z, o.position.y); } });
     femClips = retargetClips(f.scene, x.scene, x.animations.filter(c => /^(idle|walk|run)$/.test(c.name)));
     if (femClips.length === 3){ femSrc = f.scene; femTex = ta; }
+    try { await loadCampers(x); } catch (e){ console.warn('camper avatars fallback', e); }
   } catch (e){ console.warn('female avatar fallback', e); }
   return true;
 }
@@ -2149,7 +2166,10 @@ function maleHair(o = {}){
   g.rotation.y = P.sweep;   // parting / sweep to one side
   const w = new THREE.Group(); w.add(g); return w;
 }
-let HERO_G = 'f'; try { HERO_G = localStorage.getItem('damteoHero') === 'm' ? 'm' : 'f'; } catch (e){}
+/* saved heroes: old 'f' / 'm' become camper_f1 / camper_m1 */
+function heroKey(s){ return CAMP_KEYS.includes(s) ? s : s === 'm' ? 'camper_m1' : 'camper_f1'; }
+function genderOf(k){ return k && k.indexOf('camper_m') === 0 ? 'm' : 'f'; }
+let HERO_G = 'camper_f1'; try { HERO_G = heroKey(localStorage.getItem('damteoHero')); } catch (e){}
 /* each visitor gets their own outfit colours so people are easy to tell apart (the local hero keeps the original look) */
 const MP_PAL = [
   { top:0xc0392b, inner:0xf2ece0, shorts:0x2c3e50, mTop:0xc0392b, mPants:0x2c3e50 },
@@ -2164,6 +2184,9 @@ const MP_PAL = [
   { top:0x6c7a2f, inner:0xf0ecd8, shorts:0x4a4a4a, mTop:0x6c7a2f, mPants:0x4a4a4a },
 ];
 function makeHero(g, pal){
+  if (campers[g]) return camperAvatar(g);
+  if (g === 'm' && campers.camper_m1) return camperAvatar('camper_m1');
+  if (g === 'f' && campers.camper_f1) return camperAvatar('camper_f1');
   if (g === 'f' && femSrc) return femAvatar(1.01, 'mom', pal);   // 160 cm
   return styleMale(new Avatar(avatarSrc, avatarClips, {}), pal);
 }
@@ -2173,9 +2196,9 @@ function bindHeroPick(){
   mark(); bs.forEach(b => b.addEventListener('click', () => { setHero(b.dataset.g); mark(); }));
 }
 function setHero(g){
-  HERO_G = g === 'm' ? 'm' : 'f'; try { localStorage.setItem('damteoHero', HERO_G); } catch (e){}
-  if (!avatarSrc || !hero.root.parent) return;   // still loading: boot builds the chosen hero
-  if ((HERO_G === 'f') === !!hero.fem) return;
+  HERO_G = heroKey(g); try { localStorage.setItem('damteoHero', HERO_G); } catch (e){}
+  if (!hero || !hero.root.parent) return;   // still loading: boot builds the chosen hero
+  if (hero.key === HERO_G) return;
   const old = hero, nh = makeHero(HERO_G);
   nh.root.position.copy(old.root.position); nh.root.rotation.copy(old.root.rotation); nh.root.visible = old.root.visible;
   if (old.root.parent){ old.root.parent.add(nh.root); old.root.parent.remove(old.root); }
@@ -4986,9 +5009,9 @@ function multiEelPeople(){
     place(root, x, H(x, z), z, ry); if (av.mixer) av.mixer.update(Math.random()*3);
     const f = { av, root, k:(av.k || 1)*(scale || 1), sit, reach:reach || 0 }; EEL.people.push(f); colliders.push({ x, z, r:.3 });
   };
-  person('m', 10.05, -107.55, face(10.05, -107.55, 10.75, -107.55), 0, 1, .55);
-  person('f', 12.5, -104.15, face(12.5, -104.15, ...TB) + .1, 1, 1, 0);
-  person('m', 10.98, -104.6, face(10.98, -104.6, ...TB), 1, .63, 0);
+  person('camper_m4', 10.05, -107.55, face(10.05, -107.55, 10.75, -107.55), 0, 1, .55);
+  person('camper_f3', 12.5, -104.15, face(12.5, -104.15, ...TB) + .1, 1, 1, 0);
+  person('camper_m5', 10.98, -104.6, face(10.98, -104.6, ...TB), 1, .63, 0);
 }
 function eelUpdate(dt, t, night){
   if (EXP.on || !EEL.glow) return;
@@ -5401,10 +5424,11 @@ let hero = new Hiker({ jacket:0xc5622e, pants:0x2f3a45, cap:0x2f4b3c });
 shadowAll(hero.root, true, false);
 function addCampers(){
   const faceFire = (x,z) => Math.atan2(9.2-x, -8.6-z);
-  const spots = [[10.5, -6.6, { Wolf3D_Outfit_Top:0xc9937a, Wolf3D_Outfit_Bottom:0x5d6470 }], [7.9, -6.8, { Wolf3D_Outfit_Top:0x8fa6c9, Wolf3D_Outfit_Bottom:0x6b5f52, Wolf3D_Headwear:0x8a6a45 }]];
-  for (const [x,z,tint] of spots){
+  const spots = [[10.5, -6.6, 'camper_m2'], [7.9, -6.8, 'camper_f3']];
+  for (const [x,z,key] of spots){
     let n;
-    if (avatarSrc){ n = styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:tint.Wolf3D_Outfit_Top, trim:.93, bottom:tint.Wolf3D_Outfit_Bottom, shoes:0xdedcd6, hairStyle:tint.Wolf3D_Headwear ? 'twoblock' : 'short', hairBase:tint.Wolf3D_Headwear ? '#2e2119' : '#16120f' }); n.mixer.update(rng()*3); }
+    if (campers[key]){ n = camperAvatar(key); n.mixer.update(rng()*3); }
+    else if (avatarSrc){ n = styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:tint.Wolf3D_Outfit_Top, trim:.93, bottom:tint.Wolf3D_Outfit_Bottom, shoes:0xdedcd6, hairStyle:tint.Wolf3D_Headwear ? 'twoblock' : 'short', hairBase:tint.Wolf3D_Headwear ? '#2e2119' : '#16120f' }); n.mixer.update(rng()*3); }
     else { n = new Hiker({ jacket:0x6a2f2a, pants:0x2b2e33, cap:0x2d2d2d }); shadowAll(n.root,true,false); }
     place(n.root, x, H(x,z), z, faceFire(x,z)); npcs.push(n); colliders.push({ x, z, r:.3 });
   }
@@ -6684,6 +6708,8 @@ const FRIEND_DEF = [{ name:'아윤', v:'ayun' }, { name:'하윤', v:'hayun' }];
 /* the two daughters who came along */
 function makeTeen(d){
   const V = FEM_V[d.v];
+  const key = d.v === 'ayun' ? 'camper_f2' : 'camper_f5';   // same as the Unity app
+  if (campers[key]){ const av = camperAvatar(key); av.mixer.update(Math.random()*3); return av; }
   if (!avatarSrc){ const h = new Hiker({ jacket:V.top, pants:V.shorts, cap:V.hair }); h.root.scale.setScalar(.92); shadowAll(h.root, true, false); return h; }
   if (femSrc) return femAvatar(.975, d.v);
   const av = styleCasual(new Avatar(avatarSrc, avatarClips, {}), { top:V.top, plainTop:true, trim:.95, bottom:V.shorts, shoes:0xf4f4f2, hair:V.hair });
@@ -8196,7 +8222,8 @@ function mpAddPeer(id, d){
   if (id === MP.id || MP.peers.has(id) || MP.peers.size >= MP.MAX) return;
   let av;
   let hsh = 0; for (const ch of String(id)) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
-  try { av = makeHero(d.g === 'm' ? 'm' : 'f', MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
+  const pool = d.g === 'm' ? CAMP_KEYS.slice(0, 5) : CAMP_KEYS.slice(5);   // the presence record only carries m / f
+  try { av = makeHero(pool[hsh % pool.length], MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
   if (!av){ av = new Hiker({ jacket:0x3f6a8a, pants:0x2f3a45, cap:0x2f4b3c }); }
   const tag = mpTag(String(d.n || '손님').slice(0, 16));
   const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
@@ -8251,14 +8278,14 @@ function mpUpdate(dt){
   const now = performance.now(), nowS = now/1000, xp = !!EXP.on;
   const d0 = q => Math.hypot(q.x - player.pos.x, q.z - player.pos.z);
   { const ma = nowS - MP.myWave; mpWavePose(hero, hero.root.rotation.y, mpWaveW(ma), nowS);
-    if (MP.myBubble){ const on = ma >= 0 && ma < MP_WAVE_S + .4; MP.myBubble.visible = on; if (on) MP.myBubble.position.set(player.pos.x, player.pos.y + (HERO_G === 'm' ? 2.45 : 2.3), player.pos.z); else if (ma > MP_WAVE_S + .4){ scene.remove(MP.myBubble); MP.myBubble = null; } } }
+    if (MP.myBubble){ const on = ma >= 0 && ma < MP_WAVE_S + .4; MP.myBubble.visible = on; if (on) MP.myBubble.position.set(player.pos.x, player.pos.y + (genderOf(HERO_G) === 'm' ? 2.45 : 2.3), player.pos.z); else if (ma > MP_WAVE_S + .4){ scene.remove(MP.myBubble); MP.myBubble = null; } } }
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
   const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
   const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
-    const rec = { n:MP.name, g:HERO_G, sit:SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:MP.fb.serverTimestamp() };   // 시각은 서버가 찍음(규칙에서 확인)
+    const rec = { n:MP.name, g:genderOf(HERO_G), sit:SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:MP.fb.serverTimestamp() };   // 시각은 서버가 찍음(규칙에서 확인)
     if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
     MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
   }
