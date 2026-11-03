@@ -8222,8 +8222,10 @@ function mpAddPeer(id, d){
   if (id === MP.id || MP.peers.has(id) || MP.peers.size >= MP.MAX) return;
   let av;
   let hsh = 0; for (const ch of String(id)) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
-  const pool = d.g === 'm' ? CAMP_KEYS.slice(0, 5) : CAMP_KEYS.slice(5);   // the presence record only carries m / f
-  try { av = makeHero(pool[hsh % pool.length], MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
+  // the presence record carries the exact camper key (old clients send m / f: then a same-gender camper is picked by id)
+  const pool = d.g === 'm' ? CAMP_KEYS.slice(0, 5) : CAMP_KEYS.slice(5);
+  const key = CAMP_KEYS.includes(d.g) ? d.g : pool[hsh % pool.length];
+  try { av = makeHero(key, MP_PAL[hsh % MP_PAL.length]); } catch (e){ av = null; }
   if (!av){ av = new Hiker({ jacket:0x3f6a8a, pants:0x2f3a45, cap:0x2f4b3c }); }
   const tag = mpTag(String(d.n || '손님').slice(0, 16));
   const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
@@ -8285,7 +8287,7 @@ function mpUpdate(dt){
   const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
-    const rec = { n:MP.name, g:genderOf(HERO_G), sit:SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:MP.fb.serverTimestamp() };   // 시각은 서버가 찍음(규칙에서 확인)
+    const rec = { n:MP.name, g:HERO_G, sit:SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:MP.fb.serverTimestamp() };   // 시각은 서버가 찍음(규칙에서 확인)
     if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
     MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
   }

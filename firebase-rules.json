@@ -11,7 +11,7 @@
           ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16 && !newData.val().matches(/[<>\"'`&]/)"
         },
         "g": {
-          ".validate": "newData.val() === 'm' || newData.val() === 'f'"
+          ".validate": "newData.val() === 'm' || newData.val() === 'f' || newData.val().matches(/^camper_[mf][1-5]$/)"
         },
         "sit": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2"
