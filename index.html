@@ -6755,11 +6755,11 @@ function xpFriendsUpdate(dt){
   for (const f of c.friends){
     f.sitting = true; f.sit = 1; f.reach = Math.max(0, f.reach - dt*2.2);
     const at = f.sit > .5 ? f.seat : f.stand;
-    f.root.position.x = lerp(f.root.position.x, at.x, 1 - Math.exp(-dt*5)); f.root.position.z = lerp(f.root.position.z, at.z, 1 - Math.exp(-dt*5));
-    f.root.position.y = groundAt(f.root.position.x, f.root.position.z);
     f.col.x = f.root.position.x; f.col.z = f.root.position.z;
     f.av.update(dt, 0);
-    if (f.av.model) poseSit(f, f.sit, f.reach, f === c.friends[0] ? 1 : -1);
+    // 의자에 앉기: 의자 좌판 위에 엉덩이를 올리는 sitApply (주인공과 같은 방식)
+    if (f.root.scale.x < .999) f.frozen = null;   // 등장 애니메이션 중에 잡은 자세는 버리고, 다 자란 뒤에 다시 잡음
+    if (f.av.model) sitApply(f.av, f.root, f.seat.ry, 1, f, f.seat.x, groundAt(f.seat.x, f.seat.z), f.seat.z);
     f.label.visible = !HG.on;
     if (!f.av.model){ f.av.update(dt, 0); f.av.pelvis.position.y = .5; f.av.hip.forEach(h => h.rotation.x = -1.45); f.av.kn.forEach(k => k.rotation.x = 1.5); }
   }
