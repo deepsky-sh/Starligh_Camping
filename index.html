@@ -7855,9 +7855,7 @@ function bindInput(){
     teleport(x, z); toast('<b>' + zoneAt(player.pos.x, player.pos.z) + '</b>(으)로 이동');
   });
   const places = [
-    ['진입로', 9, -128, Math.PI], ['멀티존', 4, -104, -Math.PI/2], ['A1', 4, -88, -Math.PI/2], ['별빛존 ★1', -26, -78, -Math.PI/2],
-    ['피크닉존', 4, -35, -Math.PI/2], ['관리동·매점', -7, -1, Math.PI/2], ['매점 안', 'shop'], ['불멍 B3', 6.2, -12.5, -2.45], ['C-1·C-2', -9.5, 38, Math.PI/2],
-    ['B8', 4, 39.8, -Math.PI/2], ['B15', 4, 109, -Math.PI/2], ['담터계곡', 24.6, -30, -Math.PI/2], ['여름 래프팅', 'raft'], ['고양이 봄이', 'cat'], ['별빛 망원경', 'scope'], ['항공 전경', null]
+    ['관리동·매점', -7, -1, Math.PI/2], ['매점 안', 'shop'], ['여름 래프팅', 'raft'], ['고양이 봄이', 'cat'], ['별빛 망원경', 'scope'], ['항공 전경', null]
   ];
   const pl = $('#places');
   for (const [name, x, z, yaw] of places){
