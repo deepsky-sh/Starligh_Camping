@@ -988,7 +988,7 @@ function buildTerrain(){
 const colliders = []; // circles {x,z,r}
 const boxes = [];     // aabb {x0,x1,z0,z1}
 const decks = [];     // {x0,x1,z0,z1,y}
-function groundAt(x,z){ let h = H(x,z); for (const d of decks) if (x>d.x0 && x<d.x1 && z>d.z0 && z<d.z1) h = Math.max(h, d.y); return h; }
+function groundAt(x,z){ let h = H(x,z); for (const d of decks) if (x>d.x0 && x<d.x1 && z>d.z0 && z<d.z1) h = Math.max(h, d.k ? d.y + d.k*(x - d.xs) : d.y); return h; }
 
 /* ---------------- geometry helpers ---------------- */
 const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), tmpS = new THREE.Vector3(), UP = new THREE.Vector3(0,1,0);
@@ -3199,15 +3199,17 @@ function stoneStairs(z){
   shadowAll(g); place(g, x0, H(x0,z), z, 0);
 }
 function bridge(z, x0, x1, w=6){
-  const g = new THREE.Group(); const L = x1 - x0;
-  const y0 = H(x0, z), y1 = H(x1, z), yd = Math.max(y0, y1) + .05;
+  // the deck follows the ground from one bank to the other (a slope), so cars drive on and off instead of stepping up
+  const g = new THREE.Group(), sl = new THREE.Group(); g.add(sl); const L = x1 - x0;
+  const ya = H(x0, z) + .05, yb = H(x1, z) + .05, k = (yb - ya) / L;
+  sl.position.set(0, ya, 0); sl.rotation.z = Math.atan(k);
   const deckM = snowPatch(M(0xb3b0a8,{roughness:.9}), 1);
-  const dk = box(L, .45, w, deckM); dk.position.set(L/2, yd - .22, 0); g.add(dk);
-  for (const s of [-1,1]){ const p = box(L, .7, .22, mat.concrete); p.position.set(L/2, yd + .35, s*(w/2 - .11)); g.add(p); }
-  const pier = box(1.4, 3.2, w-.6, mat.concrete); pier.position.set(L/2, yd - 1.9, 0); g.add(pier);
-  const road = box(L, .02, w-.6, mat.asphalt); road.position.set(L/2, yd + .01, 0); g.add(road);
+  const dk = box(L, .45, w, deckM); dk.position.set(L/2, -.22, 0); sl.add(dk);
+  for (const sd of [-1,1]){ const p = box(L, .7, .22, mat.concrete); p.position.set(L/2, .35, sd*(w/2 - .11)); sl.add(p); }
+  const pier = box(1.4, 3.2, w-.6, mat.concrete); pier.position.set(L/2, -1.9, 0); sl.add(pier);
+  const road = box(L, .02, w-.6, mat.asphalt); road.position.set(L/2, .01, 0); sl.add(road);
   shadowAll(g); place(g, x0, 0, z, 0);
-  decks.push({ x0: x0 + .5, x1: x1 - .5, z0: z - w/2 + .3, z1: z + w/2 - .3, y: yd });
+  decks.push({ x0: x0 + .2, x1: x1 - .2, z0: z - w/2 + .3, z1: z + w/2 - .3, y: ya, k, xs: x0 });
   boxes.push({ x0, x1, z0: z + w/2 - .25, z1: z + w/2 + .1 }, { x0, x1, z0: z - w/2 - .1, z1: z - w/2 + .25 });
 }
 const evacGroup = new THREE.Group();
