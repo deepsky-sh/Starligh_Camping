@@ -55,6 +55,27 @@
         "dr": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
         },
+        "pk": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "lm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "lx": {
+          ".validate": "newData.isNumber() && newData.val() >= -300 && newData.val() <= 300"
+        },
+        "lz": {
+          ".validate": "newData.isNumber() && newData.val() >= -300 && newData.val() <= 300"
+        },
+        "ss": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+        },
+        "sa": {
+          ".validate": "newData.isNumber() && newData.val() >= -10000 && newData.val() <= 10000"
+        },
+        "sm": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
         "$other": {
           ".validate": false
         }

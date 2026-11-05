@@ -277,6 +277,9 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 .xp-panel .row2 button{flex:1;padding:12px;font-size:15px;touch-action:none}
 .xp-panel .row2 button.hot{animation:pulse .5s infinite alternate}
 @keyframes pulse{from{box-shadow:0 0 0 0 rgba(242,179,91,.7)}to{box-shadow:0 0 0 10px rgba(242,179,91,0)}}
+.xp-panel .gauge{position:relative;height:16px;border-radius:8px;background:rgba(255,255,255,.14)}
+.xp-panel .gauge .sw{position:absolute;top:0;bottom:0;border-radius:8px;background:#5fc27a}
+.xp-panel .gauge .mk{position:absolute;top:-4px;bottom:-4px;width:6px;margin-left:-3px;border-radius:3px;background:#f2b35b;box-shadow:0 0 6px rgba(0,0,0,.5)}
 .xp-panel .foot{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted)}
 .xp-catch{position:fixed;left:min(38%,calc(100% - 520px));top:18%;transform:translateX(-50%);z-index:6;background:var(--glass-strong);border:1px solid rgba(242,179,91,.6);border-radius:16px;padding:12px 18px;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none}
 .xp-catch img{width:220px;height:110px}
@@ -465,6 +468,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 <div class="xp-prog" id="xp-prog" hidden><span id="xp-prog-text"></span><div class="bar"><i id="xp-prog-bar"></i></div></div>
 <div class="xp-panel" id="xp-grill" hidden><h3 id="xp-grill-title">구이</h3><div id="xp-grill-items"></div><div class="add"><button data-food="pork">삼겹살</button><button data-food="neck">목살</button><button data-food="saus">소시지</button><button data-food="mush">새송이버섯</button><button data-food="fish">물고기 <span id="xp-grill-fishn"></span></button></div><button class="close" id="xp-grill-x">그만 굽기</button></div>
 <div class="xp-panel" id="xp-fish" hidden><h3 id="xp-fish-title"></h3><p id="xp-fish-text"></p><div class="meter" id="xp-fish-meter" hidden><span class="m"><i id="xp-fish-bar"></i></span><span class="m prog"><i id="xp-fish-prog"></i></span></div><div class="row2"><button id="xp-fish-main" class="pri"></button><button id="xp-fish-alt" hidden>어망 들기</button></div><div class="foot"><span id="xp-fish-count"></span><button id="xp-fish-x">그만하기</button></div></div>
+<div class="xp-panel" id="xp-stone" hidden><h3>물수제비</h3><p id="xp-stone-text"></p><div class="gauge"><span class="sw" style="left:66.5%;width:15%"></span><span class="mk" id="xp-stone-mk"></span></div><div class="row2"><button id="xp-stone-main" class="pri">던지기</button></div><div class="foot"><span id="xp-stone-count"></span><button id="xp-stone-x">그만하기</button></div></div>
 <div class="xp-catch" id="xp-catch" hidden><img id="xp-catch-img" alt=""><b id="xp-catch-name"></b><span id="xp-catch-size"></span></div>
 <div class="xp-hg" id="xp-hg" hidden><div class="top"><div class="players" id="xp-hg-players"></div><span class="time" id="xp-hg-time"></span></div><div class="msg" id="xp-hg-msg"></div><div class="sum" id="xp-hg-sum"></div><div class="btns"><button id="xp-hg-flip">카드 뒤집기<kbd>F</kbd></button><button id="xp-hg-ring" class="ring">🔔 종 치기<kbd>Space</kbd></button><button id="xp-hg-x">끝내기</button></div></div>
 <div class="xp-modal" id="xp-rec" hidden><div class="card" role="dialog" aria-labelledby="xp-rec-h"><h3 id="xp-rec-h">분리수거</h3><div class="sub" id="xp-rec-sub"></div><div class="item" id="xp-rec-item"></div><div class="bins" id="xp-rec-bins"></div><p class="note" id="xp-rec-hint"></p><button class="modal-close" id="xp-rec-x">나중에 하기</button></div></div>
@@ -1188,10 +1192,10 @@ function overhangTree(x, z, o){
   }
   colliders.push({ x, z, r: Math.max(.3, tr*2.2) });
 }
-function pineTree(x, z, hgt){
+function pineTree(x, z, hgt, base0){
   const y0 = H(x,z) - 0.05;
   barkPineGeos.push(segmentGeo(0.2, 0.05, new THREE.Vector3(x,y0,z), new THREE.Vector3(x+R(-.2,.2), y0+hgt, z+R(-.2,.2)), 8));
-  const base = 1.7 + R(0,.5);
+  const base = base0 ? base0 + R(0,.5) : 1.7 + R(0,.5);
   for (let y = base; y < hgt - 0.2; y += R(.38,.55)){
     const t = (y - base)/(hgt - base);
     const rad = 0.45 + 2.5*Math.pow(1-t, 0.95)*(0.8 + 0.3*rng());
@@ -5381,7 +5385,7 @@ async function buildCamp(){
 
   // 별빛존: raised terrace under the white-pine row with string lights and ★ signs (photos ★1, ★2)
   const pines = [];
-  for (let z = BYUL.z0 + 1; z < BYUL.z1 - .5; z += R(3.8,4.6)){ const px = -18.1 + R(-.3,.3); pineTree(px, z, R(9,11.5)); pines.push(new THREE.Vector3(px, H(px,z), z)); }
+  for (let z = BYUL.z0 + 1; z < BYUL.z1 - .5; z += R(3.8,4.6)){ const px = -18.1 + R(-.3,.3); pineTree(px, z, R(13,16), 5.4); pines.push(new THREE.Vector3(px, H(px,z), z)); }
   for (let i=0;i<pines.length-1;i++){ const a=pines[i], b=pines[i+1]; stringLights(new THREE.Vector3(a.x-.25,a.y+2.55,a.z), new THREE.Vector3(b.x-.25,b.y+2.55,b.z), .32); }
   for (const p of pines) poolPts.push([p.x-1.2, p.y, p.z, 3.6]);
   const stoneG = new THREE.DodecahedronGeometry(.28, 0);
@@ -5518,7 +5522,7 @@ async function buildCamp(){
     const x = STRIP.x1 + R(1.6,3.2); cardTree(x, z, { h:R(7,11), trunk:.15, crown:R(2,3), crownY:.66, branches:5, cards:28, card:1.8, kind:'broad' });
   }
   for (let z=-150; z<120; z+=R(6,10)){ const x = creekC(z) + R(10.5,12.5); if (Math.abs(z-ENTRY.z) < 7) continue; cardTree(x, z, { h:R(7,11), trunk:.15, crown:R(2,3), crownY:.66, branches:5, cards:26, card:1.8, kind:'broad' }); }
-  for (let i=0;i<8;i++){ const z=R(BYUL.z0+2,BYUL.z1-2), x=R(-31.5,-30); pineTree(x, z, R(8,10)); }
+  for (let i=0;i<8;i++){ const z=R(BYUL.z0+2,BYUL.z1-2), x=R(-31.5,-30); pineTree(x, z, R(12.5,15), 5.4); }
   for (let z = BYUL.z0 + 1; z < BYUL.z1; z += R(5.5,7.5)) overhangTree(R(-33.5,-32), z, { h:R(10.5,13), trunk:R(.17,.23), limbs:5, reach:R(10,14), cards:20, card:2.1 });
 
   // evacuation arrows along the central lane, pointing to the NW entrance (hidden until 대피로 표시)
@@ -6332,7 +6336,7 @@ function scopeMotor(on){
     const o = actx.createOscillator(), o2 = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain();
     o.type = 'sawtooth'; o.frequency.value = 150; o2.type = 'square'; o2.frequency.value = 302; lp.type = 'lowpass'; lp.frequency.value = 900; g.gain.value = 0;
     o.connect(lp); o2.connect(lp); lp.connect(g).connect(actx.destination); o.start(); o2.start();
-    g.gain.setTargetAtTime(.035, actx.currentTime, .05); S.motor = { o, o2, g };
+    g.gain.setTargetAtTime(.035, actx.currentTime, .05); S.motor = { o, o2, g, base:.035 };
   } else if (!on && S.motor){
     const m = S.motor, t = actx.currentTime; m.g.gain.setTargetAtTime(0, t, .06); m.o.stop(t + .4); m.o2.stop(t + .4); S.motor = null;
   }
@@ -6351,7 +6355,8 @@ function scopeUpdate(dt){
   if (moving){ S.az += clamp(da, -sp, sp); S.alt += clamp(dl, -sp*.8, sp*.8); scopeApplyPose(); }
   if (moving !== S.slewing){ S.slewing = moving; scopeMotor(moving && S.root.visible); if (S.on) scopeReadout(); if (!moving) S.shake = .7; }
   S.slewDark = lerp(S.slewDark, S.slewing ? 1 : 0, 1 - Math.exp(-dt*(S.slewing ? 10 : 3)));
-  if (S.motor) S.motor.o.frequency.setTargetAtTime(140 + 60*Math.min(1, Math.hypot(da, dl)*4), actx.currentTime, .1);
+  if (S.motor){ S.motor.o.frequency.setTargetAtTime(140 + 60*Math.min(1, Math.hypot(da, dl)*4), actx.currentTime, .1);
+    const md = S.on ? 0 : Math.hypot(player.pos.x - S.x, player.pos.z - S.z); S.motor.g.gain.setTargetAtTime(S.motor.base*clamp(1 - (md - 3.5)/7, 0, 1), actx.currentTime, .1); }
   // eyepiece swap: the field goes dark while the eyepiece is pulled, then the new one comes to focus
   if (S.swapEp !== null){
     S.swapT += dt/.75;
@@ -6691,11 +6696,13 @@ function xpCtx(force){
         if (dPad < 2.6) acts.push(EXP.fire && EXP.fire.on ? { id:'fireoff', label:'모닥불 끄기', fn:xpFireOff } : { id:'fire', label:'모닥불 피우기', fn:xpFireOn });
         if (EXP.fire && EXP.fire.on && dPad < 2.8) acts.push({ id:'grill', label:'화로에 고기 굽기', fn:() => xpGrillOpen('fire') });
         if (dSeat < 1.9 && c.friends.length) acts.push({ id:'hg', label:'의자에 앉아 할리갈리 시작', fn:hgStart });
+        if (dist(c.anchor.x, c.anchor.z) < 7.5) acts.push({ id:'lamp', label:LAMP.on ? '스탠드 랜턴 철수' : '스탠드 랜턴 설치', fn:xpLampToggle });
         if (dist(c.anchor.x, c.anchor.z) < 7.5) acts.push({ id:'strike', label:'텐트 철수하기', fn:xpStrike });
       }
       const w = xpNearWater();
       if (w && EXP.mode === 'free') acts.push({ id:'tube', label:'튜브 타고 놀기', fn:() => tubeStart(w) });
       if (w && !w.inside) acts.push({ id:'rod', label:'낚시하기', fn:() => fishStart('rod', w) });   // fishing from the bank only
+      if (w && !w.inside) acts.push({ id:'stone', label:'물수제비 던지기', fn:() => stoneStart(w) });
       if (w) acts.push({ id:'net', label:'어망(족대) 치기', fn:() => fishStart('net', w) });   // net and tube also from inside the creek
       if (dist(RECYCLE.x + .9, RECYCLE.z) < 3.4) acts.push(EXP.recycled ? { id:'end', label:'체험 마치기 (체크아웃)', fn:xpEnd } : { id:'rec', label:'분리수거하기', fn:recOpen });
     } else if (dist(RECYCLE.x + .9, RECYCLE.z) < 3.4 || xpNearestSite(6.5)){
@@ -6723,6 +6730,8 @@ function sfx(kind){
   else if (kind === 'ok'){ tone(660, .12, 'triangle', .1); tone(990, .2, 'triangle', .09, .1); }
   else if (kind === 'bad'){ tone(220, .25, 'square', .05); }
   else if (kind === 'splash'){ noise(.35, 900, .6, .35); noise(.25, 2400, .8, .15, .05); }
+  else if (kind === 'plip'){ noise(.12, 1900, .8, .16); tone(900 + Math.random()*300, .08, 'sine', .05); }
+  else if (kind === 'thud'){ tone(110, .14, 'sine', .16); noise(.08, 420, .8, .2); }
   else if (kind === 'sizzle'){ noise(.6, 5200, .5, .08); }
   else if (kind === 'reel'){ for (let i=0;i<5;i++) tone(1800 + i*30, .02, 'square', .02, i*.03); }
   else if (kind === 'tent'){ noise(.18, 600, .7, .25); tone(140, .12, 'sine', .1, .02); }
@@ -6806,6 +6815,7 @@ function xpPitch(s, kind){
 }
 function xpStrike(){
   const c = EXP.camp; if (!c) return;
+  if (LAMP.on){ standLampDrop(LAMP.g); LAMP.g = null; LAMP.on = false; MP.lastSent = null; }
   mpRelease();
   if (EXP.fire){ xpFireRemove(); }
   xpFriends(false);
@@ -7642,13 +7652,195 @@ function xpCamUpdate(dt){
   camera.position.lerp(EXP.cam.pos, 1 - Math.exp(-dt*4));
   EXP.camT = EXP.camT || EXP.cam.tgt.clone(); EXP.camT.lerp(EXP.cam.tgt, 1 - Math.exp(-dt*5)); camera.lookAt(EXP.camT);
 }
+/* ---------- 스탠드 캠핑 랜턴 (서 있는 자리에 설치/철수) ---------- */
+const LAMP = { on:false, g:null };
+function standLampMake(x, z){
+  const g = new THREE.Group(), y0 = H(x, z);
+  const dark = new THREE.MeshStandardMaterial({ color:0x23272b, roughness:.5, metalness:.7 }), steel = new THREE.MeshStandardMaterial({ color:0x9aa2a8, roughness:.35, metalness:.85 });
+  for (let i = 0; i < 3; i++){ const a = i/3*Math.PI*2 + .4, leg = new THREE.Mesh(new THREE.CylinderGeometry(.011, .014, 1.05, 6), dark); leg.position.set(Math.cos(a)*.2, .5, Math.sin(a)*.2); leg.rotation.set(Math.sin(a)*.38, 0, -Math.cos(a)*.38); g.add(leg); }
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, .1, 10), dark); hub.position.y = .88; g.add(hub);
+  const p1 = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, 1.0, 8), steel); p1.position.y = 1.3; g.add(p1);
+  const p2 = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .75, 8), steel); p2.position.y = 1.78; g.add(p2);
+  const lm = new THREE.MeshStandardMaterial({ color:0xffd9a0, emissive:0xffa94a, emissiveIntensity:1, roughness:.4, transparent:true, opacity:.95 });
+  const glass = new THREE.Mesh(new THREE.CylinderGeometry(.105, .105, .27, 14), lm); glass.position.y = 2.0; g.add(glass);
+  for (let i = 0; i < 6; i++){ const a = i/6*Math.PI*2, bar = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, .3, 4), dark); bar.position.set(Math.cos(a)*.108, 2.0, Math.sin(a)*.108); g.add(bar); }
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(.15, .09, 14), dark); cap.position.y = 2.2; g.add(cap);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.022, 8, 6), steel); knob.position.y = 2.26; g.add(knob);
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .03, 14), dark); ring.position.y = 1.85; g.add(ring);
+  const li = new THREE.PointLight(0xffc27a, 0, 10, 2); li.position.y = 2.0; g.add(li);
+  g.userData = { light:li, mat:lm }; g.position.set(x, y0, z);
+  g.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  scene.add(g); return g;
+}
+function standLampLight(g){ g.userData.light.intensity = .3 + nightF*4.6; g.userData.mat.emissiveIntensity = .5 + nightF*2.2; }
+function standLampDrop(g){ if (!g) return; scene.remove(g); g.traverse(o => { if (o.isMesh){ o.geometry.dispose(); } }); }
+function xpLampToggle(){
+  if (LAMP.on){ standLampDrop(LAMP.g); LAMP.g = null; LAMP.on = false; sfx('tent'); toast('스탠드 랜턴을 철수했어요'); }
+  else { LAMP.g = standLampMake(player.pos.x, player.pos.z); LAMP.on = true; sfx('pick'); toast('서 있는 자리에 스탠드 랜턴을 세웠어요'); }
+  MP.lastSent = null; MP.sendT = 1;
+}
+
+/* ---------- 물수제비 ---------- */
+const ST_C = .74, ST_W = .075;
+const STONE = { on:false, st:'aim', t:0, m:0, md:1, dir:0, pw:0, age:-1, mesh:null, flights:[], rip:[], drops:[], best:0, seq:0, na:0, nm:0, last:'' };
+let stDropGeo = null, stDropMat = null;
+function stoneMesh(){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(.055, 12, 8), new THREE.MeshStandardMaterial({ color:0x6f7378, roughness:.9 }));
+  m.scale.set(1, .32, .9); m.castShadow = false; return m;
+}
+function stRipple(x, z, s = .5){
+  const m = new THREE.Mesh(new THREE.RingGeometry(.1, .15, 28), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:.7, depthWrite:false }));
+  m.rotation.x = -Math.PI/2; m.position.set(x, WATER_Y + .035, z); m.userData = { t:0, s }; scene.add(m); STONE.rip.push(m);
+}
+function stSplash(x, z, big){
+  stRipple(x, z, big ? 1.1 : .6); if (big) stRipple(x, z, .55);
+  if (!stDropGeo){ stDropGeo = new THREE.SphereGeometry(.022, 6, 5); stDropMat = new THREE.MeshBasicMaterial({ color:0xeaf6ff, transparent:true, opacity:.85, depthWrite:false }); }
+  const n = big ? 14 : 8;
+  for (let i = 0; i < n; i++){ const d = new THREE.Mesh(stDropGeo, stDropMat), a = Math.random()*Math.PI*2, sp = (big ? .9 : .6)*(.4 + Math.random()); d.position.set(x, WATER_Y + .05, z); d.userData = { vx:Math.cos(a)*sp, vz:Math.sin(a)*sp, vy:(big ? 2.8 : 2.0)*(.6 + Math.random()*.6), t:0 }; scene.add(d); STONE.drops.push(d); }
+  sfx(big ? 'splash' : 'plip');
+}
+/* 던진 세기(게이지 위치)로 튀는 횟수와 닿는 지점을 미리 계산: 마지막은 가라앉고, 물이 아니면(기슭) 더는 튀지 않음 */
+function stonePlan(x0, z0, a, m){
+  const err = Math.abs(m - ST_C), q = err <= ST_W ? 1 - err/ST_W*.12 : Math.max(0, .88 - (err - ST_W)*2.4);
+  const nb = Math.round(10*Math.pow(q, 1.6)), sx = Math.sin(a), sz = Math.cos(a);
+  let d = 2.6 + 1.8*q, len = 2.0 + 2.6*q; const pts = []; let end = 'sink', skips = 0;
+  for (let i = 0; i <= nb; i++){
+    const x = x0 + sx*d, z = z0 + sz*d;
+    if (H(x, z) > WATER_Y - .03){ pts.push({ x, z, bank:true }); end = 'bank'; break; }
+    pts.push({ x, z }); if (i < nb) skips++;
+    len *= .84; d += len;
+  }
+  if (end === 'bank') skips = pts.length - 1;
+  return { pts, end, skips, q };
+}
+function stoneFlight(sx, sy, sz, plan, delay){
+  const mesh = stoneMesh(); mesh.visible = false; scene.add(mesh);
+  const f = { mesh, plan, i:0, u:0, from:new THREE.Vector3(sx, sy, sz), delay, dur:0, hang:0, done:false, sinkT:0, rest:0 };
+  STONE.flights.push(f); return f;
+}
+function stoneFlightUpdate(f, dt){
+  if (f.delay > 0){ f.delay -= dt; if (f.delay > 0) return; f.mesh.visible = true; }
+  const pts = f.plan.pts;
+  if (f.sinkT > 0){ f.sinkT += dt; f.mesh.position.y -= dt*.5; f.mesh.visible = f.sinkT < .5; if (f.sinkT > .5) f.done = true; return; }
+  if (f.rest > 0){ f.rest += dt; if (f.rest > .8) f.done = true; return; }
+  const to = pts[f.i], isBank = !!to.bank, ty = isBank ? H(to.x, to.z) + .05 : WATER_Y + .05;
+  const L = Math.hypot(to.x - f.from.x, to.z - f.from.z);
+  if (!f.dur){ f.dur = f.i === 0 ? clamp(.35 + L*.11, .4, .8) : clamp(.17 + L*.06, .17, .5); f.u = 0; f.apex = f.i === 0 ? .9 + L*.05 : .1 + L*.08; }
+  f.u += dt/f.dur; const u = Math.min(1, f.u);
+  f.mesh.position.set(lerp(f.from.x, to.x, u), lerp(f.from.y, ty, u) + 4*f.apex*u*(1 - u), lerp(f.from.z, to.z, u));
+  f.mesh.rotation.y += dt*30; f.mesh.rotation.x = (.15 + .1*Math.sin(u*Math.PI))*(isBank ? 1 : .6);
+  if (f.u >= 1){
+    f.from.set(to.x, ty, to.z); f.dur = 0;
+    if (isBank){ sfx('thud'); f.rest = .01; f.mesh.position.y = ty; return; }
+    const last = f.i === pts.length - 1;
+    stSplash(to.x, to.z, last);
+    if (last){ f.sinkT = .01; return; }
+    f.i++;
+  }
+}
+function stoneUpdate(dt, t){
+  for (let i = STONE.flights.length - 1; i >= 0; i--){ const f = STONE.flights[i]; stoneFlightUpdate(f, dt); if (f.done){ scene.remove(f.mesh); f.mesh.geometry.dispose(); STONE.flights.splice(i, 1); if (f.local) stoneResult(f); } }
+  for (let i = STONE.rip.length - 1; i >= 0; i--){ const r = STONE.rip[i]; r.userData.t += dt; const q = r.userData.t/1.3, sc = 1 + q*5.5*r.userData.s; r.scale.set(sc, sc, sc); r.material.opacity = .65*(1 - q); if (q >= 1){ scene.remove(r); r.geometry.dispose(); r.material.dispose(); STONE.rip.splice(i, 1); } }
+  for (let i = STONE.drops.length - 1; i >= 0; i--){ const d = STONE.drops[i], u = d.userData; u.t += dt; u.vy -= 9.8*dt; d.position.x += u.vx*dt; d.position.z += u.vz*dt; d.position.y += u.vy*dt; if (d.position.y < WATER_Y + .02 || u.t > 1.2){ scene.remove(d); STONE.drops.splice(i, 1); } }
+  if (!STONE.on) return;
+  // 조준 게이지: 좌우로 오가는 표시 — 초록 구간에서 던지면 10번 가까이 튄다
+  if (STONE.st === 'aim'){ STONE.m += STONE.md*dt*1.25; if (STONE.m > 1){ STONE.m = 1; STONE.md = -1; } if (STONE.m < 0){ STONE.m = 0; STONE.md = 1; } $('#xp-stone-mk').style.left = (STONE.m*100) + '%'; }
+  const hand = heroHand();
+  if (STONE.st === 'wind'){
+    STONE.age += dt;
+    if (STONE.age >= .5 && !STONE.released){
+      STONE.released = true; sfx('card');
+      const p = player.pos, h = hand ? hand.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(p.x, p.y + .9, p.z);
+      const f = stoneFlight(h.x, h.y, h.z, stonePlan(p.x, p.z, STONE.dir, STONE.m), 0); f.local = true; f.mesh.visible = true; STONE.cur = f;
+      if (STONE.mesh) STONE.mesh.visible = false;
+    }
+    if (STONE.age > 1.0){ STONE.st = 'fly'; }
+  } else if (STONE.st === 'fly'){
+    if (!STONE.cur || STONE.cur.done) { STONE.st = 'aim'; STONE.age = -1; STONE.m = 0; STONE.md = 1; if (STONE.mesh) STONE.mesh.visible = true; stoneUI(); }
+  }
+  if (STONE.mesh && STONE.mesh.visible && hand){ hand.getWorldPosition(tmpV); STONE.mesh.position.copy(tmpV); }
+  STONE.pw = lerp(STONE.pw, 1, 1 - Math.exp(-dt*6));
+  stonePose(hero, STONE.dir, STONE.pw, STONE.age, t);
+}
+function stoneResult(f){
+  STONE.cur = null;
+  const n = f.plan.skips; if (n > STONE.best) STONE.best = n;
+  EXP.done.stone = true;
+  toast(f.plan.end === 'bank' ? `<b>${n}번 통통</b> · 돌이 기슭에 닿아 멈췄어요` : n >= 9 ? `<b>${n}번 통통!</b> 최고의 물수제비 🪨` : n >= 1 ? `<b>${n}번 통통</b> · 초록 구간에 맞춰 보세요` : '<b>풍덩</b> · 초록 구간에서 던져 보세요');
+  $('#xp-stone-count').textContent = `최고 기록 ${STONE.best}번`;
+}
+/* 몸짓: 모로 선 채 상체를 숙이고 비틀어 오른팔을 뒤로 젖혔다가(-0.5초) 앞으로 휘두름(0.5초) 뒤 팔로스루 */
+const _stK = [[0, .6, -.6, .2], [.35, -.7, -.05, .7], [.5, .1, -.25, .95], [.75, -.7, .1, .4], [1, .6, -.6, .2]];   // [age, R, UP, fwd]
+function stonePose(av, yaw, w, age, t){
+  if (!av || !av.model || w <= 0) return;
+  const B = av._mpB || (av._mpB = boneMap(av.model));
+  const A = B.RightArm, F = B.RightForeArm, Hd = B.RightHand; if (!A || !F || !Hd) return;
+  av.root.updateMatrixWorld(true);
+  const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)), R = new THREE.Vector3().crossVectors(fwd, UP);
+  let r = _stK[0][1], u = _stK[0][2], f = _stK[0][3], tw = -.2, lean = .45;
+  if (age >= 0 && age < 1){
+    let k = 0; while (k < _stK.length - 2 && age > _stK[k + 1][0]) k++;
+    const a = _stK[k], b = _stK[k + 1], q = clamp((age - a[0])/(b[0] - a[0]), 0, 1), e = q*q*(3 - 2*q);
+    r = lerp(a[1], b[1], e); u = lerp(a[2], b[2], e); f = lerp(a[3], b[3], e);
+    tw = age < .35 ? lerp(-.2, -.6, age/.35) : age < .55 ? lerp(-.6, .45, (age - .35)/.2) : lerp(.45, .1, clamp((age - .55)/.4, 0, 1));
+    lean = age < .5 ? .5 : lerp(.5, .35, clamp((age - .5)/.5, 0, 1));
+  } else r += Math.sin(t*2)*.03;
+  const sp = B.Spine, sp1 = B.Spine1;
+  if (sp){ boneRotQ(sp, _wq.setFromAxisAngle(R, -lean*.55*w)); boneRotQ(sp, _wq.setFromAxisAngle(UP, tw*.6*w)); }
+  if (sp1){ boneRotQ(sp1, _wq.setFromAxisAngle(R, -lean*.45*w)); boneRotQ(sp1, _wq.setFromAxisAngle(UP, tw*.4*w)); }
+  av.root.updateMatrixWorld(true);
+  const d = R.clone().multiplyScalar(r).addScaledVector(UP, u).addScaledVector(fwd, f).normalize();
+  boneAim(A, F, d, w);
+  boneAim(F, Hd, d.clone().addScaledVector(UP, -.08).normalize(), w);
+}
+function stoneStart(w){
+  STONE.on = true; STONE.st = 'aim'; STONE.m = 0; STONE.md = 1; STONE.pw = 0; STONE.age = -1; STONE.released = false; STONE.cur = null;
+  EXP.mode = 'stone'; EXP.lock = true;
+  // 물이 가장 길게 이어지는 방향을 골라 선다
+  const p = player.pos; let best = w.a, bl = -1;
+  for (const off of [0, 25, -25, 45, -45, 65, -65, 80, -80]){
+    const a = w.a + off*Math.PI/180, sx = Math.sin(a), sz = Math.cos(a); let run = 0, seen = false;
+    for (let d = .6; d < 30; d += .6){ if (H(p.x + sx*d, p.z + sz*d) < WATER_Y - .03){ seen = true; run += .6; } else if (seen) break; }
+    if (run > bl + .01){ bl = run; best = a; }
+  }
+  STONE.dir = best; player.heading = best; hero.root.rotation.y = best;
+  const sx = Math.sin(best), sz = Math.cos(best), rx = -sz, rz = sx;
+  EXP.cam = { pos:new THREE.Vector3(p.x - sx*4.2 + rx*2.0, p.y + 2.6, p.z - sz*4.2 + rz*2.0), tgt:new THREE.Vector3(p.x + sx*3.6 + rx*.5, WATER_Y + .5, p.z + sz*3.6 + rz*.5) };
+  view = 'xpcam';
+  if (!STONE.mesh) STONE.mesh = stoneMesh(); STONE.mesh.visible = true; scene.add(STONE.mesh);
+  $('#xp-stone').hidden = false; $('#xp-stone-count').textContent = `최고 기록 ${STONE.best}번`; stoneUI();
+  MP.lastSent = null; MP.sendT = 1;
+}
+function stoneStop(){
+  STONE.on = false; EXP.mode = 'free'; EXP.lock = false;
+  if (STONE.mesh) scene.remove(STONE.mesh);
+  $('#xp-stone').hidden = true; view = 'tp'; setView('tp'); xpCtx(true);
+  MP.lastSent = null; MP.sendT = 1;
+}
+function stoneUI(){
+  const b = $('#xp-stone-main'); b.textContent = STONE.st === 'aim' ? '던지기' : '…'; b.disabled = STONE.st !== 'aim';
+  $('#xp-stone-text').textContent = STONE.st === 'aim' ? '표시가 초록 구간에 왔을 때 던지세요. 정확할수록 더 많이 통통 튀어요.' : STONE.st === 'wind' ? '휘익—' : '통, 통, 통…';
+}
+function stoneThrow(){
+  if (!STONE.on || STONE.st !== 'aim') return;
+  STONE.st = 'wind'; STONE.age = 0; STONE.released = false; STONE.nm = STONE.m; STONE.na = STONE.dir; STONE.seq++;
+  stoneUI(); MP.lastSent = null; MP.sendT = 1;
+}
+/* 다른 사람이 던진 돌 재생: 그 사람의 서 있던 자리·방향·게이지 값으로 같은 궤적을 다시 계산 */
+function stoneRemote(p, a, m){
+  p.stoneAt = performance.now()/1000;
+  const h = p.av.root.position, f = stoneFlight(p.tx, (h.y || p.ty) + .95, p.tz, stonePlan(p.tx, p.tz, a, m), .5);
+  f.mesh.visible = false;
+}
+
 function xpUpdate(dt, t){
   if (!EXP.on) return;
   chiefUpdate(dt, t); xpAnimUpdate(dt); xpProgUpdate(); xpFireUpdate(dt, t); grillUpdate(dt, t); fishUpdate(dt, t); hgUpdate(dt); xpFriendsUpdate(dt);
+  if (LAMP.g) standLampLight(LAMP.g);
   if (CAR.light) CAR.light.intensity = nightF*38*(view === 'drive' ? 1 : .0);
   if (EXP.camp && EXP.camp.tableObj){ const L = EXP.camp.tableObj.userData.lamp;   // during Halli Galli the lantern is put away: a soft light from high above the table instead of a bright one beside a seat
     if (HG.on){ L.position.set(0, 2.3, 0); L.distance = 7; L.decay = 1.2; L.intensity = nightF*1.5; } else { L.position.set(.2, .8, .4); L.distance = 6; L.decay = 2; L.intensity = nightF*2.2; } }
-  EXP.ctxT -= dt; if (EXP.ctxT <= 0){ EXP.ctxT = .15; xpCtx(); document.body.classList.toggle('xp-busy', ['grill', 'fish', 'hg'].includes(EXP.mode)); document.body.classList.toggle('xp-drive', view === 'drive' || EXP.mode === 'tube'); }
+  EXP.ctxT -= dt; if (EXP.ctxT <= 0){ EXP.ctxT = .15; xpCtx(); document.body.classList.toggle('xp-busy', ['grill', 'fish', 'hg', 'stone'].includes(EXP.mode)); document.body.classList.toggle('xp-drive', view === 'drive' || EXP.mode === 'tube'); }
 }
 function xpHit(cx, cy){
   const r = canvas.getBoundingClientRect(), ndc = new THREE.Vector2(((cx - r.left)/r.width)*2 - 1, -((cy - r.top)/r.height)*2 + 1);
@@ -7668,6 +7860,8 @@ function xpBindUI(){
   for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) fm.addEventListener(ev, () => { if (FISH.hold) fishUp(); });
   $('#xp-fish-alt').addEventListener('click', fishLift);
   $('#xp-fish-x').addEventListener('click', fishStop);
+  $('#xp-stone-main').addEventListener('click', stoneThrow);
+  $('#xp-stone-x').addEventListener('click', stoneStop);
   $('#xp-hg-flip').addEventListener('click', () => hgFlip(0));
   $('#xp-hg-ring').addEventListener('click', () => hgRing(0));
   $('#xp-hg-x').addEventListener('click', () => hgEnd());
@@ -7680,6 +7874,7 @@ function xpKey(e, down){
   if (!EXP.on) return false;
   const c = e.code;
   if (HG.on){ if (!down) return true; if (c === 'Space'){ hgRing(0); e.preventDefault(); } else if (c === 'KeyF' || c === 'Enter') hgFlip(0); else if (c === 'Escape') hgEnd(); return true; }
+  if (STONE.on){ if (down && (c === 'Space' || c === 'KeyF' || c === 'Enter')){ e.preventDefault(); if (!e.repeat) stoneThrow(); } else if (down && c === 'Escape') stoneStop(); return true; }
   if (FISH.on){ if (c === 'Space' || c === 'KeyF'){ e.preventDefault(); if (down && !e.repeat) fishDown(); else if (!down) fishUp(); } else if (down && c === 'KeyR') fishLift(); else if (down && c === 'Escape') fishStop(); return true; }
   if (GR.on){ if (down && c === 'Escape') grillClose(); return true; }
   if (!down) return false;
@@ -7839,13 +8034,14 @@ function updateAudio(){
   if (!actx || actx.state !== 'running') return;
   const p = player.pos, t = actx.currentTime;
   const dc = Math.abs(p.x - creekC(p.z));
-  aNodes.creekG.gain.setTargetAtTime(.5*smooth(60, 4, dc)*(season==='winter' ? .25 : season==='summer' ? 1.2 : 1), t, .3);
+  aNodes.creekG.gain.setTargetAtTime(.5*.34*Math.pow(smooth(62, 6, dc), 1.7)*smooth(14.9, 19, p.x)*(season==='winter' ? .25 : season==='summer' ? 1.2 : 1), t, .3);
   aNodes.windG.gain.setTargetAtTime(season==='winter' ? .16 : .05, t, .8);
   aNodes.cicadaG.gain.setTargetAtTime(season==='summer' ? .9*dayF*(.6 + .4*Math.sin(t*7)*Math.sin(t*.4)) : 0, t, .15);
   const crickets = season === 'winter' ? 0 : season === 'spring' ? .4 : 1;
-  aNodes.cricketG.gain.setTargetAtTime(.05*nightF*crickets, t, .5);
-  const df = p.distanceTo(fire.pos); aNodes.fireG.gain.setTargetAtTime(.35*smooth(14, 1.5, df), t, .3);
-  if (t > aNodes.next && nightF > .2 && crickets > 0){
+  if (t > (aNodes.cGateT || 0)){ aNodes.cOn = !aNodes.cOn; aNodes.cGateT = t + (aNodes.cOn ? 25 + Math.random()*35 : 20 + Math.random()*30); }
+  aNodes.cricketG.gain.setTargetAtTime(.05*nightF*crickets*(aNodes.cOn ? 1 : 0), t, 1.2);
+  const df = p.distanceTo(fire.pos); aNodes.fireG.gain.setTargetAtTime(.62/(1 + df*df/12), t, .3);
+  if (t > aNodes.next && nightF > .2 && crickets > 0 && aNodes.cOn){
     aNodes.next = t + .35 + Math.random()*.5;
     const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 4300 + Math.random()*500; o.type='sine';
     g.gain.value = 0; o.connect(g).connect(aNodes.cricketG);
@@ -8178,6 +8374,9 @@ function mpCleanP(d){
   const r = { n:cleanName(d.n), g:d.g === 'm' ? 'm' : 'f', sit:mpNum(d.sit, 0, 2) | 0, x:mpNum(d.x, -300, 300, NaN), y:mpNum(d.y, -30, 60), z:mpNum(d.z, -300, 300, NaN), h:mpNum(d.h, -1e4, 1e4), s:mpNum(d.s, 0, 8), xp:d.xp ? 1 : 0, w:mpNum(d.w, 0, 1e6) | 0, t:mpNum(d.t, 0, 1e14) };
   if (!Number.isFinite(r.x) || !Number.isFinite(r.z)) return null;
   if (d.cx !== undefined && own(CAR_SPECS, d.ck)){ r.cx = mpNum(d.cx, -300, 300); r.cz = mpNum(d.cz, -300, 300); r.ch = mpNum(d.ch, -1e4, 1e4); r.ck = d.ck; r.dr = d.dr ? 1 : 0; }
+  r.pk = d.pk ? 1 : 0;
+  if (d.lm){ r.lm = 1; r.lx = mpNum(d.lx, -300, 300); r.lz = mpNum(d.lz, -300, 300); }
+  if (d.ss !== undefined){ r.ss = mpNum(d.ss, 0, 1e6) | 0; r.sa = mpNum(d.sa, -1e4, 1e4); r.sm = mpNum(d.sm, 0, 1); }
   return r;
 }
 function mpCleanS(id, v){
@@ -8339,12 +8538,21 @@ function mpAddPeer(id, d){
   const tag = mpTag(String(d.n || '손님').slice(0, 16));
   const p = { id, av, tag, name:d.n, g:d.g, x:d.x, y:d.y, z:d.z, h:d.h || 0, s:0, tx:d.x, ty:d.y, tz:d.z, th:d.h || 0, ts:d.s || 0, xp:!!d.xp, seen:performance.now(), fresh:true, w:d.w || 0, waveAt:-9, bub:null, cx:d.cx, cz:d.cz, ch:d.ch || 0, ck:d.ck, dr:!!d.dr, car:null };
   av.root.position.set(p.x, p.y, p.z); av.root.visible = false; scene.add(av.root); scene.add(tag);
+  mpApplyX(p, d, true);
   MP.peers.set(id, p); MP.count = MP.peers.size + 1; mpBadge();
   toast('<b>' + escH(p.name) + '</b> 님이 들어왔어요');
 }
 function mpDropPeer(id){
   const p = MP.peers.get(id); if (!p) return;
-  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.chair) seatDrop(p.chair); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
+  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.chair) seatDrop(p.chair); if (p.lampG){ standLampDrop(p.lampG); p.lampG = null; } mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
+}
+function mpApplyX(p, d, first){
+  p.pk = d.pk ? 1 : 0;
+  p.lm = d.lm ? 1 : 0; if (d.lm){ p.lx = d.lx; p.lz = d.lz; }
+  if (d.ss !== undefined){
+    if (p.ss === undefined || first) p.ss = d.ss;
+    else if (d.ss !== p.ss){ p.ss = d.ss; stoneRemote(p, d.sa || 0, d.sm || 0); }
+  }
 }
 function mpApply(id, d){
   if (id === MP.id) return;
@@ -8353,6 +8561,7 @@ function mpApply(id, d){
   const p = MP.peers.get(id);
   if (!p){ mpAddPeer(id, d); return; }
   p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr; p.sit = d.sit | 0;
+  mpApplyX(p, d, false);
   if ((d.w || 0) !== p.w){ p.w = d.w || 0; p.waveAt = performance.now()/1000; if (p.bub) scene.remove(p.bub); p.bub = mpBubble(MP_HELLO[(p.w|0) % MP_HELLO.length]); }
 }
 let mpStarted = false;
@@ -8394,12 +8603,18 @@ function mpUpdate(dt){
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
   const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
-  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : ''].join();
+  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : '', STONE.on ? 1 : 0, LAMP.on ? 1 : 0, STONE.seq].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
     const rec = { n:MP.name, g:HERO_G, sit:SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:MP.fb.serverTimestamp() };   // 시각은 서버가 찍음(규칙에서 확인)
+    if (!MP.noX){ if (STONE.on) rec.pk = 1; if (LAMP.on){ rec.lm = 1; rec.lx = +LAMP.g.position.x.toFixed(2); rec.lz = +LAMP.g.position.z.toFixed(2); } if (STONE.seq > 0){ rec.ss = STONE.seq; rec.sa = +STONE.na.toFixed(3); rec.sm = +STONE.nm.toFixed(3); } }
     if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
-    MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
+    MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {
+      // 아직 새 데이터베이스 규칙이 게시되지 않았다면 추가 항목 없이 다시 보냄 (기본 동작은 그대로)
+      if (MP.noX || !('pk' in rec || 'lm' in rec || 'ss' in rec)) return;
+      MP.noX = true; for (const k of ['pk', 'lm', 'lx', 'lz', 'ss', 'sa', 'sm']) delete rec[k];
+      MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
+    });
   }
   MP.hbT += dt; if (MP.hbT > 30){ MP.hbT = 0; mpSiteSet({}); }
   for (const p of [...MP.peers.values()]){
@@ -8409,6 +8624,9 @@ function mpUpdate(dt){
     else { p.x += dx*k; p.y += (p.ty - p.y)*k; p.z += dz*k; p.h += Math.atan2(Math.sin(p.th - p.h), Math.cos(p.th - p.h))*k; }
     const moving = Math.hypot(dx, dz) > .02 ? Math.min(7, Math.hypot(dx, dz)*6 + p.ts*.5) : 0;
     p.s += (Math.max(moving, p.ts * (Math.hypot(dx, dz) > .02 ? 1 : 0)) - p.s) * Math.min(1, dt*6);
+    if (p.lm && !p.lampG) p.lampG = standLampMake(p.lx, p.lz);
+    else if (!p.lm && p.lampG){ standLampDrop(p.lampG); p.lampG = null; }
+    if (p.lampG) standLampLight(p.lampG);
     const show = !p.dr;   // a driving visitor is seen in the car
     mpCarUpdate(p, dt, xp && p.cx !== undefined);
     p.av.root.visible = show; p.tag.visible = show;
@@ -8420,6 +8638,8 @@ function mpUpdate(dt){
     if (p.chair){ const sc = clamp(p.sk*2, .01, 1); p.chair.g.scale.set(sc, sc, sc); if (p.sk <= 0 || p.sit !== 2 && p.sit){ seatDrop(p.chair); p.chair = null; } }
     if (p.sk > 0 && p.av.model) sitApply(p.av, p.av.root, p.h, p.sk, p.sf || (p.sf = {}), p.x, p.y, p.z);
     const pa = nowS - p.waveAt; mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
+    p.skw = clamp((p.skw || 0) + (p.pk ? 1 : -1)*dt*4, 0, 1);
+    if (p.skw > 0){ const ta = p.stoneAt ? nowS - p.stoneAt : -1; stonePose(p.av, p.h, p.skw, ta >= 0 && ta < 1 ? ta : -1, nowS); }
     if (p.bub){ const on = pa >= 0 && pa < MP_WAVE_S + .4 && d0(p) < 40; p.bub.visible = on; if (on) p.bub.position.set(p.x, p.y + (p.g === 'm' ? 2.45 : 2.3), p.z); else if (pa > MP_WAVE_S + .4){ scene.remove(p.bub); p.bub = null; } }
     const d = Math.hypot(p.x - pos.x, p.z - pos.z);
     p.tag.position.set(p.x, p.y + (p.g === 'm' ? 2.1 : 1.95), p.z);
@@ -8468,7 +8688,7 @@ function tick(dt, t){
   npcs.forEach(n => n.update(dt, 0));
   scopeUpdate(dt);
   shopUpdate(dt);
-  xpUpdate(dt, t);
+  xpUpdate(dt, t); stoneUpdate(dt, t);
   styledUpdate();
   helpUpdate();
   updateCamera(dt);
