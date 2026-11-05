@@ -822,9 +822,10 @@ sky.material.fragmentShader = sky.material.fragmentShader
 			}
 			if (direction.y > 0.0){
 				vec2 cp = direction.xz/(direction.y + 0.1)*1.7;
-				float n = cC(cp, uTime);
+				float ct = uTime*5.0;   // 타임랩스 느낌: 몇 초만 봐도 흐름이 보이게
+				float n = cC(cp, ct);
 				vec2 sd = vSunDirection.xz/(length(vSunDirection.xz) + 1e-4)*0.12;
-				float ns = cC(cp + sd, uTime);
+				float ns = cC(cp + sd, ct);
 				float dens = smoothstep(uCov - 0.07, uCov + 0.17, n)*smoothstep(0.0, 0.16, direction.y);
 				float lit = clamp(0.72 + (n - ns)*4.6, 0.2, 1.2);
 				float edge = 1.0 - smoothstep(uCov, uCov + 0.18, n);
@@ -833,7 +834,7 @@ sky.material.fragmentShader = sky.material.fragmentShader
 				cc += vec3(0.6, 0.66, 0.8)*(mGlow*1.8 + pow(max(mc, 0.0), 40.0)*0.06*uMoonVis)*lit;   // moonlit cloud edges
 				cc = mix(cc, retColor, 0.18*smoothstep(0.2, 0.0, direction.y));
 				retColor = mix(retColor, cc, dens*0.96);
-				float ci = smoothstep(0.56, 0.9, cirrus(cp*0.8, uTime))*smoothstep(0.04, 0.3, direction.y)*(1.0 - dens)*0.32*(1.0 - uNight);
+				float ci = smoothstep(0.56, 0.9, cirrus(cp*0.8, ct))*smoothstep(0.04, 0.3, direction.y)*(1.0 - dens)*0.32*(1.0 - uNight);
 				retColor = mix(retColor, vec3(1.05, 1.06, 1.1)*max(retColor.b, 0.55), ci);   // thin high wisps
 			}
 			gl_FragColor = vec4( retColor, 1.0 );`);
