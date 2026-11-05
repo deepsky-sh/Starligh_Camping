@@ -779,9 +779,9 @@ const sky = new Sky(); sky.scale.setScalar(8000); scene.add(sky);
 const skyU = sky.material.uniforms;
 skyU.turbidity.value = 2.4; skyU.rayleigh.value = 2.2; skyU.mieCoefficient.value = 0.003; skyU.mieDirectionalG.value = 0.82;
 skyU.uGain = { value: 1 }; skyU.uSat = { value: 1.35 }; skyU.uNight = { value: 0 };
-skyU.uTime = U.uTime; skyU.uCov = { value: .52 }; skyU.uCloudLit = { value: new THREE.Color(1.2, 1.2, 1.22) }; skyU.uCloudDark = { value: new THREE.Color(.55, .6, .7) };
+skyU.uTime = U.uTime; skyU.uCloudT = { value: 0 }; skyU.uCov = { value: .52 }; skyU.uCloudLit = { value: new THREE.Color(1.2, 1.2, 1.22) }; skyU.uCloudDark = { value: new THREE.Color(.55, .6, .7) };
 sky.material.fragmentShader = sky.material.fragmentShader
-  .replace('void main() {', `uniform float uGain; uniform float uSat; uniform float uNight; uniform float uTime; uniform float uCov; uniform vec3 uCloudLit; uniform vec3 uCloudDark;
+  .replace('void main() {', `uniform float uGain; uniform float uSat; uniform float uNight; uniform float uTime; uniform float uCloudT; uniform float uCov; uniform vec3 uCloudLit; uniform vec3 uCloudDark;
     float cH(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
     float cN(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0 - 2.0*f); return mix(mix(cH(mod(i, 512.0)), cH(mod(i + vec2(1, 0), 512.0)), f.x), mix(cH(mod(i + vec2(0, 1), 512.0)), cH(mod(i + vec2(1, 1), 512.0)), f.x), f.y); }
     float cF(vec2 p){ float s = 0.0, a = 0.5; mat2 r = mat2(0.8, -0.6, 0.6, 0.8); for (int i=0;i<6;i++){ s += a*cN(p); p = r*p*2.03 + 7.1; a *= 0.5; } return s; }
@@ -822,7 +822,7 @@ sky.material.fragmentShader = sky.material.fragmentShader
 			}
 			if (direction.y > 0.0){
 				vec2 cp = direction.xz/(direction.y + 0.1)*1.7;
-				float ct = uTime*5.0;   // 타임랩스 느낌: 몇 초만 봐도 흐름이 보이게
+				float ct = uCloudT*5.0;   // 타임랩스 느낌: 몇 초만 봐도 흐름이 보이게
 				float n = cC(cp, ct);
 				vec2 sd = vSunDirection.xz/(length(vSunDirection.xz) + 1e-4)*0.12;
 				float ns = cC(cp + sd, ct);
@@ -8459,7 +8459,9 @@ function resumeAfterReload(){
 }
 function tick(dt, t){
   U.uTime.value = t;
+  const hPrev = hour;
   if (Math.abs(hour - hourTarget) > .001){ hour = lerp(hour, hourTarget, 1 - Math.exp(-dt*2.2)); if (Math.abs(hour-hourTarget) < .005) hour = hourTarget; applyTime(hour); }
+  { let dh = Math.abs(hour - hPrev); if (dh > 12) dh = 24 - dh; skyU.uCloudT.value += dt + dh*60; }   // 시간을 빨리 돌리면 구름도 같이 빨리 흐름 (1시간 = 구름 60초)
   if (started) updatePlayer(dt); else { hero.update(dt, 0); hero.root.position.copy(player.pos); }
   if (started) sitUpdate(dt);
   if (started) mpUpdate(dt);
