@@ -300,6 +300,7 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 /* 게임식 상점·가방 창 */
 #bag-btn{display:none;position:fixed;top:calc(60px + env(safe-area-inset-top,0px));right:16px;z-index:31;border:1px solid #c9a35a;background:linear-gradient(#2b3447,#1a2130);color:#ffe3a3;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700}
 body.xp #bag-btn{display:block}
+@media (max-height:520px) and (orientation:landscape){#bag-btn{top:calc(14px + env(safe-area-inset-top,0px));right:104px}}
 .gwin{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(3,6,12,.5);padding:10px}
 .gwin[hidden]{display:none}
 .gwin .box{width:min(780px,97vw);max-height:94vh;background:linear-gradient(#1d2535,#121822);border:2px solid #c9a35a;border-radius:14px;box-shadow:0 12px 44px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,255,255,.06);color:#eee;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
