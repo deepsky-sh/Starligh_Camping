@@ -7906,7 +7906,7 @@ function bagRender(){
   const w = gwEl(), L = bagItems(), tabs = [['all', '전체'], ['장비', '장비'], ['소모품', '소모품'], ['먹거리', '먹거리'], ['채집', '채집']];
   const vis = L.filter(x => BAG.tab === 'all' || (BAG.tab === '먹거리' ? ['간식', '음료', '식사'].includes(x.kind) : BAG.tab === '소모품' ? ['소모품', '생활'].includes(x.kind) : x.kind === BAG.tab));
   if (!BAG.sel || !L.find(x => x.k === BAG.sel)) BAG.sel = vis[0] ? vis[0].k : null;
-  const s = L.find(x => x.k === BAG.sel), slots = Math.max(20, Math.ceil(vis.length/5)*5);
+  const s = L.find(x => x.k === BAG.sel), slots = Math.max(24, Math.ceil(vis.length/6)*6);
   const [ul, ok, why] = s ? bagUseInfo(s.k) : [null];
   w.innerHTML = `<div class="box bag" role="dialog" aria-label="가방">
     <div class="hd"><div class="npc bagi">🎒</div><div class="ttl"><b>가방</b><small>가지고 있는 물건 ${L.length}가지</small></div>${gwGold()}<button class="x" aria-label="닫기">✕</button></div>
