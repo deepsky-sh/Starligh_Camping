@@ -1016,7 +1016,8 @@ function buildTerrain(){
 const colliders = []; // circles {x,z,r}
 const boxes = [];     // aabb {x0,x1,z0,z1}
 const decks = [];     // {x0,x1,z0,z1,y}
-function groundAt(x,z){ let h = H(x,z); for (const d of decks) if (x>d.x0 && x<d.x1 && z>d.z0 && z<d.z1) h = Math.max(h, d.k ? d.y + d.k*(x - d.xs) : d.y); return h; }
+const ICE = { on:false };   // 겨울: 계곡이 얼면 얼음 위를 걸어 다님
+function groundAt(x,z){ let h = H(x,z); if (ICE.on && h < -2.08) h = -2.08; for (const d of decks) if (x>d.x0 && x<d.x1 && z>d.z0 && z<d.z1) h = Math.max(h, d.k ? d.y + d.k*(x - d.xs) : d.y); return h; }
 
 /* ---------------- geometry helpers ---------------- */
 const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpV = new THREE.Vector3(), tmpS = new THREE.Vector3(), UP = new THREE.Vector3(0,1,0);
@@ -1631,7 +1632,7 @@ function buildCreek(){
   }
 }
 function updateCreek(dt, t){
-  const ice = SEASONS[season].water === 'ice';
+  const ice = SEASONS[season].water === 'ice'; ICE.on = ice;
   for (const f of creekFx.foam){ f.mesh.visible = !ice; f.t.offset.y = (f.t.offset.y + dt*f.speed) % 1; f.mesh.material.opacity = .62 + .12*Math.sin(t*2.3 + f.speed*10); }
 }
 
@@ -6704,6 +6705,7 @@ function xpCtx(force){
     const p = player.pos, dist = (x, z) => Math.hypot(p.x - x, p.z - z);
     if (dist(CHIEF.x, CHIEF.z) < 2.8) acts.push({ id:'chief', label:EXP.checked ? '캠장님과 대화' : '캠장님께 체크인', fn:xpChief });
     if (CAR.g && dist(CAR.x, CAR.z) < 3.2) acts.push({ id:'car', label:'차 타기', fn:carEnter });
+    if (SEASONS[season].water === 'ice' && Math.abs(player.pos.x - creekC(player.pos.z)) < 9) acts.push({ id:'snorkice', label:'겨울엔 계곡이 얼어 스노클링 불가', fn:null, dim:true });
     if (CLERK.root && clerkNear()) acts.unshift({ id:'shop', label:'매점 사장님께 물건 사기', fn:() => xpShop() });
     if (SCOPE.near) acts.unshift({ id:'scope', label:'망원경으로 달·토성 보기', fn:scopeOpen });
     if (EXP.checked){
@@ -7794,12 +7796,14 @@ function snorkSpot(){
 }
 function snorkMask(){
   const g = new THREE.Group(), blue = new THREE.MeshStandardMaterial({ color:0x1d8fe0, roughness:.35 }), white = M(0xf4f6f8, { roughness:.4 });
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(.1, .016, 8, 28), blue); rim.scale.set(1, 1.3, 1); g.add(rim);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(.11, .02, 8, 28), blue); rim.scale.set(1, 1.35, 1); rim.position.z = .02; g.add(rim);
   const visor = new THREE.Mesh(new THREE.SphereGeometry(.1, 18, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshPhysicalMaterial({ color:0xdff3ff, roughness:.05, transmission:.6, transparent:true, opacity:.45 }));
   visor.rotation.x = Math.PI/2; visor.scale.set(1, .55, 1.3); g.add(visor);
-  const strap = new THREE.Mesh(new THREE.TorusGeometry(.105, .008, 6, 28), new THREE.MeshStandardMaterial({ color:0x15232e, roughness:.7 })); strap.rotation.y = Math.PI/2; strap.position.z = -.08; strap.scale.set(1, 1.05, .95); g.add(strap);
-  const tube = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .34, 10), blue); tube.position.set(0, .22, -.04); g.add(tube);
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(.024, .02, .05, 10), white); top.position.set(0, .4, -.04); g.add(top);
+  const strap = new THREE.Mesh(new THREE.TorusGeometry(.12, .014, 6, 28), new THREE.MeshStandardMaterial({ color:0x15232e, roughness:.7 })); strap.rotation.y = Math.PI/2; strap.position.z = -.08; strap.scale.set(1, 1.05, .95); g.add(strap);
+  // 숨대롱: 머리 꼭대기에서 뒤통수 쪽(엎드리면 하늘 방향)으로 곧게 솟음 + 주황 끝마개
+  const tube = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .36, 10), blue); tube.rotation.x = Math.PI/2; tube.position.set(0, .11, -.2); g.add(tube);
+  const bend = new THREE.Mesh(new THREE.TorusGeometry(.05, .018, 8, 12, Math.PI/2), blue); bend.rotation.y = Math.PI/2; bend.position.set(0, .06, -.02); g.add(bend);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(.03, .024, .06, 12), new THREE.MeshStandardMaterial({ color:0xff7a1a, roughness:.4 })); top.rotation.x = Math.PI/2; top.position.set(0, .11, -.4); g.add(top);
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return g;
 }
@@ -7837,6 +7841,22 @@ function snorkPose(av, F, x, z, yaw, ph, arm){
   }
   if (B.Head) boneRot(B.Head, R, -.25);   // 고개를 살짝 들어 앞쪽 물속을 봄
 }
+function snorkFins(){
+  const sh = new THREE.Shape(); sh.moveTo(-.05, 0); sh.lineTo(.05, 0); sh.lineTo(.11, .36); sh.quadraticCurveTo(0, .32, -.11, .36); sh.closePath();
+  const geo = new THREE.ExtrudeGeometry(sh, { depth:.012, bevelEnabled:false }); geo.rotateX(Math.PI/2); geo.translate(0, .006, 0);   // 날이 +z 쪽으로 뻗음
+  const mat = new THREE.MeshStandardMaterial({ color:0x1b6fd0, roughness:.5 }), foot = new THREE.MeshStandardMaterial({ color:0x15191e, roughness:.6 });
+  return [0, 1].map(() => { const g = new THREE.Group(); const b = new THREE.Mesh(geo, mat); g.add(b); const pocket = new THREE.Mesh(new THREE.BoxGeometry(.11, .07, .17), foot); pocket.position.set(0, .02, -.02); g.add(pocket); g.traverse(o => { if (o.isMesh) o.castShadow = true; }); scene.add(g); return g; });
+}
+const _fnM = new THREE.Matrix4();
+function snorkFinsPlace(av, F, fins, up){
+  const B = F.B || (av.model && (F.B = boneMap(av.model))); if (!B){ for (const f of fins) f.visible = false; return; }
+  [['Left', 0], ['Right', 1]].forEach(([s, i]) => {
+    const ft = B[s + 'Foot'], toe = B[s + 'ToeBase'], fin = fins[i]; if (!ft || !toe){ fin.visible = false; return; }
+    const a = ft.getWorldPosition(new THREE.Vector3()), b = toe.getWorldPosition(new THREE.Vector3()), d = b.clone().sub(a).normalize();
+    _fnM.lookAt(b.clone().add(d), b, up || UP); fin.quaternion.setFromRotationMatrix(_fnM); fin.position.copy(b).addScaledVector(d, -.04);
+    const k = av.k || 1; fin.scale.setScalar(k); fin.visible = true;
+  });
+}
 function snorkMaskPlace(av, F, mask){
   const B = F.B || (av.model && (F.B = boneMap(av.model))); if (!B || !B.Head) { mask.visible = false; return; }
   mask.visible = true; const hp = B.Head.getWorldPosition(new THREE.Vector3());
@@ -7851,6 +7871,7 @@ function snorkStart(){
   EXP.mode = 'snork'; SNORK.on = true; SNORK.under = false; SNORK.ph = 0; SNORK.F = { av:hero };
   if (!SNORK.mask) SNORK.mask = snorkMask(); scene.add(SNORK.mask);
   if (!SNORK.foam) SNORK.foam = snorkFoam(); for (const s of SNORK.foam) s.visible = true;
+  if (!SNORK.fins) SNORK.fins = snorkFins(); for (const f of SNORK.fins) f.visible = true;
   sfx('splash'); stSplash(at.x, at.z, true); EXP.done.snork = true; xpHud();
   toast(season === 'summer' ? '<b>스노클링</b> · 이동키로 발차기하며 헤엄쳐요. <b>물속 보기</b>로 바꾸면 물고기들이 보여요 🐟' : '<b>스노클링</b> · 물이 꽤 차가워요! <b>물속 보기</b>로 물고기를 구경해요 🐟');
   MP.lastSent = null; MP.sendT = 1; xpCtx(true);
@@ -7860,13 +7881,14 @@ function snorkStop(){
   for (let k = 0; k < 24 && !best; k++){ for (const d of [1.5, 2.5, 3.5, 5, 7, 9]){ const a = k/24*Math.PI*2, x = p.x + Math.sin(a)*d, z = p.z + Math.cos(a)*d; if (H(x, z) > WATER_Y + .05){ best = { x, z }; break; } } }
   if (!best) best = { x:p.x - 8, z:p.z };
   SNORK.on = false; SNORK.under = false; EXP.mode = 'free';
-  if (SNORK.mask) scene.remove(SNORK.mask); if (SNORK.foam) for (const s of SNORK.foam) s.visible = false;
+  if (SNORK.mask) scene.remove(SNORK.mask); if (SNORK.foam) for (const s of SNORK.foam) s.visible = false; if (SNORK.fins) for (const f of SNORK.fins) f.visible = false;
   hero.root.rotation.order = 'XYZ'; hero.root.rotation.set(0, player.heading, 0); hero.root.position.y = 0;
   player.pos.set(best.x, groundAt(best.x, best.z), best.z); sfx('splash'); camera.rotation.order = 'YXZ';
   MP.lastSent = null; MP.sendT = 1; xpCtx(true);
 }
 function snorkUnder(on){ SNORK.under = on === undefined ? !SNORK.under : on; if (SNORK.under) camPitch = Math.min(camPitch, .05); sfx(SNORK.under ? 'bubble' : 'splash'); xpCtx(true); }
 function snorkUpdate(dt){
+  if (SEASONS[season].water === 'ice'){ snorkStop(); toast('<b>겨울</b> · 계곡이 얼어서 스노클링을 마쳤어요'); return; }
   let ix = 0, iz = 0;
   if (keys.has('KeyW') || keys.has('ArrowUp')) iz += 1; if (keys.has('KeyS') || keys.has('ArrowDown')) iz -= 1;
   if (keys.has('KeyA') || keys.has('ArrowLeft')) ix -= 1; if (keys.has('KeyD') || keys.has('ArrowRight')) ix += 1;
@@ -7889,6 +7911,7 @@ function snorkUpdate(dt){
   hero.root.visible = !SNORK.under;
   snorkPose(hero, SNORK.F, p.x, p.z, player.heading, SNORK.ph, SNORK.arm);
   snorkMaskPlace(hero, SNORK.F, SNORK.mask); SNORK.mask.visible = !SNORK.under;
+  snorkFinsPlace(hero, SNORK.F, SNORK.fins); if (SNORK.under) for (const f of SNORK.fins) f.visible = false;
   snorkFx(dt, p.x, p.z, player.heading, sp, SNORK.foam, SNORK);
   player.speed = sp;
 }
@@ -7920,11 +7943,12 @@ function snorkCam(dt){
 }
 /* 다른 접속자의 스노클링 모습: 같은 자세·마스크·물보라 */
 function snorkPeer(p, dt, t){
-  if (!p.sn){ if (p.snF){ p.av.root.rotation.order = 'XYZ'; p.av.root.rotation.x = 0; if (p.snMask) p.snMask.visible = false; if (p.snFoam) for (const s of p.snFoam) s.visible = false; p.snF = null; } return; }
+  if (!p.sn){ if (p.snF){ p.av.root.rotation.order = 'XYZ'; p.av.root.rotation.x = 0; if (p.snMask) p.snMask.visible = false; if (p.snFoam) for (const s of p.snFoam) s.visible = false; if (p.snFins) for (const f of p.snFins) f.visible = false; p.snF = null; } return; }
   if (!p.snF) p.snF = { av:p.av, remote:true }; if (!p.snMask){ p.snMask = snorkMask(); scene.add(p.snMask); } if (!p.snFoam) p.snFoam = snorkFoam();
   const x = p.av.root.position.x, z = p.av.root.position.z, sp = Math.min(1.5, p.s || 0);
   p.snPh = (p.snPh || 0) + dt*(2.5 + sp*9); p.snArm = (p.snArm || 0) + dt*(.8 + sp*3.2);
-  snorkPose(p.av, p.snF, x, z, p.h, p.snPh, p.snArm); snorkMaskPlace(p.av, p.snF, p.snMask);
+  if (!p.snFins) p.snFins = snorkFins();
+  snorkPose(p.av, p.snF, x, z, p.h, p.snPh, p.snArm); snorkMaskPlace(p.av, p.snF, p.snMask); snorkFinsPlace(p.av, p.snF, p.snFins);
   for (const s of p.snFoam) s.visible = true;
   snorkFx(dt, x, z, p.h, sp, p.snFoam, p.snFx || (p.snFx = { rip:0, kick:0, remote:true }));
 }
@@ -8990,7 +9014,7 @@ function mpAddPeer(id, d){
 }
 function mpDropPeer(id){
   const p = MP.peers.get(id); if (!p) return;
-  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.chair) seatDrop(p.chair); if (p.lampG){ standLampDrop(p.lampG); p.lampG = null; } if (p.flMesh){ scene.remove(p.flMesh, p.flBeam); } if (p.snMask) scene.remove(p.snMask); if (p.snFoam) for (const f of p.snFoam) scene.remove(f); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
+  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.chair) seatDrop(p.chair); if (p.lampG){ standLampDrop(p.lampG); p.lampG = null; } if (p.flMesh){ scene.remove(p.flMesh, p.flBeam); } if (p.snMask) scene.remove(p.snMask); if (p.snFoam) for (const f of p.snFoam) scene.remove(f); if (p.snFins) for (const f of p.snFins) scene.remove(f); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
 }
 function mpApplyX(p, d, first){
   p.pk = d.pk ? 1 : 0; p.sn = d.sn ? 1 : 0; p.fb = d.fb ? 1 : 0; p.fa = d.fa ? 1 : 0; p.fl = d.fl ? 1 : 0;
