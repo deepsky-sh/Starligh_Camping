@@ -282,6 +282,9 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 /* 메뉴는 항상 다른 버튼들 위 */
 .panel{z-index:30!important;background:#111925!important}
 #menu-toggle{z-index:31!important}
+#xp-actions{left:0;top:0;right:auto!important;bottom:auto!important;transform:none!important;flex-direction:column!important;flex-wrap:nowrap!important;align-items:flex-end!important;max-width:min(72vw,320px)!important}
+#xp-actions[data-cols="2"]{flex-direction:row!important;flex-wrap:wrap!important;justify-content:flex-end!important;max-width:min(60vw,440px)!important}
+#xp-actions button{white-space:nowrap}
 #uw-veil{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 35%,rgba(40,170,160,.05),rgba(6,60,62,.35) 65%,rgba(2,22,26,.85));mix-blend-mode:multiply}
 .xp-panel .gauge{position:relative;height:16px;border-radius:8px;background:rgba(255,255,255,.14)}
 .xp-panel .gauge .sw{position:absolute;top:0;bottom:0;border-radius:8px;background:#5fc27a}
@@ -5768,6 +5771,7 @@ function binoCam(dt){
   stars.material.size = sz; starsBright.material.size = sz*.8; stars.userData.extra.material.size = 3 + BN.magShown*.1; BN.deep.material.size = sz*.85;
   BN.deep.rotation.y = stars.rotation.y;
 }
+addEventListener('resize', () => setTimeout(xpActLayout, 60));
 addEventListener('resize', () => { if (BN.on) binoLayout(); });
 
 function jump(){ if (!player.air && view !== 'air'){ player.air = true; player.vy = 5.6; } }
@@ -6691,6 +6695,35 @@ function xpNearestSite(maxD){
   return best;
 }
 const RECYCLE = { x:-16.6, z:-17.5 };
+/* 행동 버튼 자리: 조이스틱·둥근 버튼·미니맵·이름 카드·메뉴·체험 목록과 겹치지 않는 빈 곳 중 오른쪽 아래 둥근 버튼 근처를 고름 */
+function xpActLayout(){
+  const bar = $('#xp-actions'); if (!bar || bar.hidden || !bar.children.length) return;
+  const vw = innerWidth, vh = innerHeight, M = 10;
+  const obs = [];
+  const add = e => { if (!e || e.hidden) return; const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden') return; const r = e.getBoundingClientRect(); if (r.width > 2 && r.height > 2) obs.push([r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]); };
+  ['.joy', '.mapwrap', '#xp-quest', '.brand', '#menu-toggle', '#xp-prog', '#xp-dlg', '.panel.open'].forEach(q => document.querySelectorAll(q).forEach(add));
+  document.querySelectorAll('#tbtns .tb').forEach(add);
+  document.querySelectorAll('.xp-panel:not([hidden])').forEach(add);
+  const tb = [...document.querySelectorAll('#tbtns .tb')].filter(e => !e.hidden && e.offsetParent).map(e => e.getBoundingClientRect());
+  const clTop = tb.length ? Math.min(...tb.map(r => r.top)) : vh - 140, clLeft = tb.length ? Math.min(...tb.map(r => r.left)) : vw - 200;
+  const hit = (x, y, w, h) => { for (const o of obs) if (x < o[2] && x + w > o[0] && y < o[3] && y + h > o[1]) return true; return false; };
+  const tryLayout = cols => {
+    bar.dataset.cols = cols; bar.style.left = '0px'; bar.style.top = '-9999px';
+    const r = bar.getBoundingClientRect(), w = r.width, h = r.height;
+    const tx = vw - M - w, ty = clTop - 8 - h, tx2 = clLeft - 10 - w, ty2 = vh - M - h - 60;
+    let best = null, bs = 1e9;
+    for (let y = 56; y + h <= vh - M; y += 6) for (let x = M; x + w <= vw - M; x += 6){
+      if (hit(x, y, w, h)) continue;
+      const sc = Math.min(Math.hypot(x - tx, y - ty), Math.hypot(x - tx2, y - ty2)*1.15);
+      if (sc < bs){ bs = sc; best = [x, y]; }
+    }
+    return best;
+  };
+  let pos = tryLayout(1);
+  if (!pos) pos = tryLayout(2);
+  if (!pos){ bar.dataset.cols = 1; pos = [vw - M - bar.getBoundingClientRect().width, 60]; }
+  bar.style.left = pos[0] + 'px'; bar.style.top = pos[1] + 'px';
+}
 function xpCtx(force){
   if (!EXP.on || EXP.ended) return;
   const acts = [];
@@ -6739,6 +6772,7 @@ function xpCtx(force){
   const bar = $('#xp-actions'); bar.innerHTML = '';
   acts.forEach((a, i) => { const b = document.createElement('button'); b.innerHTML = a.label + (i === 0 && a.fn && !isTouch ? ' <kbd>E</kbd>' : ''); if (a.dim) b.className = 'dim'; else if (i === 0) b.className = 'pri'; b.addEventListener('click', () => { if (a.fn) a.fn(); xpCtx(true); }); bar.appendChild(b); });
   bar.hidden = !acts.length;
+  requestAnimationFrame(xpActLayout);
 }
 function xpPrimary(){ const a = EXP.acts.find(a => a.fn); if (a){ a.fn(); xpCtx(true); return true; } return false; }
 
@@ -8300,6 +8334,7 @@ function stoneRemote(p, a, m){
 
 function xpUpdate(dt, t){
   if (!EXP.on) return;
+  EXP.layT = (EXP.layT || 0) - dt; if (EXP.layT <= 0){ EXP.layT = .7; xpActLayout(); }
   chiefUpdate(dt, t); clerkUpdate(dt); xpAnimUpdate(dt); xpProgUpdate(); xpFireUpdate(dt, t); grillUpdate(dt, t); fishUpdate(dt, t); hgUpdate(dt); xpFriendsUpdate(dt);
   if (LAMP.g) standLampLight(LAMP.g);
   if (CAR.light) CAR.light.intensity = nightF*38*(view === 'drive' ? 1 : .0);
