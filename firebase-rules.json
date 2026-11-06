@@ -76,6 +76,15 @@
         "sm": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
         },
+        "sn": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "fb": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
+        "fa": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
         "$other": {
           ".validate": false
         }
