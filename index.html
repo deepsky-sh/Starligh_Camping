@@ -101,7 +101,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 #tb-wave{right:12px;bottom:112px}
 #tb-run{right:112px;bottom:12px}
 #tb-flash{right:83px;bottom:83px}
-#tb-bino{right:170px;bottom:76px}
+#tb-bino{right:12px;bottom:190px}
 .tbtns .tb[aria-pressed="true"]{border-color:var(--amber);background:radial-gradient(circle at 35% 30%,rgba(242,179,91,.45),rgba(60,40,12,.7) 70%)}
 .tbtns .tb[aria-pressed="true"] small{color:var(--amber)}
 .tbtns .tb:disabled{opacity:.38}
@@ -289,6 +289,43 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 #xp-actions button{white-space:nowrap}
 #xp-actions.tight{gap:5px!important}
 #xp-actions.tight button{padding:6px 10px!important;font-size:12px!important}
+/* 게임식 상점·가방 창 */
+#bag-btn{display:none;position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:104px;z-index:31;border:1px solid #c9a35a;background:linear-gradient(#2b3447,#1a2130);color:#ffe3a3;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700}
+body.xp #bag-btn{display:block}
+.gwin{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(3,6,12,.5);padding:10px}
+.gwin[hidden]{display:none}
+.gwin .box{width:min(780px,97vw);max-height:94vh;background:linear-gradient(#1d2535,#121822);border:2px solid #c9a35a;border-radius:14px;box-shadow:0 12px 44px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,255,255,.06);color:#eee;display:flex;flex-direction:column;overflow:hidden;font-size:13px}
+.gwin .hd{display:flex;align-items:center;gap:10px;padding:9px 12px;background:linear-gradient(#2c3549,#1c2333);border-bottom:1px solid rgba(201,163,90,.4)}
+.gwin .npc{flex:none;width:42px;height:42px;border-radius:50%;background:radial-gradient(#ffd9cf,#e7a395);display:grid;place-items:center;font-size:25px;border:2px solid #c9a35a}
+.gwin .npc.bagi{background:radial-gradient(#5c4a2c,#3a2d18)}
+.gwin .ttl{min-width:0}.gwin .ttl b{font-size:15px;color:#ffd98a}.gwin .ttl small{display:block;opacity:.85;font-size:12px;line-height:1.35}
+.gwin .gold{margin-left:auto;flex:none;background:#0b0f16;border:1px solid rgba(201,163,90,.6);border-radius:8px;padding:5px 10px;color:#ffd98a;font-weight:800;white-space:nowrap}
+.gwin .x{flex:none;background:none;border:0;color:#ddd;font-size:20px;cursor:pointer;padding:4px 6px}
+.gwin .tabs{display:flex;gap:4px;padding:8px 10px 0;overflow-x:auto;scrollbar-width:none}
+.gwin .tab{padding:6px 12px;border-radius:8px 8px 0 0;background:#222b3c;color:#b9c1cf;border:1px solid #39455d;border-bottom:0;white-space:nowrap;font-size:12.5px}
+.gwin .tab.on{background:#303b55;color:#ffd98a;border-color:#c9a35a}
+.gwin .body{display:flex;gap:10px;padding:10px;min-height:0;flex:1}
+.gwin .grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:7px;align-content:start;overflow:auto;max-height:56vh;padding:8px;background:#0c111a;border:1px solid #2c3648;border-radius:10px}
+.gwin .slot{position:relative;aspect-ratio:1;border-radius:9px;background:radial-gradient(circle at 50% 32%,#2c3854,#151c2a);border:1px solid #3c4963;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:27px;color:#fff;padding:0}
+.gwin .slot small{font-size:10px;color:#ffd98a;margin-top:1px;font-weight:700}
+.gwin .slot .cnt{position:absolute;right:5px;bottom:3px;font-size:12px;font-weight:800;text-shadow:0 1px 2px #000,0 0 3px #000}
+.gwin .slot .own{position:absolute;left:3px;top:3px;font-size:9px;background:#3f7d4c;color:#fff;border-radius:4px;padding:0 4px}
+.gwin .slot.sel{border-color:#ffd98a;box-shadow:0 0 0 2px #c9a35a,0 0 14px rgba(201,163,90,.55)}
+.gwin .slot.empty{cursor:default;opacity:.35}
+.gwin .slot .pop{position:absolute;top:-4px;right:4px;font-size:13px;font-weight:900;color:#7dffa0;animation:gwpop .9s ease-out forwards;text-shadow:0 1px 2px #000}
+@keyframes gwpop{to{transform:translateY(-22px);opacity:0}}
+.gwin .det{width:250px;flex:none;display:flex;flex-direction:column;gap:7px;padding:10px;background:#141b28;border:1px solid #2c3648;border-radius:10px;overflow:auto}
+.gwin .det .big{font-size:44px;text-align:center;line-height:1.1}
+.gwin .det h4{margin:0;color:#ffd98a;font-size:15px}.gwin .det h4 em{font-style:normal;font-size:11px;color:#9fb0c8;border:1px solid #3c4963;border-radius:5px;padding:0 5px;margin-left:4px;vertical-align:middle}
+.gwin .det p{margin:0;font-size:12.5px;opacity:.88;line-height:1.5}
+.gwin .det .eff{font-size:12px;color:#8fe3a8}
+.gwin .det .row{display:flex;justify-content:space-between}.gwin .det .row b{color:#ffd98a}.gwin .det .row b.neg{color:#ff8a7a}
+.gwin .qty{display:flex;align-items:center;gap:6px}.gwin .qty button{width:30px;height:30px;border-radius:7px;border:1px solid #3c4963;background:#222b3c;color:#fff;font-size:16px}.gwin .qty .mx{width:auto;padding:0 8px;font-size:12px}.gwin .qty span{min-width:26px;text-align:center;font-weight:800}
+.gwin .buy{margin-top:auto;padding:10px;border-radius:9px;border:1px solid #f0cf7c;background:linear-gradient(#ecbf52,#b6852b);color:#2a1a00;font-weight:900;font-size:14.5px;cursor:pointer}
+.gwin .buy:disabled{filter:grayscale(1);opacity:.55;cursor:default}
+.gwin .why{color:#ffb38a;font-size:11.5px;text-align:center}
+@media (max-width:640px){.gwin .body{flex-direction:column}.gwin .det{width:auto}.gwin .grid{max-height:36vh;grid-template-columns:repeat(auto-fill,minmax(58px,1fr))}.gwin .det .big{font-size:34px}}
+@media (max-height:480px){.gwin .box{max-height:97vh}.gwin .body{flex-direction:row;padding:7px}.gwin .grid{max-height:62vh}.gwin .det{width:220px}.gwin .det .big{font-size:30px}.gwin .hd{padding:6px 10px}.gwin .npc{width:34px;height:34px;font-size:20px}}
 #uw-veil{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 35%,rgba(40,170,160,.05),rgba(6,60,62,.35) 65%,rgba(2,22,26,.85));mix-blend-mode:multiply}
 .xp-panel .gauge{position:relative;height:16px;border-radius:8px;background:rgba(255,255,255,.14)}
 .xp-panel .gauge .sw{position:absolute;top:0;bottom:0;border-radius:8px;background:#5fc27a}
@@ -477,6 +514,8 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
   <div class="xp-actions" id="xp-actions" hidden></div>
 </div>
 <div id="uw-veil" hidden></div>
+<div id="gwin" class="gwin" hidden></div>
+<button id="bag-btn" type="button" aria-label="가방">🎒 가방</button>
 <div class="xp-dlg" id="xp-dlg" hidden role="dialog"><div class="who" id="xp-dlg-name"></div><p id="xp-dlg-text"></p><div class="btns" id="xp-dlg-btns"></div></div>
 <div class="xp-modal" id="xp-tent" hidden><div class="card" role="dialog" aria-labelledby="xp-tent-h"><h3 id="xp-tent-h">텐트 고르기</h3><div class="sub" id="xp-tent-site"></div><div class="tents" id="xp-tent-list"></div><p class="note" style="margin-top:12px">텐트와 함께 타프·테이블·의자 3개를 설치하고, 사이트의 빨간 벽돌은 화로 자리로 비워 둬요.</p><button class="modal-close" id="xp-tent-x">취소</button></div></div>
 <div class="xp-prog" id="xp-prog" hidden><span id="xp-prog-text"></span><div class="bar"><i id="xp-prog-bar"></i></div></div>
@@ -6675,9 +6714,8 @@ function xpHud(){
   $('#xp-quest-list').innerHTML = q.map(([k, t, req]) => `<li class="${EXP.done[k] ? 'ok' : ''}"><span class="ck">${EXP.done[k] ? '✓' : ''}</span>${t}${req ? ' <em>필수</em>' : ''}</li>`).join('');
   const inv = [];
   if (EXP.bag) inv.push(`<span class="chip">쓰레기 봉지 ${EXP.trash.length}개</span>`);
-  if (EXP.inv.snork) inv.push('<span class="chip">스노클링 장비</span>');
-  if (EXP.inv.wood) inv.push(`<span class="chip">장작 ${EXP.inv.wood}묶음</span>`);
-  if (EXP.inv.aur) inv.push(`<span class="chip">오로라 가루 ${EXP.inv.aur}봉</span>`);
+  inv.push(`<span class="chip">💰 ${won(EXP.money)}</span>`);
+  { const n = Object.keys(EXP.inv).filter(k => EXP.inv[k]).length; if (n) inv.push(`<span class="chip">🎒 가방 ${n}가지</span>`); }
   if (EXP.fish.length) inv.push(`<span class="chip">아이스박스 물고기 ${EXP.fish.length}마리</span>`);
   if (EXP.camp) inv.push(`<span class="chip">${EXP.camp.site.id} · ${TENTS.find(t => t.id === EXP.camp.kind).name}</span>`);
   $('#xp-inv').innerHTML = inv.join('') || '<span class="chip dim">매점 앞 캠장님께 먼저 체크인하세요</span>';
@@ -6743,7 +6781,7 @@ function xpCtx(force){
     if (dist(CHIEF.x, CHIEF.z) < 2.8) acts.push({ id:'chief', label:EXP.checked ? '캠장님과 대화' : '캠장님께 체크인', fn:xpChief });
     if (CAR.g && dist(CAR.x, CAR.z) < 3.2) acts.push({ id:'car', label:'차 타기', fn:carEnter });
     if (SEASONS[season].water === 'ice' && Math.abs(player.pos.x - creekC(player.pos.z)) < 9) acts.push({ id:'snorkice', label:'겨울엔 계곡이 얼어 스노클링 불가', fn:null, dim:true });
-    if (CLERK.root && clerkNear()) acts.unshift({ id:'shop', label:'매점 사장님께 물건 사기', fn:() => xpShop() });
+    if (CLERK.root && clerkNear()) acts.unshift({ id:'shop', label:'매점 사장님께 물건 사기', fn:() => shopOpen() });
     if (SCOPE.near) acts.unshift({ id:'scope', label:'망원경으로 달·토성 보기', fn:scopeOpen });
     if (EXP.checked){
       const c = EXP.camp;
@@ -7757,20 +7795,134 @@ function clerkUpdate(dt){
   CLERK.label.visible = d < 9;
 }
 const clerkNear = () => Math.hypot(player.pos.x - CLERK.ask.x, player.pos.z - CLERK.ask.z) < 2.6 && player.pos.x > -20.1;
-function xpShop(msg){
-  const N = '매점 사장님';
-  const btns = BUY.map(it => ({ label:it.once && EXP.inv[it.id] ? `${it.name} · 이미 있어요` : `${it.name} · ${won(it.price)}`, primary:!(it.once && EXP.inv[it.id]), fn:() => xpBuy(it) }));
-  btns.push({ label:'그냥 둘러볼게요', fn:null });
-  xpSay(N, msg || '어서 오세요~ 필요한 거 있으면 말씀하세요. 계곡 물놀이 하실 거면 <b>스노클링 장비</b>도 있어요!', btns);
+function xpShop(msg){ shopOpen(msg); }
+/* ---------- 게임식 상점 · 가방(인벤토리) ---------- */
+// 가격은 매점 가격표(SHOP_MENU) 그대로, 스노클링 장비만 체험용으로 정한 값
+const ITEMS = {
+  snork:   { n:'스노클링 장비', i:'🤿', cat:'water', price:15000, once:true, kind:'장비', d:'물안경과 J자 스노클 세트예요. 입에 무는 마우스피스에서 머리 옆으로 숨대롱이 올라와요.', eff:'계곡 깊은 곳에서 스노클링 · 물속 물고기 구경', use:'snork' },
+  wood:    { n:'장작', i:'🪵', cat:'camp', price:12000, kind:'소모품', d:'잘 마른 참나무 장작 한 묶음.', eff:'타는 화로에 넣으면 1분 동안 불이 활활', use:'wood' },
+  aur:     { n:'오로라 가루', i:'✨', cat:'camp', price:2000, kind:'소모품', d:'불에 뿌리면 불꽃 색이 바뀌는 신기한 가루.', eff:'1분 동안 불꽃이 초록·파랑·보라로', use:'aur' },
+  charcoal:{ n:'숯', i:'⚫', cat:'camp', price:4000, kind:'소모품', d:'고기 굽기용 참숯.', eff:'불 피울 때 함께 써요', use:null },
+  hotpack: { n:'핫팩', i:'🧤', cat:'camp', price:2000, kind:'소모품', d:'흔들면 따뜻해지는 손난로.', eff:'추운 밤 손이 따뜻해요', use:'hot' },
+  mosq:    { n:'모기향', i:'🌀', cat:'camp', price:2000, kind:'소모품', d:'여름밤 모기를 쫓는 모기향.', eff:'사이트 주변 모기 걱정 끝', use:'mosq' },
+  water:   { n:'생수', i:'💧', cat:'drink', price:2000, kind:'음료', d:'시원한 생수 한 병.', eff:'마시기', use:'drink' },
+  icewater:{ n:'얼음물', i:'🧊', cat:'drink', price:2500, kind:'음료', d:'꽁꽁 얼린 얼음물.', eff:'마시기', use:'drink' },
+  coke:    { n:'콜라', i:'🥤', cat:'drink', price:3000, kind:'음료', d:'톡 쏘는 콜라.', eff:'마시기', use:'drink' },
+  juice:   { n:'감귤주스', i:'🍊', cat:'drink', price:3000, kind:'음료', d:'새콤달콤 감귤주스.', eff:'마시기', use:'drink' },
+  snack:   { n:'봉지과자', i:'🍿', cat:'snack', price:2000, kind:'간식', d:'캠핑엔 역시 과자.', eff:'먹기', use:'eat' },
+  marsh:   { n:'마시멜로', i:'🍡', cat:'snack', price:4000, kind:'간식', d:'모닥불에 구워 먹으면 최고.', eff:'불 옆에서 구워 먹기', use:'marsh' },
+  jerky:   { n:'육포', i:'🥩', cat:'snack', price:6000, kind:'간식', d:'짭짤한 육포.', eff:'먹기', use:'eat' },
+  cone:    { n:'콘 아이스크림', i:'🍦', cat:'snack', price:3000, kind:'간식', d:'구구콘·월드콘.', eff:'먹기', use:'eat' },
+  bingsu:  { n:'팥빙수', i:'🍧', cat:'snack', price:3500, kind:'간식', d:'시원한 팥빙수.', eff:'먹기', use:'eat' },
+  ramen:   { n:'컵라면', i:'🍜', cat:'meal', price:1500, kind:'식사', d:'캠핑장에서 먹는 컵라면은 꿀맛.', eff:'먹기', use:'eat' },
+  rice:    { n:'햇반', i:'🍚', cat:'meal', price:2000, kind:'식사', d:'즉석밥.', eff:'먹기', use:'eat' },
+  towel:   { n:'수건', i:'🧺', cat:'life', price:3000, kind:'생활', d:'물놀이 후 필수.', eff:'물놀이 후 닦기', use:'towel' },
+  tissue:  { n:'물티슈', i:'🧻', cat:'life', price:2000, kind:'생활', d:'어디서나 쓰는 물티슈.', eff:'', use:null },
+};
+const SHOP_TABS = [['all', '전체'], ['camp', '불·캠핑'], ['water', '물놀이'], ['snack', '간식'], ['drink', '음료'], ['meal', '식사'], ['life', '생활']];
+EXP.money = 100000;
+const GW = { tab:'all', sel:null, qty:1, mode:'shop' };
+const gwEl = () => $('#gwin');
+function gwClose(){ const w = gwEl(); w.hidden = true; EXP.lock = false; document.body.classList.remove('gw-open'); }
+function gwGold(){ return `<span class="gold">💰 ${won(EXP.money)}</span>`; }
+function shopOpen(msg){
+  GW.mode = 'shop'; if (!GW.sel) GW.sel = 'snork'; GW.qty = 1;
+  GW.msg = msg || '어서 오세요~ 필요한 거 있으면 골라 보세요!';
+  EXP.lock = true; document.body.classList.add('gw-open'); gwEl().hidden = false; shopRender();
 }
-function xpBuy(it){
-  if (it.once && EXP.inv[it.id]){ xpShop('그 장비는 이미 갖고 계세요. 계곡 깊은 곳에서 써 보세요!'); return; }
-  if (it.once) EXP.inv[it.id] = true; else EXP.inv[it.id]++;
-  EXP.spent += it.price; sfx('bell');
-  xpAddTrash(it.id === 'wood' ? { n:'장작 포장 끈·비닐', c:'plastic', i:'🪵' } : it.id === 'aur' ? { n:'오로라 가루 봉지', c:'plastic', i:'✨' } : { n:'장비 포장 상자', c:'paper', i:'📦' });
+function shopRender(){
+  const w = gwEl(), it = ITEMS[GW.sel], own = EXP.inv[GW.sel] || 0;
+  const list = Object.entries(ITEMS).filter(([, v]) => GW.tab === 'all' || v.cat === GW.tab);
+  const total = it.price*GW.qty, lack = total > EXP.money, done = it.once && own;
+  w.innerHTML = `<div class="box shop" role="dialog" aria-label="매점">
+    <div class="hd"><div class="npc">👩🏻</div><div class="ttl"><b>매점 사장님</b><small>${GW.msg}</small></div>${gwGold()}<button class="x" aria-label="닫기">✕</button></div>
+    <div class="tabs">${SHOP_TABS.map(([k, t]) => `<button class="tab ${GW.tab === k ? 'on' : ''}" data-tab="${k}">${t}</button>`).join('')}</div>
+    <div class="body">
+      <div class="grid">${list.map(([k, v]) => `<button class="slot ${GW.sel === k ? 'sel' : ''}" data-it="${k}" title="${v.n}">${v.i}<small>${won(v.price)}</small>${EXP.inv[k] ? `<span class="own">보유 ${v.once ? '' : EXP.inv[k]}</span>` : ''}</button>`).join('')}</div>
+      <div class="det"><div class="big">${it.i}</div><h4>${it.n} <em>${it.kind}</em></h4><p>${it.d}</p>${it.eff ? `<div class="eff">✦ ${it.eff}</div>` : ''}
+        <div class="row"><span>가격</span><b>${won(it.price)}</b></div>
+        ${it.once ? '' : `<div class="qty"><button data-q="-1">−</button><span>${GW.qty}</span><button data-q="1">+</button><button data-q="max" class="mx">최대</button></div>`}
+        <div class="row"><span>합계</span><b class="${lack ? 'neg' : ''}">${won(total)}</b></div>
+        <button class="buy" ${done || lack ? 'disabled' : ''}>${done ? '이미 가지고 있어요' : lack ? '소지금이 부족해요' : '구매하기'}</button>
+      </div>
+    </div></div>`;
+  w.querySelector('.x').onclick = gwClose;
+  w.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { GW.tab = b.dataset.tab; shopRender(); });
+  w.querySelectorAll('[data-it]').forEach(b => b.onclick = () => { GW.sel = b.dataset.it; GW.qty = 1; sfx('pick'); shopRender(); });
+  w.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const q = b.dataset.q; GW.qty = q === 'max' ? Math.max(1, Math.min(20, Math.floor(EXP.money/it.price))) : clamp(GW.qty + +q, 1, 20); shopRender(); });
+  const buy = w.querySelector('.buy'); if (buy) buy.onclick = () => shopBuy(GW.sel, it.once ? 1 : GW.qty);
+}
+function shopBuy(id, n){
+  const it = ITEMS[id], total = it.price*n;
+  if (it.once && EXP.inv[id]) return; if (total > EXP.money){ GW.msg = '앗, 소지금이 조금 모자라요.'; shopRender(); return; }
+  EXP.money -= total; EXP.spent += total; EXP.inv[id] = (it.once ? 1 : (EXP.inv[id] || 0) + n);
+  sfx('bell');
+  if (id === 'wood' || id === 'snork' || id === 'aur') xpAddTrash(id === 'wood' ? { n:'장작 포장 끈·비닐', c:'plastic', i:'🪵' } : id === 'aur' ? { n:'오로라 가루 봉지', c:'plastic', i:'✨' } : { n:'장비 포장 상자', c:'paper', i:'📦' });
+  GW.msg = `<b>${it.n}</b>${it.once ? '' : ' ' + n + '개'} 감사합니다! 가방(🎒)에 넣어 드렸어요.`;
+  const w = gwEl(), s = w.querySelector(`[data-it="${id}"]`); shopRender();
+  const s2 = w.querySelector(`[data-it="${id}"]`); if (s2){ const f = document.createElement('span'); f.className = 'pop'; f.textContent = '+' + (it.once ? 1 : n); s2.appendChild(f); }
   xpHud(); xpCtx(true);
-  xpShop(`<b>${it.name}</b> ${won(it.price)}이에요. 감사합니다! ${it.note}.<br><span style="opacity:.7">지금까지 쓴 돈 ${won(EXP.spent)}</span>`);
 }
+/* 가방: 가진 물건을 칸으로 보여 주고, 고르면 설명과 [사용] 버튼 */
+function bagItems(){
+  const L = [];
+  for (const [k, v] of Object.entries(ITEMS)) if (EXP.inv[k]) L.push({ k, i:v.i, n:v.n, c:v.once ? 0 : EXP.inv[k], kind:v.kind, d:v.d, eff:v.eff });
+  L.push({ k:'flash', i:'🔦', n:'손전등', c:0, kind:'장비', d:'왼손에 들고 발 앞을 비춰요. 들고 있을 때 인사는 목례.', eff:FL.on ? '켜져 있음' : '꺼져 있음' });
+  L.push({ k:'bino', i:'🔭', n:'쌍안경', c:0, kind:'장비', d:'10×50 쌍안경. 별·성운·은하를 크게 볼 수 있어요.', eff:'밤하늘 관측' });
+  if (EXP.bag) L.push({ k:'trash', i:'🗑️', n:'쓰레기 봉지', c:EXP.trash.length, kind:'채집', d:'캠핑하며 나온 쓰레기. 분리수거장에서 정리해요.', eff:EXP.trash.length ? `${EXP.trash.length}개 담김` : '비어 있음' });
+  if (EXP.fish.length) L.push({ k:'fish', i:'🐟', n:'아이스박스 물고기', c:EXP.fish.length, kind:'채집', d:EXP.fish.slice(0, 6).map(f => f.n || f.name || '물고기').join(', '), eff:'잡은 물고기' });
+  if (EXP.camp) L.push({ k:'tent', i:'⛺', n:TENTS.find(t => t.id === EXP.camp.kind).name, c:0, kind:'장비', d:`${EXP.camp.site.id} 사이트에 설치했어요.`, eff:'설치됨' });
+  return L;
+}
+function bagUseInfo(k){
+  const F = EXP.fire, nearFire = F && F.on && EXP.camp && Math.hypot(player.pos.x - F.base.x, player.pos.z - F.base.z) < 3.2;
+  switch (k){
+    case 'snork': { const w = xpNearWater(); if (SEASONS[season].water === 'ice') return ['착용하기', false, '겨울엔 계곡이 얼어 있어요']; return ['착용하고 들어가기', !!w && EXP.mode === 'free', w ? '' : '계곡 가까이 가면 쓸 수 있어요']; }
+    case 'wood': return ['화로에 넣기', !!nearFire, nearFire ? '' : '타고 있는 화로 옆에서 쓸 수 있어요'];
+    case 'aur': return ['불에 뿌리기', !!nearFire, nearFire ? '' : '타고 있는 화로 옆에서 쓸 수 있어요'];
+    case 'marsh': return [nearFire ? '구워 먹기' : '먹기', true, ''];
+    case 'flash': return [FL.on ? '끄기' : '켜기', true, ''];
+    case 'bino': return ['보기', true, ''];
+    case 'hotpack': case 'mosq': case 'towel': return ['사용하기', true, ''];
+    default: { const it = ITEMS[k]; if (it && (it.use === 'eat' || it.use === 'drink')) return [it.use === 'eat' ? '먹기' : '마시기', true, '']; return [null, false, '']; }
+  }
+}
+function bagUse(k){
+  const it = ITEMS[k], take = () => { if (it && !it.once){ EXP.inv[k]--; if (EXP.inv[k] <= 0) delete EXP.inv[k]; } };
+  if (k === 'snork'){ gwClose(); snorkStart(); return; }
+  if (k === 'wood'){ gwClose(); xpFireWood(); return; }
+  if (k === 'aur'){ gwClose(); xpFireAurora(); return; }
+  if (k === 'flash'){ flashToggle(); bagRender(); return; }
+  if (k === 'bino'){ gwClose(); binoToggle(); return; }
+  const F = EXP.fire, nearFire = F && F.on && EXP.camp && Math.hypot(player.pos.x - F.base.x, player.pos.z - F.base.z) < 3.2;
+  const msg = { marsh:nearFire ? '마시멜로를 노릇노릇 구워 먹었어요 🍡' : '말랑한 마시멜로를 먹었어요', hotpack:'핫팩을 흔들었더니 손이 따뜻해요 🧤', mosq:'모기향을 피웠어요. 은은한 향이 퍼져요 🌀', towel:'수건으로 물기를 닦았어요' }[k]
+    || (it.use === 'drink' ? `${it.n}을(를) 시원하게 마셨어요 ${it.i}` : `${it.n}을(를) 맛있게 먹었어요 ${it.i}`);
+  take(); sfx(it.use === 'drink' ? 'plip' : 'pick'); toast(msg);
+  if (!EXP.inv[k]) BAG.sel = null; bagRender(); xpHud();
+}
+const BAG = { sel:null, tab:'all' };
+function bagOpen(){ if (!EXP.on) return; GW.mode = 'bag'; EXP.lock = true; document.body.classList.add('gw-open'); gwEl().hidden = false; bagRender(); }
+function bagRender(){
+  const w = gwEl(), L = bagItems(), tabs = [['all', '전체'], ['장비', '장비'], ['소모품', '소모품'], ['먹거리', '먹거리'], ['채집', '채집']];
+  const vis = L.filter(x => BAG.tab === 'all' || (BAG.tab === '먹거리' ? ['간식', '음료', '식사'].includes(x.kind) : BAG.tab === '소모품' ? ['소모품', '생활'].includes(x.kind) : x.kind === BAG.tab));
+  if (!BAG.sel || !L.find(x => x.k === BAG.sel)) BAG.sel = vis[0] ? vis[0].k : null;
+  const s = L.find(x => x.k === BAG.sel), slots = Math.max(20, Math.ceil(vis.length/5)*5);
+  const [ul, ok, why] = s ? bagUseInfo(s.k) : [null];
+  w.innerHTML = `<div class="box bag" role="dialog" aria-label="가방">
+    <div class="hd"><div class="npc bagi">🎒</div><div class="ttl"><b>가방</b><small>가지고 있는 물건 ${L.length}가지</small></div>${gwGold()}<button class="x" aria-label="닫기">✕</button></div>
+    <div class="tabs">${tabs.map(([k, t]) => `<button class="tab ${BAG.tab === k ? 'on' : ''}" data-tab="${k}">${t}</button>`).join('')}</div>
+    <div class="body">
+      <div class="grid inv">${Array.from({ length:slots }, (_, i) => { const x = vis[i]; return x ? `<button class="slot ${BAG.sel === x.k ? 'sel' : ''}" data-it="${x.k}" title="${x.n}">${x.i}${x.c ? `<span class="cnt">${x.c}</span>` : ''}</button>` : '<span class="slot empty"></span>'; }).join('')}</div>
+      <div class="det">${s ? `<div class="big">${s.i}</div><h4>${s.n} <em>${s.kind}</em></h4><p>${s.d}</p>${s.eff ? `<div class="eff">✦ ${s.eff}</div>` : ''}${s.c ? `<div class="row"><span>수량</span><b>${s.c}</b></div>` : ''}
+        ${ul ? `<button class="buy use" ${ok ? '' : 'disabled'}>${ul}</button>${why ? `<small class="why">${why}</small>` : ''}` : ''}` : '<p>가방이 비어 있어요. 매점에서 물건을 사 보세요!</p>'}
+      </div>
+    </div></div>`;
+  w.querySelector('.x').onclick = gwClose;
+  w.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { BAG.tab = b.dataset.tab; BAG.sel = null; bagRender(); });
+  w.querySelectorAll('[data-it]').forEach(b => b.onclick = () => { BAG.sel = b.dataset.it; sfx('pick'); bagRender(); });
+  const u = w.querySelector('.use'); if (u) u.onclick = () => bagUse(BAG.sel);
+}
+function bagToggle(){ const w = gwEl(); if (!w.hidden && GW.mode === 'bag') gwClose(); else bagOpen(); }
 
 /* ---------- 장작·오로라 가루: 타오르는 화로에 넣기 ---------- */
 let auroraMat = null;
@@ -7833,15 +7985,18 @@ function snorkSpot(){
   return { x:creekC(p.z), z:p.z };
 }
 function snorkMask(){
-  const g = new THREE.Group(), blue = new THREE.MeshStandardMaterial({ color:0x1d8fe0, roughness:.35 }), white = M(0xf4f6f8, { roughness:.4 });
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(.11, .02, 8, 28), blue); rim.scale.set(1, 1.35, 1); rim.position.z = .02; g.add(rim);
-  const visor = new THREE.Mesh(new THREE.SphereGeometry(.1, 18, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshPhysicalMaterial({ color:0xdff3ff, roughness:.05, transmission:.6, transparent:true, opacity:.45 }));
-  visor.rotation.x = Math.PI/2; visor.scale.set(1, .55, 1.3); g.add(visor);
-  const strap = new THREE.Mesh(new THREE.TorusGeometry(.12, .014, 6, 28), new THREE.MeshStandardMaterial({ color:0x15232e, roughness:.7 })); strap.rotation.y = Math.PI/2; strap.position.z = -.08; strap.scale.set(1, 1.05, .95); g.add(strap);
-  // 숨대롱: 머리 꼭대기에서 뒤통수 쪽(엎드리면 하늘 방향)으로 곧게 솟음 + 주황 끝마개
-  const tube = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .36, 10), blue); tube.rotation.x = Math.PI/2; tube.position.set(0, .11, -.2); g.add(tube);
-  const bend = new THREE.Mesh(new THREE.TorusGeometry(.05, .018, 8, 12, Math.PI/2), blue); bend.rotation.y = Math.PI/2; bend.position.set(0, .06, -.02); g.add(bend);
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(.03, .024, .06, 12), new THREE.MeshStandardMaterial({ color:0xff7a1a, roughness:.4 })); top.rotation.x = Math.PI/2; top.position.set(0, .11, -.4); g.add(top);
+  // 일반 물안경(눈·코를 덮는 렌즈 + 파란 실리콘 테) + 머리끈 + 입에 문 마우스피스에서 왼쪽 귀 옆으로 올라가는 J자 스노클
+  const g = new THREE.Group(), blue = new THREE.MeshStandardMaterial({ color:0x1d8fe0, roughness:.35 }), sil = new THREE.MeshStandardMaterial({ color:0x2a7fc4, roughness:.55, transparent:true, opacity:.9 });
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(.075, .085, .05, 24, 1, true), sil); skirt.rotation.x = Math.PI/2; skirt.scale.set(1.25, 1, .8); skirt.position.set(0, 0, .03); g.add(skirt);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(.074, 24), new THREE.MeshPhysicalMaterial({ color:0xcfeeff, roughness:.04, metalness:.1, transparent:true, opacity:.42 })); lens.scale.set(1.25, .8, 1); lens.position.z = .056; g.add(lens);
+  const frame = new THREE.Mesh(new THREE.TorusGeometry(.075, .01, 8, 28), blue); frame.scale.set(1.25, .8, 1); frame.position.z = .056; g.add(frame);
+  const strap = new THREE.Mesh(new THREE.TorusGeometry(.105, .011, 6, 30), new THREE.MeshStandardMaterial({ color:0x15232e, roughness:.7 })); strap.rotation.y = Math.PI/2; strap.rotation.z = .2; strap.position.set(0, .01, -.055); strap.scale.set(1, 1, 1.15); g.add(strap);
+  // 숨대롱: 입(마우스피스) → 왼쪽 볼 → 왼쪽 귀 옆을 지나 위·뒤로 (엎드리면 하늘 쪽으로 솟음)
+  const path = new THREE.CatmullRomCurve3([V3(0, -.075, .075), V3(.045, -.085, .06), V3(.1, -.07, .02), V3(.118, -.02, -.02), V3(.122, .08, -.08), V3(.122, .2, -.16), V3(.12, .3, -.22)]);
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(path, 40, .015, 10, false), blue); g.add(tube);
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(.022, .009, 6, 14), new THREE.MeshStandardMaterial({ color:0x1a1a1a, roughness:.6 })); mouth.position.set(0, -.075, .08); g.add(mouth);
+  const clip = new THREE.Mesh(new THREE.BoxGeometry(.03, .025, .02), new THREE.MeshStandardMaterial({ color:0x15232e })); clip.position.set(.115, .03, -.05); g.add(clip);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(.024, .019, .07, 12), new THREE.MeshStandardMaterial({ color:0xff7a1a, roughness:.4 })); top.position.set(.12, .32, -.235); top.rotation.x = -.6; g.add(top);
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return g;
 }
@@ -7899,7 +8054,7 @@ function snorkMaskPlace(av, F, mask){
   const B = F.B || (av.model && (F.B = boneMap(av.model))); if (!B || !B.Head) { mask.visible = false; return; }
   mask.visible = true; const hp = B.Head.getWorldPosition(new THREE.Vector3());
   mask.quaternion.copy(av.root.quaternion);
-  mask.position.copy(hp).add(V3(0, .06, .1).applyQuaternion(av.root.quaternion));
+  mask.position.copy(hp).add(V3(0, .095, .085).multiplyScalar(av.k || 1).applyQuaternion(av.root.quaternion));
   const s = (av.k || 1); mask.scale.set(s, s, s);
 }
 function snorkStart(){
@@ -8574,6 +8729,8 @@ function bindInput(){
     if (e.code === 'Escape' && SHOP.menuOpen) shopMenuClose();
     if (e.code === 'KeyB' && !e.repeat) binoToggle();
     if (e.code === 'KeyL' && !e.repeat) flashToggle();
+    if (e.code === 'KeyI' && !e.repeat && EXP.on) bagToggle();
+    if (e.code === 'Escape' && !$('#gwin').hidden) gwClose();
     if (e.code === 'Escape' && BN.on) binoClose();
     if (e.code === 'KeyQ' && !e.repeat) sitToggle();
     if (e.code === 'KeyN' && !e.repeat) skyToggle();
@@ -8623,6 +8780,7 @@ function bindInput(){
   $('#tb-sit').addEventListener('click', sitToggle);
   $('#tb-wave').addEventListener('click', () => { if (MP.on) mpGreet(); });
   $('#tb-flash').addEventListener('click', e => { e.currentTarget.blur(); flashToggle(); });
+  $('#bag-btn').addEventListener('click', e => { e.currentTarget.blur(); bagToggle(); });
   $('#tb-bino').addEventListener('click', e => { e.currentTarget.blur(); binoToggle(); });
   document.querySelectorAll('#seg-view button').forEach(b => b.addEventListener('click', () => setView(b.dataset.v)));
   document.querySelectorAll('#seg-time button').forEach(b => b.addEventListener('click', () => setHour(presetHour(b.dataset.t))));
