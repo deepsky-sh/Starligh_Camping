@@ -76,6 +76,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .map-ctl{display:flex;gap:4px;align-items:center}
 .map-ctl button{border:1px solid var(--line);background:var(--glass-strong);color:var(--muted);border-radius:8px;min-width:36px;height:28px;padding:0 9px;font-size:12px;line-height:1;cursor:pointer}
 .map-ctl button[aria-pressed="true"]{border-color:var(--amber);color:var(--amber)}
+.map-ctl #map-cyc{min-width:32px;height:28px;padding:0 8px;font-size:15px}
+.map-ctl #map-cyc.pill{font-size:12px;border-color:var(--amber);color:var(--ink);border-radius:999px;padding:0 11px}
 .map-ctl .mp-lbl{font-size:10px;letter-spacing:.08em;color:var(--muted);margin-right:4px;display:none}
 .mapwrap.ms-x .map-ctl .mp-lbl{display:inline}
 @media (pointer:coarse){.map-ctl button{height:34px;min-width:42px;font-size:13px}}
@@ -99,9 +101,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .tbtns .tb.l i{font-size:0}.tbtns .tb.l svg{width:30px;height:30px;color:var(--amber)}
 .tbtns .tb.s{width:58px;height:58px}.tbtns .tb.s i{font-size:22px}
 #tb-wave{right:12px;bottom:112px}
-#tb-run{right:112px;bottom:12px}
-#tb-flash{right:83px;bottom:83px}
-#tb-bino{right:12px;bottom:190px}
+#tb-run{display:none!important}
+#tb-flash{right:112px;bottom:12px}
+#tb-bino{right:83px;bottom:90px}
 .tbtns .tb[aria-pressed="true"]{border-color:var(--amber);background:radial-gradient(circle at 35% 30%,rgba(242,179,91,.45),rgba(60,40,12,.7) 70%)}
 .tbtns .tb[aria-pressed="true"] small{color:var(--amber)}
 .tbtns .tb:disabled{opacity:.38}
@@ -291,6 +293,8 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 #xp-actions[data-cols="3"]{flex-direction:row!important;flex-wrap:wrap!important;justify-content:flex-end!important;max-width:min(80vw,560px)!important}
 #xp-actions[data-cols="4"]{flex-direction:row!important;flex-wrap:wrap!important;justify-content:center!important;max-width:min(92vw,760px)!important}
 #xp-actions button{white-space:nowrap}
+#xp-actions button.more{background:rgba(20,26,38,.72)!important;border-style:dashed!important;font-size:12px!important;padding:6px 12px!important;opacity:.92}
+#xp-actions button.more b{color:var(--amber);margin-left:2px}
 #xp-actions.tight{gap:5px!important}
 #xp-actions.tight button{padding:6px 10px!important;font-size:12px!important}
 /* 게임식 상점·가방 창 */
@@ -478,7 +482,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 </aside>
 
 <div class="mapwrap">
-  <div class="map-ctl" id="map-ctl" role="group" aria-label="배치도 크기"><span class="mp-lbl">배치도</span><button data-s="l" aria-pressed="false" title="크게">대</button><button data-s="m" aria-pressed="true" title="보통">중</button><button data-s="s" aria-pressed="false" title="작게">소</button><button data-s="x" aria-pressed="false" title="최소화">─</button></div>
+  <div class="map-ctl" id="map-ctl" role="group" aria-label="배치도 크기"><span class="mp-lbl">배치도</span><button id="map-cyc" type="button" title="배치도 크기 바꾸기" aria-label="배치도 크기 바꾸기">⤢</button></div>
   <div class="map-cap">배치도 · 클릭하여 이동 · 오른쪽이 진입로</div>
   <canvas id="minimap" width="552" height="206" aria-label="캠핑장 배치도"></canvas>
 </div>
@@ -6815,11 +6819,17 @@ function xpCtx(force){
     }
   }
   if (view !== 'drive' && EXP.mode === 'free') document.querySelectorAll('.act').forEach(el => { if (!el.hidden && el.id !== 'act-sit') acts.push({ id:el.id, label:[...el.childNodes].filter(n => n.nodeName !== 'KBD').map(n => n.textContent).join('').trim().replace(/\s+/g, ' '), fn:() => el.click() }); });
-  const key = acts.map(a => a.id + a.label).join('|');
+  const ids = acts.map(a => a.id).join('|');
+  if (ids !== EXP.actIds){ EXP.actIds = ids; EXP.actOpen = false; }   // 다른 곳으로 가면 다시 접힘
+  const key = acts.map(a => a.id + a.label).join('|') + (EXP.actOpen ? '#o' : '');
   if (key === EXP.actKey && !force) return;
   EXP.actKey = key; EXP.acts = acts;
   const bar = $('#xp-actions'); bar.innerHTML = '';
-  acts.forEach((a, i) => { const b = document.createElement('button'); b.innerHTML = a.label + (i === 0 && a.fn && !isTouch ? ' <kbd>E</kbd>' : ''); if (a.dim) b.className = 'dim'; else if (i === 0) b.className = 'pri'; b.addEventListener('click', () => { if (a.fn) a.fn(); xpCtx(true); }); bar.appendChild(b); });
+  // 대표 행동 1개만 보이고 나머지는 '⋯ 더보기'로 접어 둠
+  const pi = Math.max(0, acts.findIndex(a => a.fn)), fold = acts.length > 2 && !EXP.actOpen;
+  const shown = fold ? [acts[pi]] : acts;
+  shown.forEach(a => { const i = acts.indexOf(a), b = document.createElement('button'); b.innerHTML = a.label + (i === pi && a.fn && !isTouch ? ' <kbd>E</kbd>' : ''); if (a.dim) b.className = 'dim'; else if (i === pi) b.className = 'pri'; b.addEventListener('click', () => { if (a.fn) a.fn(); EXP.actOpen = false; xpCtx(true); }); bar.appendChild(b); });
+  if (acts.length > 2){ const m = document.createElement('button'); m.className = 'more'; m.innerHTML = EXP.actOpen ? '▴ 접기' : `⋯ 더보기 <b>${acts.length - 1}</b>`; m.addEventListener('click', () => { EXP.actOpen = !EXP.actOpen; xpCtx(true); }); bar.appendChild(m); }
   bar.hidden = !acts.length;
   requestAnimationFrame(xpActLayout);
 }
@@ -8620,13 +8630,13 @@ function mapLayout(){
 function mapSize(sz, save){
   if (!['l', 'm', 's', 'x'].includes(sz)) sz = 'm'; MAPSZ.cur = sz;
   const w = document.querySelector('.mapwrap'); w.classList.remove('ms-l', 'ms-m', 'ms-s', 'ms-x'); w.classList.add('ms-' + sz);
-  document.querySelectorAll('#map-ctl button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === sz)));
+  const cb = $('#map-cyc'); if (cb){ cb.textContent = sz === 'x' ? '🗺️ 배치도' : '⤢'; cb.classList.toggle('pill', sz === 'x'); cb.title = { l:'크게 → 작게', m:'보통 → 크게', s:'작게 → 접기', x:'펼치기' }[sz]; }
   if (save) try { localStorage.setItem('damteoMap', sz); } catch (e){}
   mapLayout();
 }
 (function(){
   let sz = null; try { sz = localStorage.getItem('damteoMap'); } catch (e){}
-  document.querySelectorAll('#map-ctl button').forEach(b => b.addEventListener('click', () => mapSize(b.dataset.s, true)));
+  const NEXT = { m:'l', l:'s', s:'x', x:'m' }; $('#map-cyc').addEventListener('click', e => { e.currentTarget.blur(); mapSize(NEXT[MAPSZ.cur] || 'm', true); });
   mapSize(sz || 'm');
   addEventListener('resize', mapLayout);
   try { const ro = new ResizeObserver(mapLayout); const br = document.querySelector('.brand'); if (br) ro.observe(br); ro.observe(document.querySelector('.mapwrap')); } catch (e){}
