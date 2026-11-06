@@ -277,6 +277,9 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 .xp-panel .row2 button{flex:1;padding:12px;font-size:15px;touch-action:none}
 .xp-panel .row2 button.hot{animation:pulse .5s infinite alternate}
 @keyframes pulse{from{box-shadow:0 0 0 0 rgba(242,179,91,.7)}to{box-shadow:0 0 0 10px rgba(242,179,91,0)}}
+/* 메뉴는 항상 다른 버튼들 위 */
+.panel{z-index:30!important;background:#111925!important}
+#menu-toggle{z-index:31!important}
 #uw-veil{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 35%,rgba(40,170,160,.05),rgba(6,60,62,.35) 65%,rgba(2,22,26,.85));mix-blend-mode:multiply}
 .xp-panel .gauge{position:relative;height:16px;border-radius:8px;background:rgba(255,255,255,.14)}
 .xp-panel .gauge .sw{position:absolute;top:0;bottom:0;border-radius:8px;background:#5fc27a}
@@ -602,7 +605,7 @@ function floorH(x,z){
   h += 0.95*smooth(4,16,x)*smooth(7,2.5,Math.abs(z-ENTRY.z));       // ramp up to the entrance bridge
   const dc = Math.abs(x - creekC(z));
   if (dc < 10.5) {
-    h -= 2.45*smooth(10.5,4,dc) + 0.95*smooth(5,0,dc);   // 가운데는 1.2~1.4 m 깊이: 스노클링하며 물고기 구경
+    h -= 2.45*smooth(10.5,4,dc) + 1.6*smooth(6,0,dc);   // 가운데는 1.8~2 m 깊이: 스노클링하며 물고기 구경
     h += 0.5*(fbm(x/3.3, z/3.3, 3)-0.5)*smooth(9.5,4,dc);
     for (const [bz, bl, bc, bw, bh] of CREEK_BARS){ const u = (z - bz)/bl, v = (x - creekC(z) - bc)/bw, d2 = u*u + v*v; if (d2 < 1) h += bh*Math.pow(1 - d2, 1.4); }
   }
@@ -7653,13 +7656,13 @@ function xpBuy(it){
 let auroraMat = null;
 function xpFireWood(){
   const F = EXP.fire; if (!F || !F.on || EXP.inv.wood < 1) return;
-  EXP.inv.wood--; F.boost = 150; sfx('ignite'); xpHud();
-  toast('<b>장작 넣기</b> · 마른 장작에 불이 옮겨붙어 활활 타올라요 🔥'); MP.lastSent = null; MP.sendT = 1;
+  EXP.inv.wood--; F.boost = 60; sfx('ignite'); xpHud();
+  toast('<b>장작 넣기</b> · 1분 동안 불이 활활 타올라요 🔥'); MP.lastSent = null; MP.sendT = 1;
 }
 function xpFireAurora(){
   const F = EXP.fire; if (!F || !F.on || EXP.inv.aur < 1) return;
-  EXP.inv.aur--; F.aur = 45; sfx('aurora'); xpHud();
-  toast('<b>오로라 가루</b> · 불꽃이 초록·파랑·보랏빛으로 일렁여요 ✨'); MP.lastSent = null; MP.sendT = 1;
+  EXP.inv.aur--; F.aur = 60; sfx('aurora'); xpHud();
+  toast('<b>오로라 가루</b> · 1분 동안 불꽃 색이 초록·파랑·보라로 바뀌어요 ✨'); MP.lastSent = null; MP.sendT = 1;
 }
 function auroraVeil(F){
   if (!auroraMat) auroraMat = new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, fog:false,
@@ -7681,19 +7684,20 @@ function auroraVeil(F){
 /* 매 프레임 화로에 반영: 장작(불꽃·빛 키움), 오로라(불꽃·불빛 색이 초록→파랑→보라로 일렁임 + 위로 오로라 장막) */
 function fireExtras(F, dt, t, mine){
   if (mine){ F.boost = Math.max(0, (F.boost || 0) - dt); F.aur = Math.max(0, (F.aur || 0) - dt); }
-  const bo = mine ? smooth(0, 20, F.boost) : (F.rb ? 1 : 0), au = mine ? smooth(0, 6, F.aur) : (F.ra ? 1 : 0);
+  const bo = mine ? smooth(0, 8, F.boost) : (F.rb ? 1 : 0), au = mine ? smooth(0, 5, F.aur) : (F.ra ? 1 : 0);
   F.bk = lerp(F.bk || 0, bo*F.lvl, 1 - Math.exp(-dt*1.5)); F.ak = lerp(F.ak || 0, au*F.lvl, 1 - Math.exp(-dt*2));
   const bk = F.bk, ak = F.ak;
   if (bk > .01){ for (const s of F.flames){ s.scale.x *= 1 + .7*bk; s.scale.y *= 1 + 1.1*bk; s.position.y += .12*bk; } F.light.intensity *= 1 + 1.1*bk; }
   if (!F.fm) F.fm = F.flames[0] && F.flames[0].material;
   if (F.fm){
-    if (ak > .01){ const h = .36 + .2*(.5 + .5*Math.sin(t*1.3)) + .2*Math.max(0, Math.sin(t*.7 - 1)); F.fm.color.setHSL(h % 1, 1, .62).lerp(_auWhite, 1 - ak); F.light.color.setHSL(h % 1, .9, .55).lerp(_auFire, 1 - ak); F.embers.material.color.setHSL((h + .1) % 1, 1, .65); }
+    const wantMap = ak > .35 ? flameTexW : flameTex; if (F.fm.map !== wantMap){ F.fm.map = wantMap; F.fm.needsUpdate = true; }
+    if (ak > .01){ const h = .33 + .42*(.5 + .5*Math.sin(t*.9)); F.fm.color.setHSL(h, 1, .6).lerp(_auWhite, 1 - ak); F.light.color.setHSL(h, 1, .55).lerp(_auFire, 1 - ak); F.embers.material.color.setHSL((h + .06) % 1, 1, .7).lerp(_auEmb, 1 - ak); }
     else if (F.fm.color.r < .999 || F.fm.color.b < .999){ F.fm.color.set(0xffffff); F.light.color.set(0xff8a3c); F.embers.material.color.set(0xffa040); }
   }
-  if (ak > .01 && !F.veil) F.veil = auroraVeil(F);
   if (F.veil){ F.veil.material.uniforms.uA.value = ak*(.55 + .45*nightF); F.veil.visible = ak > .01; F.veil.scale.set(1 + .15*Math.sin(t*.9), 1 + .1*Math.sin(t*1.3 + 1), 1 + .15*Math.cos(t*.8)); if (ak <= .01 && !au){ scene.remove(F.veil); F.veil = null; } }
 }
-const _auWhite = new THREE.Color(0xffffff), _auFire = new THREE.Color(0xff8a3c);
+const flameTexW = canvasTex(64,128,(g)=>{ const gr=g.createRadialGradient(32,92,2,32,80,50); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(.3,'rgba(235,235,235,.95)'); gr.addColorStop(.65,'rgba(200,200,200,.5)'); gr.addColorStop(1,'rgba(160,160,160,0)'); g.fillStyle=gr; g.beginPath(); g.moveTo(32,4); g.bezierCurveTo(62,60,56,122,32,124); g.bezierCurveTo(8,122,2,60,32,4); g.fill(); });
+const _auWhite = new THREE.Color(0xffffff), _auFire = new THREE.Color(0xff8a3c), _auEmb = new THREE.Color(0xffa040);
 
 /* ---------- 스노클링: 매점에서 산 풀페이스 마스크로 계곡 깊은 곳에 엎드려 떠서 발차기, 물속 시점으로 물고기 구경 ---------- */
 const SNORK = { on:false, under:false, ph:0, arm:0, rip:0, kick:0, F:null, mask:null, foam:null };
