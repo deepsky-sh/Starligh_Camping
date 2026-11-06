@@ -231,6 +231,10 @@ body.binoing #c{cursor:grab}
 .chip.dim{color:var(--muted)}
 .xp-quest.min ul,.xp-quest.min .xp-inv{display:none}
 .xp-quest.min h3{margin:0}
+.xp-quest.min{width:auto!important;max-width:60vw;padding:5px 10px!important;border-radius:999px!important}
+.xp-quest.min h3{gap:8px;justify-content:flex-start;font-size:11.5px;letter-spacing:.02em}
+.xp-quest h3 .qn{color:var(--amber);font-weight:700;margin-left:4px}
+.xp-quest:not(.min) h3 .qn{display:none}
 .xp-actions{position:fixed;left:50%;bottom:calc(60px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:4;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:min(760px,calc(100vw - 32px))}
 .xp-actions button{border:1px solid var(--line);background:var(--glass-strong);border-radius:999px;padding:10px 16px;font-size:14px;box-shadow:0 6px 20px rgba(0,0,0,.3);white-space:nowrap}
 .xp-actions button.pri{border-color:rgba(242,179,91,.75);color:var(--ink)}
@@ -290,7 +294,7 @@ body.xp .act{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 #xp-actions.tight{gap:5px!important}
 #xp-actions.tight button{padding:6px 10px!important;font-size:12px!important}
 /* 게임식 상점·가방 창 */
-#bag-btn{display:none;position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:104px;z-index:31;border:1px solid #c9a35a;background:linear-gradient(#2b3447,#1a2130);color:#ffe3a3;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700}
+#bag-btn{display:none;position:fixed;top:calc(60px + env(safe-area-inset-top,0px));right:16px;z-index:31;border:1px solid #c9a35a;background:linear-gradient(#2b3447,#1a2130);color:#ffe3a3;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700}
 body.xp #bag-btn{display:block}
 .gwin{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(3,6,12,.5);padding:10px}
 .gwin[hidden]{display:none}
@@ -326,6 +330,7 @@ body.xp #bag-btn{display:block}
 .gwin .why{color:#ffb38a;font-size:11.5px;text-align:center}
 @media (max-width:640px){.gwin .body{flex-direction:column}.gwin .det{width:auto}.gwin .grid{max-height:36vh;grid-template-columns:repeat(auto-fill,minmax(58px,1fr))}.gwin .det .big{font-size:34px}}
 @media (max-height:480px){.gwin .box{max-height:97vh}.gwin .body{flex-direction:row;padding:7px}.gwin .grid{max-height:62vh}.gwin .det{width:220px}.gwin .det .big{font-size:30px}.gwin .hd{padding:6px 10px}.gwin .npc{width:34px;height:34px;font-size:20px}}
+body.xp .act:not(#act-sit){display:none!important}
 #uw-veil{position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 35%,rgba(40,170,160,.05),rgba(6,60,62,.35) 65%,rgba(2,22,26,.85));mix-blend-mode:multiply}
 .xp-panel .gauge{position:relative;height:16px;border-radius:8px;background:rgba(255,255,255,.14)}
 .xp-panel .gauge .sw{position:absolute;top:0;bottom:0;border-radius:8px;background:#5fc27a}
@@ -510,7 +515,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 <div class="tbtns" id="tbtns" hidden><button id="tb-wave" class="tb s" aria-label="인사"><i>👋</i><small>인사</small></button><button id="tb-flash" class="tb s" aria-pressed="false" aria-label="손전등"><i>🔦</i><small>손전등</small></button><button id="tb-bino" class="tb s" aria-label="쌍안경"><i>🔭</i><small>쌍안경</small></button><button id="tb-run" class="tb s" aria-pressed="false" aria-label="달리기"><i>🏃</i><small>달리기</small></button><button id="tb-sit" class="tb l" aria-pressed="false" aria-label="앉기"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v9h10M7 12l-2 9M17 12l2 9M7 12h10"/></svg></i><small id="tb-sit-lbl">앉기</small></button></div>
 
 <div id="xp-hud" hidden>
-  <section class="xp-quest" id="xp-quest"><h3>캠핑 체험 <button id="xp-quest-tg">접기</button></h3><ul id="xp-quest-list"></ul><div class="xp-inv" id="xp-inv"></div></section>
+  <section class="xp-quest" id="xp-quest"><h3><span>📋 캠핑 체험<span class="qn" id="xp-qn"></span></span> <button id="xp-quest-tg">접기</button></h3><ul id="xp-quest-list"></ul><div class="xp-inv" id="xp-inv"></div></section>
   <div class="xp-actions" id="xp-actions" hidden></div>
 </div>
 <div id="uw-veil" hidden></div>
@@ -6711,6 +6716,7 @@ function xpHud(){
     ['tube', '튜브 타고 계곡 물놀이'],
     ['snork', '스노클링으로 물고기 구경 (매점 장비)'],
     ['recycle', '분리수거장에서 분리수거 → 체험 마치기', true]];
+  { const qn = $('#xp-qn'); if (qn) qn.textContent = `${q.filter(([k]) => EXP.done[k]).length}/${q.length}`; }
   $('#xp-quest-list').innerHTML = q.map(([k, t, req]) => `<li class="${EXP.done[k] ? 'ok' : ''}"><span class="ck">${EXP.done[k] ? '✓' : ''}</span>${t}${req ? ' <em>필수</em>' : ''}</li>`).join('');
   const inv = [];
   if (EXP.bag) inv.push(`<span class="chip">쓰레기 봉지 ${EXP.trash.length}개</span>`);
@@ -6743,7 +6749,7 @@ function xpActLayout(){
   const vw = innerWidth, vh = innerHeight, M = 10;
   const obs = [];
   const add = e => { if (!e || e.hidden) return; const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden') return; const r = e.getBoundingClientRect(); if (r.width > 2 && r.height > 2) obs.push([r.left - 6, r.top - 6, r.right + 6, r.bottom + 6]); };
-  ['.joy', '.mapwrap', '#xp-quest', '.brand', '#menu-toggle', '#xp-prog', '#xp-dlg', '.panel.open'].forEach(q => document.querySelectorAll(q).forEach(add));
+  ['.joy', '.mapwrap', '#xp-quest', '.brand', '#menu-toggle', '#bag-btn', '.mapwrap .seg', '#xp-prog', '#xp-dlg', '.panel.open'].forEach(q => document.querySelectorAll(q).forEach(add));
   document.querySelectorAll('#tbtns .tb').forEach(add);
   document.querySelectorAll('.xp-panel:not([hidden])').forEach(add);
   const tb = [...document.querySelectorAll('#tbtns .tb')].filter(e => !e.hidden && e.offsetParent).map(e => e.getBoundingClientRect());
@@ -6808,6 +6814,7 @@ function xpCtx(force){
       acts.push({ id:'need', label:'먼저 매점 앞 캠장님께 체크인하세요', fn:null, dim:true });
     }
   }
+  if (view !== 'drive' && EXP.mode === 'free') document.querySelectorAll('.act').forEach(el => { if (!el.hidden && el.id !== 'act-sit') acts.push({ id:el.id, label:[...el.childNodes].filter(n => n.nodeName !== 'KBD').map(n => n.textContent).join('').trim().replace(/\s+/g, ' '), fn:() => el.click() }); });
   const key = acts.map(a => a.id + a.label).join('|');
   if (key === EXP.actKey && !force) return;
   EXP.actKey = key; EXP.acts = acts;
@@ -8525,10 +8532,10 @@ function xpBindUI(){
   $('#xp-hg-flip').addEventListener('click', () => hgFlip(0));
   $('#xp-hg-ring').addEventListener('click', () => hgRing(0));
   $('#xp-hg-x').addEventListener('click', () => hgEnd());
-  $('#xp-quest-tg').addEventListener('click', e => { const q = $('#xp-quest'); q.classList.toggle('min'); e.currentTarget.textContent = q.classList.contains('min') ? '펼치기' : '접기'; });
+  $('#xp-quest-tg').addEventListener('click', e => { const q = $('#xp-quest'); q.classList.toggle('min'); e.currentTarget.textContent = q.classList.contains('min') ? '▾' : '접기'; setTimeout(xpActLayout, 50); });
   $('#xp-end-again').addEventListener('click', () => { location.hash = 'exp'; location.reload(); });
   $('#xp-end-tour').addEventListener('click', () => { location.hash = ''; location.reload(); });
-  if (isTouch) $('#xp-quest').classList.add('min'), $('#xp-quest-tg').textContent = '펼치기';
+  if (isTouch) $('#xp-quest').classList.add('min'), $('#xp-quest-tg').textContent = '▾';
 }
 function xpKey(e, down){
   if (!EXP.on) return false;
