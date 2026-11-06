@@ -9120,7 +9120,9 @@ function mpGreet(){
 }
 
 /* ---- 체험하기: 사이트 점유(겹침 방지) + 상대의 텐트·모닥불·차량 표시 ---- */
-const MP_CLAIM_TTL = 120000;
+const MP_CLAIM_TTL = 600000;   // 사이트 점유: 화면을 꺼도 10분까지 유지
+const MP_GRACE = 600000, MP_AWAY = 15000;   // 접속 유지: 신호가 끊겨도 10분까지 '잠시 자리 비움'으로 남겨 둠
+const mpNow = () => Date.now() + (MP.off || 0);
 function mpSiteTaken(id){ const d = MP.claims.get(id); return !!d && d.by !== MP.id && Date.now() - (d.t || 0) < MP_CLAIM_TTL; }
 async function mpClaim(id){
   if (!MP.on) return true;
@@ -9129,7 +9131,7 @@ async function mpClaim(id){
     const ref = MP.fb.ref(MP.db, 's/' + id);
     const r = await MP.fb.runTransaction(ref, v => (v && v.by !== MP.id && Date.now() - (v.t || 0) < MP_CLAIM_TTL) ? undefined : { by:MP.id, n:MP.name, k:'', f:0, t:Date.now() });
     if (!r.committed) return false;
-    MP.mySite = id; MP.fb.onDisconnect(ref).remove(); return true;
+    MP.mySite = id; return true;
   } catch (e){ return true; }   // offline / rules: never block the player
 }
 function mpSiteSet(patch){
@@ -9218,7 +9220,7 @@ function mpAddPeer(id, d){
 }
 function mpDropPeer(id){
   const p = MP.peers.get(id); if (!p) return;
-  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.chair) seatDrop(p.chair); if (p.lampG){ standLampDrop(p.lampG); p.lampG = null; } if (p.flMesh){ scene.remove(p.flMesh, p.flBeam); } if (p.snMask) scene.remove(p.snMask); if (p.snFoam) for (const f of p.snFoam) scene.remove(f); if (p.snFins) for (const f of p.snFins) scene.remove(f); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
+  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.awb) scene.remove(p.awb); if (p.chair) seatDrop(p.chair); if (p.lampG){ standLampDrop(p.lampG); p.lampG = null; } if (p.flMesh){ scene.remove(p.flMesh, p.flBeam); } if (p.snMask) scene.remove(p.snMask); if (p.snFoam) for (const f of p.snFoam) scene.remove(f); if (p.snFins) for (const f of p.snFins) scene.remove(f); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
 }
 function mpApplyX(p, d, first){
   p.pk = d.pk ? 1 : 0; p.sn = d.sn ? 1 : 0; p.fb = d.fb ? 1 : 0; p.fa = d.fa ? 1 : 0; p.fl = d.fl ? 1 : 0;
@@ -9231,10 +9233,10 @@ function mpApplyX(p, d, first){
 function mpApply(id, d){
   if (id === MP.id) return;
   d = mpCleanP(d); if (!d){ mpDropPeer(id); return; }
-  if (d.t && Date.now() - d.t > 120000){ mpDropPeer(id); return; }   // left-over entry of a closed tab (the live ones refresh every few seconds)
+  if (d.t && mpNow() - d.t > MP_GRACE){ mpDropPeer(id); return; }   // 10분 넘게 신호 없는 기록(닫힌 탭)만 지움
   const p = MP.peers.get(id);
   if (!p){ mpAddPeer(id, d); return; }
-  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr; p.sit = d.sit | 0;
+  p.tx = d.x; p.ty = d.y; p.tz = d.z; p.th = d.h || 0; p.ts = d.s || 0; p.xp = !!d.xp; p.seen = performance.now(); p.cx = d.cx; p.cz = d.cz; p.ch = d.ch || 0; p.ck = d.ck; p.dr = !!d.dr; p.sit = d.sit | 0; p.t = d.t || mpNow();
   mpApplyX(p, d, false);
   if ((d.w || 0) !== p.w){ p.w = d.w || 0; p.waveAt = performance.now()/1000; if (p.bub) scene.remove(p.bub); p.bub = mpBubble(MP_HELLO[(p.w|0) % MP_HELLO.length]); }
 }
@@ -9255,7 +9257,8 @@ async function mpInit(){
     db.onChildAdded(root, s => mpApply(s.key, s.val()));
     db.onChildChanged(root, s => mpApply(s.key, s.val()));
     db.onChildRemoved(root, s => mpDropPeer(s.key));
-    db.onDisconnect(me).remove();
+    db.onValue(db.ref(MP.db, '.info/serverTimeOffset'), s => { MP.off = s.val() || 0; });
+    // 화면이 꺼지거나 창을 닫아도 바로 지우지 않음: 다른 사람 화면엔 '잠시 자리 비움'으로 10분까지 남고, 다시 돌아오면 그대로 이어짐
     const sroot = db.ref(MP.db, 's');
     const onS = s => { const v = mpCleanS(s.key, s.val()); if (v) MP.claims.set(s.key, v); else MP.claims.delete(s.key); mpCampSync(s.key); if (EXP.on) xpCtx(true); };
     db.onChildAdded(sroot, onS); db.onChildChanged(sroot, onS); db.onChildRemoved(sroot, s => { MP.claims.delete(s.key); mpCampSync(s.key); if (EXP.on) xpCtx(true); });
@@ -9265,7 +9268,7 @@ async function mpInit(){
       n = cleanName(n || ''); if (!n || n === '손님' && !(n || '').trim()) return;
       MP.name = n; try { localStorage.setItem('damteoNick', n); } catch (e){} mpBadge(); MP.lastSent = null;
     });
-    addEventListener('pagehide', () => { try { db.remove(me); } catch (e){} });
+    addEventListener('pagehide', () => { MP.lastSent = null; });
   } catch (e){ MP.on = false; console.warn('같이 둘러보기를 켤 수 없어요', e); }
 }
 function mpUpdate(dt){
@@ -9292,7 +9295,11 @@ function mpUpdate(dt){
   }
   MP.hbT += dt; if (MP.hbT > 30){ MP.hbT = 0; mpSiteSet({}); }
   for (const p of [...MP.peers.values()]){
-    if (now - p.seen > 40000){ mpDropPeer(p.id); continue; }   // left without a clean exit
+    const idle = mpNow() - (p.t || 0);
+    if (idle > MP_GRACE && now - p.seen > MP_GRACE){ mpDropPeer(p.id); continue; }   // 10분 넘게 소식이 없으면 그때 정리
+    const away = idle > MP_AWAY && now - p.seen > MP_AWAY;
+    if (away !== !!p.away){ p.away = away; if (p.awb){ scene.remove(p.awb); p.awb = null; } if (away) p.awb = mpBubble('💤 잠시 자리 비움'); }
+    if (p.awb){ p.awb.visible = d0(p) < 40; p.awb.position.set(p.x, p.y + (p.g === 'm' ? 2.45 : 2.3), p.z); }
     const k = 1 - Math.exp(-dt * 8), dx = p.tx - p.x, dz = p.tz - p.z;
     if (dx*dx + dz*dz > 400 || p.fresh){ p.x = p.tx; p.y = p.ty; p.z = p.tz; p.h = p.th; p.fresh = false; }   // far jump / first sight: snap
     else { p.x += dx*k; p.y += (p.ty - p.y)*k; p.z += dz*k; p.h += Math.atan2(Math.sin(p.th - p.h), Math.cos(p.th - p.h))*k; }
@@ -9334,7 +9341,7 @@ async function wakeOn(){ try { if (started && !document.hidden && 'wakeLock' in 
 document.addEventListener('visibilitychange', () => {
   if (!loopOn) return;
   if (document.hidden) renderer.setAnimationLoop(null);
-  else { clock.getDelta(); renderer.setAnimationLoop(loop); wakeOn(); }
+  else { clock.getDelta(); renderer.setAnimationLoop(loop); wakeOn(); MP.lastSent = null; MP.sendT = 5; MP.hbT = 31; }
 });
 const RESUME_KEY = 'damteoResume';
 canvas.addEventListener('webglcontextlost', e => {
