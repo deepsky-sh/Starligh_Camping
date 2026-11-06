@@ -85,6 +85,9 @@
         "fa": {
           ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
         },
+        "fl": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1"
+        },
         "$other": {
           ".validate": false
         }

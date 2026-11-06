@@ -90,7 +90,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .joy{position:fixed;left:24px;bottom:calc(28px + env(safe-area-inset-bottom,0px));width:128px;height:128px;border-radius:50%;border:1px solid var(--line);background:rgba(13,20,32,.4);touch-action:none}
 .joy .knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(242,179,91,.85);box-shadow:0 2px 10px rgba(0,0,0,.4)}
 /* 모바일 게임식 동작 버튼: 큰 '앉기' 버튼을 모서리에, '인사'·'달리기'를 그 둘레에 호 모양으로 */
-.tbtns{position:fixed;right:18px;bottom:calc(var(--mapb,124px) + 14px + env(safe-area-inset-bottom,0px));width:172px;height:164px;pointer-events:none;z-index:4}
+.tbtns{position:fixed;right:18px;max-width:none;bottom:calc(var(--mapb,124px) + 14px + env(safe-area-inset-bottom,0px));width:172px;height:164px;pointer-events:none;z-index:4}
 .tbtns .tb{position:absolute;pointer-events:auto;border-radius:50%;border:1.5px solid rgba(255,255,255,.22);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.16),rgba(13,20,32,.62) 70%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-shadow:0 6px 18px rgba(0,0,0,.35),inset 0 -3px 0 rgba(0,0,0,.25);touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;transition:transform .08s,opacity .2s,border-color .2s}
 .tbtns .tb:active{transform:scale(.92)}
 .tbtns .tb i{font-style:normal;line-height:1;display:flex}
@@ -98,8 +98,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .tbtns .tb.l{width:82px;height:82px;right:0;bottom:0;border-color:rgba(242,179,91,.65)}
 .tbtns .tb.l i{font-size:0}.tbtns .tb.l svg{width:30px;height:30px;color:var(--amber)}
 .tbtns .tb.s{width:58px;height:58px}.tbtns .tb.s i{font-size:22px}
-#tb-wave{right:12px;bottom:98px}
-#tb-run{right:96px;bottom:10px}
+#tb-wave{right:12px;bottom:112px}
+#tb-run{right:112px;bottom:12px}
+#tb-flash{right:83px;bottom:83px}
+#tb-bino{right:170px;bottom:76px}
 .tbtns .tb[aria-pressed="true"]{border-color:var(--amber);background:radial-gradient(circle at 35% 30%,rgba(242,179,91,.45),rgba(60,40,12,.7) 70%)}
 .tbtns .tb[aria-pressed="true"] small{color:var(--amber)}
 .tbtns .tb:disabled{opacity:.38}
@@ -369,7 +371,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
   <div class="eyebrow">경기 포천시 관인면 담터길 307-2</div>
   <h1>담터 별빛캠핑장<span class="star"> ★</span></h1>
   <div class="zone"><span id="zone">진입로</span><span class="clock" id="clock">가을 · 13:00</span></div>
-  <div class="mp-row"><button id="mp-badge" class="mp-badge" type="button" hidden title="눌러서 닉네임 바꾸기"></button><button id="bino-btn" class="mp-badge" type="button" aria-label="쌍안경">🔭 쌍안경</button><button id="mp-wave" class="mp-badge" type="button" hidden title="인사하기 (H)">👋 인사</button></div>
+  <div class="mp-row"><button id="mp-badge" class="mp-badge" type="button" hidden title="눌러서 닉네임 바꾸기"></button><button id="bino-btn" class="mp-badge" type="button" aria-label="쌍안경" hidden style="display:none">🔭 쌍안경</button><button id="mp-wave" class="mp-badge" type="button" hidden title="인사하기 (H)">👋 인사</button></div>
 </header>
 
 <button id="menu-toggle" aria-expanded="false" aria-controls="panel">메뉴 ☰</button>
@@ -461,7 +463,7 @@ body.xp-busy .xp-quest,body.xp-busy .xp-actions,body.xp-busy .joy,body.xp-busy .
 <div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
 <button class="act" id="act-shop" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>매점 가격표 보기<kbd>E</kbd></button>
 <div class="modal" id="shop-menu" hidden><div class="modal-card shop-card" role="dialog" aria-labelledby="shop-menu-h"><h3 id="shop-menu-h">매점 가격표</h3><div class="sub">관리동 매점 · 현장 가격표 기준이며 바뀔 수 있어요</div><div class="shop-grid" id="shop-menu-body"></div><button class="modal-close" id="shop-menu-x">닫기</button></div></div>
-<div class="tbtns" id="tbtns" hidden><button id="tb-wave" class="tb s" aria-label="인사"><i>👋</i><small>인사</small></button><button id="tb-run" class="tb s" aria-pressed="false" aria-label="달리기"><i>🏃</i><small>달리기</small></button><button id="tb-sit" class="tb l" aria-pressed="false" aria-label="앉기"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v9h10M7 12l-2 9M17 12l2 9M7 12h10"/></svg></i><small id="tb-sit-lbl">앉기</small></button></div>
+<div class="tbtns" id="tbtns" hidden><button id="tb-wave" class="tb s" aria-label="인사"><i>👋</i><small>인사</small></button><button id="tb-flash" class="tb s" aria-pressed="false" aria-label="손전등"><i>🔦</i><small>손전등</small></button><button id="tb-bino" class="tb s" aria-label="쌍안경"><i>🔭</i><small>쌍안경</small></button><button id="tb-run" class="tb s" aria-pressed="false" aria-label="달리기"><i>🏃</i><small>달리기</small></button><button id="tb-sit" class="tb l" aria-pressed="false" aria-label="앉기"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v9h10M7 12l-2 9M17 12l2 9M7 12h10"/></svg></i><small id="tb-sit-lbl">앉기</small></button></div>
 
 <div id="xp-hud" hidden>
   <section class="xp-quest" id="xp-quest"><h3>캠핑 체험 <button id="xp-quest-tg">접기</button></h3><ul id="xp-quest-list"></ul><div class="xp-inv" id="xp-inv"></div></section>
@@ -7610,6 +7612,84 @@ function tubeUpdate(dt){
   TUBE.rip -= dt; if (TUBE.rip <= 0){ TUBE.rip = sp > .3 ? .35 : 1.2; fishRipple(p.x, p.z, sp > .3 ? .5 : .3); if (sp > .4 && Math.random() < .3) sfx('splash'); }
   player.speed = sp;
 }
+/* ---------- 손전등: 왼손에 들고 발 앞 길을 비춤 (L 키 · 손전등 버튼). 들고 있을 때 인사는 목례 ---------- */
+const FL = { on:false, light:null, tgt:null, mesh:null, beam:null };
+function flashMesh(){
+  const g = new THREE.Group(), dark = new THREE.MeshStandardMaterial({ color:0x1b1f24, roughness:.45, metalness:.6 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, .16, 12), dark); body.rotation.x = Math.PI/2; g.add(body);
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(.03, .02, .05, 14), dark); head.rotation.x = Math.PI/2; head.position.z = .1; g.add(head);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(.027, 16), new THREE.MeshBasicMaterial({ color:0xfff6dc })); lens.position.z = .126; g.add(lens);
+  g.userData.lens = lens; return g;
+}
+function flashBeam(){
+  const m = new THREE.Mesh(new THREE.ConeGeometry(1.1, 6, 24, 1, true), new THREE.MeshBasicMaterial({ color:0xfff1cf, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide, fog:false }));
+  m.geometry.translate(0, -3, 0); m.geometry.rotateX(-Math.PI/2); m.frustumCulled = false; m.renderOrder = 11; return m;   // 꼭짓점이 원점, +z 방향으로 퍼짐
+}
+function flashInit(){
+  if (FL.light) return;
+  FL.light = new THREE.SpotLight(0xfff1d6, 0, 24, .42, .55, 1.4); FL.tgt = new THREE.Object3D(); FL.light.target = FL.tgt;
+  scene.add(FL.light, FL.tgt);
+  FL.mesh = flashMesh(); FL.mesh.visible = false; scene.add(FL.mesh);
+  FL.beam = flashBeam(); scene.add(FL.beam);
+}
+function flashToggle(on){
+  flashInit(); FL.on = on === undefined ? !FL.on : on; sfx('pick');
+  const b = $('#tb-flash'); if (b) b.setAttribute('aria-pressed', String(FL.on));
+  toast(FL.on ? '<b>손전등</b>을 켰어요 · 들고 있을 때 인사는 목례로 해요' : '<b>손전등</b>을 껐어요');
+  MP.lastSent = null; MP.sendT = 1;
+}
+/* 왼팔을 앞으로 들어 손전등을 발 앞 몇 미터 앞쪽으로 향하게 */
+function flashHoldPose(av, yaw){
+  if (!av || !av.model) return null;
+  const B = av._mpB || (av._mpB = boneMap(av.model)); if (!B.LeftArm || !B.LeftForeArm || !B.LeftHand) return null;
+  av.root.updateMatrixWorld(true);
+  const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)), L = new THREE.Vector3().crossVectors(UP, fwd);
+  boneAim(B.LeftArm, B.LeftForeArm, fwd.clone().multiplyScalar(.45).addScaledVector(UP, -.85).addScaledVector(L, .12).normalize(), 1);
+  boneAim(B.LeftForeArm, B.LeftHand, fwd.clone().multiplyScalar(.95).addScaledVector(UP, -.2).addScaledVector(L, -.12).normalize(), 1);
+  return B.LeftHand;
+}
+function flashPlace(mesh, beam, hand, root, yaw, aim, k){
+  const hp = hand ? hand.getWorldPosition(new THREE.Vector3()) : root.position.clone().add(V3(Math.sin(yaw)*.25, 1.05*k, Math.cos(yaw)*.25));
+  const dir = aim || new THREE.Vector3(Math.sin(yaw), -.32, Math.cos(yaw)).normalize();
+  hp.addScaledVector(dir, .05);
+  mesh.position.copy(hp); mesh.lookAt(hp.clone().add(dir)); mesh.visible = true;
+  if (beam){ beam.position.copy(hp).addScaledVector(dir, .12); beam.lookAt(beam.position.clone().add(dir)); }
+  return { hp, dir };
+}
+function flashUpdate(dt){
+  if (!FL.light && !FL.on) return;
+  flashInit();
+  const busy = view === 'drive' || EXP.mode === 'snork' || EXP.mode === 'tube' || BN.on || (typeof SCOPE !== 'undefined' && SCOPE.on);
+  const on = FL.on && !busy && started;
+  FL.k = lerp(FL.k || 0, on ? 1 : 0, 1 - Math.exp(-dt*12));
+  if (FL.k < .02){ FL.light.intensity = 0; FL.mesh.visible = false; FL.beam.material.opacity = 0; return; }
+  const yaw = hero.root.rotation.y, hand = view === 'fp' ? null : flashHoldPose(hero, yaw);
+  let aim = null;
+  if (view === 'fp'){ aim = new THREE.Vector3(); camera.getWorldDirection(aim); aim.y -= .15; aim.normalize(); }
+  const r = flashPlace(FL.mesh, FL.beam, hand, hero.root, yaw, aim, hero.k || 1);
+  if (view === 'fp'){ FL.mesh.visible = false; r.hp.copy(camera.position).add(V3(0, -.25, 0)); }
+  FL.light.position.copy(r.hp); FL.tgt.position.copy(r.hp).addScaledVector(r.dir, 8);
+  FL.light.intensity = FL.k*(14 + 26*nightF);
+  FL.beam.material.opacity = FL.k*.06*nightF; FL.beam.visible = view !== 'fp';
+}
+/* 목례: 허리와 고개를 앞으로 숙였다가 듦 */
+function nodPose(av, yaw, w){
+  if (!av || !av.model || w <= 0) return;
+  const B = av._mpB || (av._mpB = boneMap(av.model)); av.root.updateMatrixWorld(true);
+  const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)), R = new THREE.Vector3().crossVectors(fwd, UP);
+  if (B.Spine1) boneRot(B.Spine1, R, -.28*w);
+  if (B.Spine2) boneRot(B.Spine2, R, -.12*w);
+  if (B.Head) boneRot(B.Head, R, -.4*w);
+}
+/* 다른 접속자가 든 손전등: 손에 든 모양 + 빛줄기 */
+function flashPeer(p){
+  if (!p.fl || p.dr || p.sn){ if (p.flMesh){ p.flMesh.visible = false; p.flBeam.visible = false; } return; }
+  if (!p.flMesh){ p.flMesh = flashMesh(); p.flBeam = flashBeam(); scene.add(p.flMesh, p.flBeam); }
+  const hand = flashHoldPose(p.av, p.h);
+  flashPlace(p.flMesh, p.flBeam, hand, p.av.root, p.h, null, p.av.k || 1);
+  p.flBeam.visible = true; p.flBeam.material.opacity = .09*nightF;
+}
+
 /* ---------- 매점 사장님: 계산대 뒤에 선 30대 여성, 스노클링 장비·장작·오로라 가루를 판매 ---------- */
 EXP.inv = { snork:false, wood:0, aur:0 }; EXP.spent = 0;
 const CLERK = { x:-21.2, z:.85, h:Math.PI/2, root:null, av:null, label:null, ask:{ x:-19.55, z:.75 } };
@@ -8018,7 +8098,7 @@ const LAMP = { on:false, g:null };
 function standLampMake(x, z){
   const g = new THREE.Group(), y0 = H(x, z);
   const dark = new THREE.MeshStandardMaterial({ color:0x23272b, roughness:.5, metalness:.7 }), steel = new THREE.MeshStandardMaterial({ color:0x9aa2a8, roughness:.35, metalness:.85 });
-  for (let i = 0; i < 3; i++){ const a = i/3*Math.PI*2 + .4, leg = new THREE.Mesh(new THREE.CylinderGeometry(.011, .014, 1.05, 6), dark); leg.position.set(Math.cos(a)*.2, .5, Math.sin(a)*.2); leg.rotation.set(Math.sin(a)*.38, 0, -Math.cos(a)*.38); g.add(leg); }
+  for (let i = 0; i < 3; i++){ const a = i/3*Math.PI*2 + .4, leg = new THREE.Mesh(new THREE.CylinderGeometry(.011, .014, 1.05, 6), dark); leg.position.set(Math.cos(a)*.2, .5, Math.sin(a)*.2); leg.rotation.set(-Math.sin(a)*.38, 0, Math.cos(a)*.38); g.add(leg); }
   const hub = new THREE.Mesh(new THREE.CylinderGeometry(.045, .045, .1, 10), dark); hub.position.y = .88; g.add(hub);
   const p1 = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, 1.0, 8), steel); p1.position.y = 1.3; g.add(p1);
   const p2 = new THREE.Mesh(new THREE.CylinderGeometry(.014, .014, .75, 8), steel); p2.position.y = 1.78; g.add(p2);
@@ -8430,6 +8510,7 @@ function bindInput(){
     else if (e.code === 'KeyE' && SHOP.near) shopMenuOpen();
     if (e.code === 'Escape' && SHOP.menuOpen) shopMenuClose();
     if (e.code === 'KeyB' && !e.repeat) binoToggle();
+    if (e.code === 'KeyL' && !e.repeat) flashToggle();
     if (e.code === 'Escape' && BN.on) binoClose();
     if (e.code === 'KeyQ' && !e.repeat) sitToggle();
     if (e.code === 'KeyN' && !e.repeat) skyToggle();
@@ -8478,6 +8559,8 @@ function bindInput(){
   $('#tb-run').addEventListener('click', e => { runToggle = !runToggle; e.currentTarget.setAttribute('aria-pressed', String(runToggle)); });
   $('#tb-sit').addEventListener('click', sitToggle);
   $('#tb-wave').addEventListener('click', () => { if (MP.on) mpGreet(); });
+  $('#tb-flash').addEventListener('click', e => { e.currentTarget.blur(); flashToggle(); });
+  $('#tb-bino').addEventListener('click', e => { e.currentTarget.blur(); binoToggle(); });
   document.querySelectorAll('#seg-view button').forEach(b => b.addEventListener('click', () => setView(b.dataset.v)));
   document.querySelectorAll('#seg-time button').forEach(b => b.addEventListener('click', () => setHour(presetHour(b.dataset.t))));
   $('#btn-home').addEventListener('click', () => {
@@ -8736,7 +8819,7 @@ function mpCleanP(d){
   const r = { n:cleanName(d.n), g:d.g === 'm' ? 'm' : 'f', sit:mpNum(d.sit, 0, 2) | 0, x:mpNum(d.x, -300, 300, NaN), y:mpNum(d.y, -30, 60), z:mpNum(d.z, -300, 300, NaN), h:mpNum(d.h, -1e4, 1e4), s:mpNum(d.s, 0, 8), xp:d.xp ? 1 : 0, w:mpNum(d.w, 0, 1e6) | 0, t:mpNum(d.t, 0, 1e14) };
   if (!Number.isFinite(r.x) || !Number.isFinite(r.z)) return null;
   if (d.cx !== undefined && own(CAR_SPECS, d.ck)){ r.cx = mpNum(d.cx, -300, 300); r.cz = mpNum(d.cz, -300, 300); r.ch = mpNum(d.ch, -1e4, 1e4); r.ck = d.ck; r.dr = d.dr ? 1 : 0; }
-  r.pk = d.pk ? 1 : 0; r.sn = d.sn ? 1 : 0; r.fb = d.fb ? 1 : 0; r.fa = d.fa ? 1 : 0;
+  r.pk = d.pk ? 1 : 0; r.sn = d.sn ? 1 : 0; r.fb = d.fb ? 1 : 0; r.fa = d.fa ? 1 : 0; r.fl = d.fl ? 1 : 0;
   if (d.lm){ r.lm = 1; r.lx = mpNum(d.lx, -300, 300); r.lz = mpNum(d.lz, -300, 300); }
   if (d.ss !== undefined){ r.ss = mpNum(d.ss, 0, 1e6) | 0; r.sa = mpNum(d.sa, -1e4, 1e4); r.sm = mpNum(d.sm, 0, 1); }
   return r;
@@ -8907,10 +8990,10 @@ function mpAddPeer(id, d){
 }
 function mpDropPeer(id){
   const p = MP.peers.get(id); if (!p) return;
-  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.chair) seatDrop(p.chair); if (p.lampG){ standLampDrop(p.lampG); p.lampG = null; } mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
+  scene.remove(p.av.root); scene.remove(p.tag); if (p.bub) scene.remove(p.bub); if (p.chair) seatDrop(p.chair); if (p.lampG){ standLampDrop(p.lampG); p.lampG = null; } if (p.flMesh){ scene.remove(p.flMesh, p.flBeam); } if (p.snMask) scene.remove(p.snMask); if (p.snFoam) for (const f of p.snFoam) scene.remove(f); mpCarDrop(p); MP.peers.delete(id); MP.count = MP.peers.size + 1; mpBadge();
 }
 function mpApplyX(p, d, first){
-  p.pk = d.pk ? 1 : 0; p.sn = d.sn ? 1 : 0; p.fb = d.fb ? 1 : 0; p.fa = d.fa ? 1 : 0;
+  p.pk = d.pk ? 1 : 0; p.sn = d.sn ? 1 : 0; p.fb = d.fb ? 1 : 0; p.fa = d.fa ? 1 : 0; p.fl = d.fl ? 1 : 0;
   p.lm = d.lm ? 1 : 0; if (d.lm){ p.lx = d.lx; p.lz = d.lz; }
   if (d.ss !== undefined){
     if (p.ss === undefined || first) p.ss = d.ss;
@@ -8961,21 +9044,21 @@ function mpUpdate(dt){
   if (!MP.on) return;
   const now = performance.now(), nowS = now/1000, xp = !!EXP.on;
   const d0 = q => Math.hypot(q.x - player.pos.x, q.z - player.pos.z);
-  { const ma = nowS - MP.myWave; mpWavePose(hero, hero.root.rotation.y, mpWaveW(ma), nowS);
+  { const ma = nowS - MP.myWave; if (FL.on) nodPose(hero, hero.root.rotation.y, mpWaveW(ma)); else mpWavePose(hero, hero.root.rotation.y, mpWaveW(ma), nowS);
     if (MP.myBubble){ const on = ma >= 0 && ma < MP_WAVE_S + .4; MP.myBubble.visible = on; if (on) MP.myBubble.position.set(player.pos.x, player.pos.y + (genderOf(HERO_G) === 'm' ? 2.45 : 2.3), player.pos.z); else if (ma > MP_WAVE_S + .4){ scene.remove(MP.myBubble); MP.myBubble = null; } } }
   // send my state: 4×/s while moving, every 4 s when still (also keeps the entry alive)
   MP.sendT += dt;
   const hasCar = xp && CAR.g, drv = hasCar && view === 'drive';
-  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : '', STONE.on ? 1 : 0, LAMP.on ? 1 : 0, STONE.seq, EXP.mode === 'snork' ? 1 : 0, EXP.fire && EXP.fire.boost > 0 ? 1 : 0, EXP.fire && EXP.fire.aur > 0 ? 1 : 0].join();
+  const pos = player.pos, st = [pos.x.toFixed(2), pos.y.toFixed(2), pos.z.toFixed(2), player.heading.toFixed(2), player.speed.toFixed(1), xp ? 1 : 0, HERO_G, SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, MP.waveN, hasCar ? CAR.x.toFixed(1) + ',' + CAR.z.toFixed(1) + ',' + CAR.h.toFixed(2) + ',' + (drv ? 1 : 0) : '', STONE.on ? 1 : 0, LAMP.on ? 1 : 0, STONE.seq, EXP.mode === 'snork' ? 1 : 0, EXP.fire && EXP.fire.boost > 0 ? 1 : 0, EXP.fire && EXP.fire.aur > 0 ? 1 : 0, FL.on ? 1 : 0].join();
   if ((st !== MP.lastSent && MP.sendT > .25) || MP.sendT > 4){
     MP.sendT = 0; MP.lastSent = st;
     const rec = { n:MP.name, g:HERO_G, sit:SIT.k > .5 ? (SIT.own ? 2 : 1) : 0, x:+pos.x.toFixed(2), y:+pos.y.toFixed(2), z:+pos.z.toFixed(2), h:+player.heading.toFixed(2), s:+Math.min(player.speed, 7).toFixed(1), xp:xp ? 1 : 0, w:MP.waveN, t:MP.fb.serverTimestamp() };   // 시각은 서버가 찍음(규칙에서 확인)
-    if (!MP.noX){ if (EXP.mode === 'snork') rec.sn = 1; if (EXP.fire && EXP.fire.boost > 0) rec.fb = 1; if (EXP.fire && EXP.fire.aur > 0) rec.fa = 1; if (STONE.on) rec.pk = 1; if (LAMP.on){ rec.lm = 1; rec.lx = +LAMP.g.position.x.toFixed(2); rec.lz = +LAMP.g.position.z.toFixed(2); } if (STONE.seq > 0){ rec.ss = STONE.seq; rec.sa = +STONE.na.toFixed(3); rec.sm = +STONE.nm.toFixed(3); } }
+    if (!MP.noX){ if (FL.on) rec.fl = 1; if (EXP.mode === 'snork') rec.sn = 1; if (EXP.fire && EXP.fire.boost > 0) rec.fb = 1; if (EXP.fire && EXP.fire.aur > 0) rec.fa = 1; if (STONE.on) rec.pk = 1; if (LAMP.on){ rec.lm = 1; rec.lx = +LAMP.g.position.x.toFixed(2); rec.lz = +LAMP.g.position.z.toFixed(2); } if (STONE.seq > 0){ rec.ss = STONE.seq; rec.sa = +STONE.na.toFixed(3); rec.sm = +STONE.nm.toFixed(3); } }
     if (hasCar){ rec.cx = +CAR.x.toFixed(2); rec.cz = +CAR.z.toFixed(2); rec.ch = +CAR.h.toFixed(2); rec.ck = CAR.kind; rec.dr = drv ? 1 : 0; }
     MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {
       // 아직 새 데이터베이스 규칙이 게시되지 않았다면 추가 항목 없이 다시 보냄 (기본 동작은 그대로)
-      if (MP.noX || !('pk' in rec || 'lm' in rec || 'ss' in rec || 'sn' in rec || 'fb' in rec || 'fa' in rec)) return;
-      MP.noX = true; for (const k of ['pk', 'lm', 'lx', 'lz', 'ss', 'sa', 'sm', 'sn', 'fb', 'fa']) delete rec[k];
+      if (MP.noX || !('pk' in rec || 'lm' in rec || 'ss' in rec || 'sn' in rec || 'fb' in rec || 'fa' in rec || 'fl' in rec)) return;
+      MP.noX = true; for (const k of ['pk', 'lm', 'lx', 'lz', 'ss', 'sa', 'sm', 'sn', 'fb', 'fa', 'fl']) delete rec[k];
       MP.fb.set(MP.fb.ref(MP.db, 'p/' + MP.id), rec).catch(() => {});
     });
   }
@@ -9001,7 +9084,8 @@ function mpUpdate(dt){
     if (p.sit === 2 && !p.chair && p.sk > 0){ p.chair = seatChair(p.x, p.z, p.h); p.chair.own = false; p.chair.peer = true; }
     if (p.chair){ const sc = clamp(p.sk*2, .01, 1); p.chair.g.scale.set(sc, sc, sc); if (p.sk <= 0 || p.sit !== 2 && p.sit){ seatDrop(p.chair); p.chair = null; } }
     if (p.sk > 0 && p.av.model) sitApply(p.av, p.av.root, p.h, p.sk, p.sf || (p.sf = {}), p.x, p.y, p.z);
-    const pa = nowS - p.waveAt; mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
+    const pa = nowS - p.waveAt; if (p.fl) nodPose(p.av, p.h, mpWaveW(pa)); else mpWavePose(p.av, p.h, mpWaveW(pa), nowS);
+    flashPeer(p);
     p.skw = clamp((p.skw || 0) + (p.pk ? 1 : -1)*dt*4, 0, 1);
     if (p.skw > 0){ const ta = p.stoneAt ? nowS - p.stoneAt : -1; stonePose(p.av, p.h, p.skw, ta >= 0 && ta < 1 ? ta : -1, nowS); }
     snorkPeer(p, dt, nowS);
@@ -9053,7 +9137,7 @@ function tick(dt, t){
   npcs.forEach(n => n.update(dt, 0));
   scopeUpdate(dt);
   shopUpdate(dt);
-  xpUpdate(dt, t); stoneUpdate(dt, t); fishSchoolUpdate(dt);
+  xpUpdate(dt, t); stoneUpdate(dt, t); fishSchoolUpdate(dt); flashUpdate(dt);
   styledUpdate();
   helpUpdate();
   updateCamera(dt);
