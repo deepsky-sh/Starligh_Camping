@@ -5703,6 +5703,7 @@ function sitApply(av, root, ry, sit, f, sx, sy, sz){   // root를 의자 위치(
 function seatChair(x, z, ry){   // 휴대용 캠핑의자를 그 자리에 펴기 (일어나면 접어서 치움)
   const g = chair(x, z, ry, furnM.fabric[Math.floor(Math.random()*furnM.fabric.length)]); const s = SEATS[SEATS.length - 1]; s.own = true; g.scale.setScalar(.01); return s;
 }
+function seatShown(o){ for (; o; o = o.parent){ if (!o.visible) return false; if (o === scene) return true; } return false; }   // 숨겨진(다른 사이트 소품) 의자는 제외
 function seatDrop(s){ if (!s) return; scene.remove(s.g); const i = SEATS.indexOf(s); if (i >= 0) SEATS.splice(i, 1); }
 function sitStart(seat){
   SIT.from.copy(hero.root.position); SIT.seat = seat; SIT.on = true; SIT.f = {};
@@ -5728,7 +5729,7 @@ function sitUpdate(dt){
   SIT.k = clamp(SIT.k + (SIT.on ? 1 : -1)*dt*3.2, 0, 1);
   if (SIT.own){ const sc = clamp(SIT.on ? SIT.k*2.2 : SIT.k*1.6, .01, 1); SIT.own.g.scale.set(sc, sc, sc); if (!SIT.on && SIT.k <= 0){ seatDrop(SIT.own); SIT.own = null; } }
   let near = null;
-  if (!SIT.on && ok){ let bd = 1.7; for (const s of SEATS){ if (!s.g.parent || s.own || s.peer) continue; const d = Math.hypot(s.x - player.pos.x, s.z - player.pos.z); if (d < bd && Math.abs(groundAt(s.x, s.z) - player.pos.y) < 1) { bd = d; near = s; } } }
+  if (!SIT.on && ok){ let bd = 1.7; for (const s of SEATS){ if (!s.g.parent || s.own || s.peer || !seatShown(s.g)) continue; const d = Math.hypot(s.x - player.pos.x, s.z - player.pos.z); if (d < bd && Math.abs(groundAt(s.x, s.z) - player.pos.y) < 1) { bd = d; near = s; } } }
   SIT.cand = near;
   const btn = $('#act-sit'); const show = ok && (SIT.on || SIT.k <= 0) && !$('#act-scope').offsetParent;
   if (btn.hidden === show){ btn.hidden = !show; }
@@ -8299,7 +8300,7 @@ function xpEnd(){
   if (!EXP.recycled){ toast('먼저 <b>분리수거장</b>에서 분리수거를 마쳐야 체크아웃할 수 있어요'); return; }
   if (FISH.on) fishStop(); if (GR.on) grillClose(); if (HG.on) hgEnd(true);
   if (EXP.camp){ mpRelease(); if (EXP.fire) xpFireRemove(); xpFriends(false); for (const p of EXP.camp.parts){ for (const o of p.objs) scene.remove(o); for (const c of p.cols){ const k = colliders.indexOf(c); if (k >= 0) colliders.splice(k, 1); } } EXP.camp = null; }
-  EXP.ended = true; $('#xp-actions').hidden = true;
+  EXP.ended = true; $('#xp-actions').hidden = true; xpSaveClear();
   const S = EXP.stats, mins = Math.max(1, Math.round((performance.now() - EXP.t0)/60000));
   const fishList = EXP.fish.concat(); const caught = S.caught;
   $('#xp-end-facts').innerHTML = [
@@ -8322,6 +8323,51 @@ function expStart(){
   document.querySelectorAll('#seg-view button').forEach(b => b.setAttribute('aria-pressed', 'false'));
   setTimeout(() => toast('<b>캠핑 체험</b> · 차를 몰고 들어가 매점 앞 캠장님께 체크인하세요'), 400);
   xpCtx(true);
+}
+/* ---------- 체험하기 이어하기: 진행 상황을 기기에 저장해 두고, 다시 열면(화면이 끊겨 새로고침돼도) 그대로 이어감 ---------- */
+const XPSAVE_KEY = 'damteoXP', XPSAVE_TTL = 6*3600e3;
+function xpSave(){
+  if (!EXP.on || EXP.ended || !started) return;
+  try {
+    const F = EXP.fire, c = EXP.camp;
+    localStorage.setItem(XPSAVE_KEY, JSON.stringify({ v:1, t:Date.now(),
+      x:+player.pos.x.toFixed(2), z:+player.pos.z.toFixed(2), h:+player.heading.toFixed(3), drive:view === 'drive',
+      season, hour:+hourTarget.toFixed(2), checked:!!EXP.checked, bag:!!EXP.bag, done:EXP.done, stats:EXP.stats,
+      trash:EXP.trash, fish:EXP.fish, inv:EXP.inv, money:EXP.money, spent:EXP.spent, recycled:!!EXP.recycled,
+      camp:c ? { id:c.site.id, kind:c.kind } : null, fire:!!(F && F.on), lamp:LAMP.on && LAMP.g ? [LAMP.g.position.x, LAMP.g.position.z] : null,
+      fl:!!FL.on, car:CAR.g ? [CAR.x, CAR.z, CAR.h] : null, el:Math.round(performance.now() - (EXP.t0 || 0)) }));
+  } catch (e){}
+}
+function xpSaveClear(){ try { localStorage.removeItem(XPSAVE_KEY); } catch (e){} }
+function xpSaved(){ try { const r = JSON.parse(localStorage.getItem(XPSAVE_KEY) || 'null'); return r && r.v === 1 && Date.now() - r.t < XPSAVE_TTL ? r : null; } catch (e){ return null; } }
+function xpResume(r){
+  if (r.season && r.season !== season) applySeason(r.season);
+  setHour(r.hour, true);
+  expStart();
+  EXP.t0 = performance.now() - (r.el || 0);
+  Object.assign(EXP.done, r.done || {}); if (r.stats) Object.assign(EXP.stats, r.stats);
+  EXP.checked = !!r.checked; EXP.bag = !!r.bag; EXP.recycled = !!r.recycled;
+  EXP.trash = r.trash || []; EXP.fish = r.fish || []; EXP.inv = Object.assign({ snork:0, wood:0, aur:0 }, r.inv || {}); EXP.money = r.money ?? EXP.money; EXP.spent = r.spent || 0;
+  // 차: 운전 중이었으면 그 자리에서 다시 운전, 아니면 세워 둔 자리에 주차
+  if (r.car && CAR.g){ CAR.x = r.car[0]; CAR.z = r.car[1]; CAR.h = r.car[2]; carPose(); }
+  CAR.auto = 0; CAR.v = 0;
+  if (r.drive){ view = 'drive'; hero.root.visible = false; }
+  else { carSetCols(true); view = 'tp'; setView('tp'); hero.root.visible = true; teleport(r.x, r.z, r.h); xpEngine(false); }
+  // 텐트·타프·테이블·의자를 애니메이션 없이 그대로 세움
+  if (r.camp){
+    const s = (XP_SITES || []).find(q => q.id === r.camp.id);
+    if (s && TENTS.find(t => t.id === r.camp.kind)){
+      const { camp, tent, tarp, table, chairs } = xpBuildParts(s, r.camp.kind);
+      for (const p of [tent, tarp, table, chairs]) xpGrow(p.objs, 0, .25, 1);
+      EXP.camp = camp; if (EXP.done.tent) xpFriends(true);
+      mpClaim(s.id).then(ok => { if (ok) mpSiteSet({ k:r.camp.kind, f:r.fire ? 1 : 0 }); });
+      if (r.fire){ xpFireBuild(); EXP.fire.on = true; }
+      if (r.lamp){ LAMP.g = standLampMake(r.lamp[0], r.lamp[1]); LAMP.on = true; }
+    }
+  }
+  if (r.fl) flashToggle(true);
+  xpHud(); xpCtx(true);
+  setTimeout(() => toast(`<b>체험하기 이어하기</b> · ${r.camp ? r.camp.id + ' 사이트, ' : ''}캠핑 체험 ${Object.values(EXP.done).filter(Boolean).length}가지 완료 상태로 돌아왔어요`), 500);
 }
 function xpCamUpdate(dt){
   if (!EXP.cam) return;
@@ -8511,6 +8557,7 @@ function stoneRemote(p, a, m){
 
 function xpUpdate(dt, t){
   if (!EXP.on) return;
+  EXP.saveT = (EXP.saveT || 0) - dt; if (EXP.saveT <= 0){ EXP.saveT = 4; xpSave(); }
   EXP.layT = (EXP.layT || 0) - dt; if (EXP.layT <= 0){ EXP.layT = .7; xpActLayout(); }
   chiefUpdate(dt, t); clerkUpdate(dt); xpAnimUpdate(dt); xpProgUpdate(); xpFireUpdate(dt, t); grillUpdate(dt, t); fishUpdate(dt, t); hgUpdate(dt); xpFriendsUpdate(dt);
   if (LAMP.g) standLampLight(LAMP.g);
@@ -9279,7 +9326,7 @@ async function mpInit(){
       n = cleanName(n || ''); if (!n || n === '손님' && !(n || '').trim()) return;
       MP.name = n; try { localStorage.setItem('damteoNick', n); } catch (e){} mpBadge(); MP.lastSent = null;
     });
-    addEventListener('pagehide', () => { MP.lastSent = null; });
+    addEventListener('pagehide', () => { MP.lastSent = null; xpSave(); });
   } catch (e){ MP.on = false; console.warn('같이 둘러보기를 켤 수 없어요', e); }
 }
 function mpUpdate(dt){
@@ -9351,7 +9398,7 @@ function loopStart(){ loopOn = true; if (!document.hidden){ clock.getDelta(); re
 async function wakeOn(){ try { if (started && !document.hidden && 'wakeLock' in navigator && !wakeLk){ wakeLk = await navigator.wakeLock.request('screen'); wakeLk.addEventListener('release', () => { wakeLk = null; }); } } catch (e){} }
 document.addEventListener('visibilitychange', () => {
   if (!loopOn) return;
-  if (document.hidden) renderer.setAnimationLoop(null);
+  if (document.hidden){ renderer.setAnimationLoop(null); xpSave(); }
   else { clock.getDelta(); renderer.setAnimationLoop(loop); wakeOn(); MP.lastSent = null; MP.sendT = 5; MP.hbT = 31; }
 });
 const RESUME_KEY = 'damteoResume';
@@ -9362,9 +9409,10 @@ canvas.addEventListener('webglcontextlost', e => {
   d.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,12,20,.85);color:#e9e4d8;font:600 16px "IBM Plex Sans KR",sans-serif;z-index:99';
   document.body.appendChild(d); setTimeout(() => location.reload(), 900);
 }, false);
-function resumeAfterReload(){
+function resumeAfterReload(peek){
   let r = null; try { r = JSON.parse(sessionStorage.getItem(RESUME_KEY) || 'null'); sessionStorage.removeItem(RESUME_KEY); } catch (e){}
   if (!r || !r.started || Date.now() - r.t > 120000) return false;
+  if (peek){ setGfx('lite'); renderer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1)); return true; }
   setGfx('lite'); renderer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1));
   if (r.season && r.season !== season) applySeason(r.season);
   $('#intro').hidden = true; started = true; mpInit(); wakeOn();
@@ -9446,9 +9494,17 @@ async function boot(){
   const bx = $('#btn-exp'); bx.disabled = false;
   bx.addEventListener('click', () => {
     $('#intro').hidden = true; started = true; mpInit(); wakeOn();
-    setView('tp'); expStart(); canvas.focus();
+    const sv = xpSaved(); if (sv) xpResume(sv); else { setView('tp'); expStart(); } canvas.focus();
   });
-  resumeAfterReload();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  const xr = xpSaved();
+  if (xr){ bx.textContent = '체험하기 이어하기'; bx.classList.add('resume'); }
+  if (xr && Date.now() - xr.t < 30*60e3 && (resumeAfterReload(true) || true)){
+    // 30분 안에 다시 열면(화면이 꺼져 새로고침된 경우 포함) 처음 화면 없이 바로 이어서, 그보다 오래면 '체험하기 이어하기' 버튼으로
+    $('#intro').hidden = true; started = true; mpInit(); wakeOn(); canvas.focus();
+    xpResume(xr);
+  } else resumeAfterReload();
+  addEventListener('pagehide', xpSave);
   window.__camp = {
     freeze:()=>{ loopOn = false; renderer.setAnimationLoop(null); }, resume:()=>{ loopStart(); },
     step:(n=1,dt=1/30)=>{ for(let i=0;i<n;i++){ simT+=dt; tick(dt, simT); } return renderer.info.render.triangles; },
